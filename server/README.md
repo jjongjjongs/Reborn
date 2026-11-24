@@ -36,8 +36,7 @@ DNS 리다이렉터(53)와 게임 서버(80)를 함께 띄우고, 폰에 넣을 
   (상위 포워딩은 PC가 정상 인터넷이어야 동작)
 - `reborn_server.py`: 게임 HTTP 프로토콜 응답.
 
-> 윈도우에서는 `sudo` 대신 관리자 PowerShell에서 `python server
-un.py`.
+> 윈도우에서는 `sudo` 대신 관리자 PowerShell에서 `python server/run.py`.
 > 53/80 포트를 다른 프로그램(Windows 공유, IIS 등)이 쓰고 있으면 종료 후 실행.
 
 ## 게임을 이 서버로 보내기 (수동 DNS 리다이렉트)
