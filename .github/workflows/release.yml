@@ -12,14 +12,15 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      TAG: reborn-3.4.7
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
+
       - name: Publish release with APK + OBB
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -e
-          TAG="reborn-3.4.7"
           TITLE="Reborn 3.4.7 (build 347)"
           NOTES="재서명 APK + 핀 교체 OBB. 두 파일을 함께 설치하세요.
 
@@ -28,7 +29,8 @@ jobs:
           2) SpecialSoldier-reborn-3.4.7.apk 설치
           3) main.347.com.wellgames.ss.obb 를 /sdcard/Android/obb/com.wellgames.ss/ 에 복사
 
-          서명 인증서 해시 -1575741080 (APK/OBB 일치). 서버 접속은 server/ 참고."
+          FULL(단일 APK)이 첨부돼 있으면 OBB 복사 없이 그것만 설치해도 됩니다(실기기 확인 권장).
+          서명 인증서 해시 -1575741080. 서버 접속은 server/ 참고."
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" \
               "dist/SpecialSoldier-reborn-3.4.7.apk" \
@@ -41,3 +43,31 @@ jobs:
               --title "$TITLE" \
               --notes "$NOTES"
           fi
+
+      # Optional: build the single self-contained APK (OBB merged in) and attach
+      # it, only when the signing keystore is provided as the KEYSTORE_B64 secret
+      # (base64 of reborn-release.keystore). Keeps the private key out of git.
+      - name: Build + attach single merged APK (if keystore secret present)
+        if: ${{ env.HAS_KS == 'true' }}
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
+        run: |
+          set -e
+          echo "$KEYSTORE_B64" | base64 -d > ks.keystore
+          PASS="${KEYSTORE_PASS:-reborn2024}"
+          python3 tools/build/merge_obb_into_apk.py \
+            dist/SpecialSoldier-reborn-3.4.7.apk \
+            dist/main.347.com.wellgames.ss.obb \
+            merged-unsigned.apk
+          JAVA_HOME="$(dirname "$(dirname "$(readlink -f "$(which jarsigner)")")")" \
+            bash tools/build/repack_sign.sh merged-unsigned.apk \
+            SpecialSoldier-reborn-3.4.7-full.apk ks.keystore "$PASS" reborn
+          gh release upload "$TAG" SpecialSoldier-reborn-3.4.7-full.apk --clobber
+          rm -f ks.keystore
+
+    outputs: {}
+
+# Enable the FULL single-APK asset by adding one repo secret:
+#   KEYSTORE_B64 = base64 of reborn-release.keystore
+# (optional KEYSTORE_PASS, defaults to reborn2024). Then re-run this workflow.
