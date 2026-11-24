@@ -15,6 +15,7 @@
 //   response: M_WEB_RESPONSE json {CODE,RESULT,DATA,TIME,CB_NAME,ERROR}
 //             RESULT 0=PASS; DATA is a JSON string.
 
+#define _GNU_SOURCE 1
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <pthread.h>
