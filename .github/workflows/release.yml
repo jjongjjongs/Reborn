@@ -15,6 +15,7 @@ jobs:
     env:
       TAG: reborn-3.4.7
       GH_TOKEN: ${{ github.token }}
+      HAS_KS: ${{ secrets.KEYSTORE_B64 != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -65,8 +66,6 @@ jobs:
             SpecialSoldier-reborn-3.4.7-full.apk ks.keystore "$PASS" reborn
           gh release upload "$TAG" SpecialSoldier-reborn-3.4.7-full.apk --clobber
           rm -f ks.keystore
-
-    outputs: {}
 
 # Enable the FULL single-APK asset by adding one repo secret:
 #   KEYSTORE_B64 = base64 of reborn-release.keystore
