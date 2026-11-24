@@ -35,6 +35,28 @@
 #ifndef PROFILE_PATH
 #define PROFILE_PATH FILES_DIR "/reborn_profile.txt"
 #endif
+#ifndef LOG_PATH
+// External storage so a file-manager app can read it even after a crash
+// (the app has WRITE_EXTERNAL_STORAGE and targets SDK 28 = legacy storage).
+#define LOG_PATH "/sdcard/reborn_requests.log"
+#endif
+
+// Append one line to the request log. Readable two ways, no PC needed:
+//   - file manager: /sdcard/reborn_requests.log  (survives a crash)
+//   - browser:      http://127.0.0.1:<port>/__log (while the app is running)
+static void log_line(const char *proto, int handled, const char *env) {
+    FILE *f = fopen(LOG_PATH, "a");
+    if (!f) return;
+    char head[200];
+    int i = 0;
+    for (const char *p = env; *p && i < 180; p++) {   // one line, trimmed
+        head[i++] = (*p == '\n' || *p == '\r') ? ' ' : *p;
+    }
+    head[i] = 0;
+    fprintf(f, "%ld  %-20s %s  %s\n", (long)time(NULL), proto,
+            handled ? "OK " : "STUB", head);
+    fclose(f);
+}
 
 // ------------------------------------------------------------ persistence
 // Minimal line-based store so we avoid a JSON parser in C. Extend as needed.
@@ -217,6 +239,7 @@ static void inner_player(char *buf, int cap, const Profile *p) {
 // Route one protocol to its response. Returns via send_envelope.
 static void handle(int fd, const char *proto, const char *env) {
     char inner[16384];
+    int handled = 1;
     pthread_mutex_lock(&g_lock);
 
     if (!strcmp(proto, "connection_string")) {
@@ -239,10 +262,11 @@ static void handle(int fd, const char *proto, const char *env) {
     } else {
         // keep the client moving; empty PASS payload
         snprintf(inner, sizeof(inner), "{}");
+        handled = 0;
     }
 
     pthread_mutex_unlock(&g_lock);
-    (void)env;
+    log_line(proto, handled, env);
     send_envelope(fd, proto, inner);
 }
 
@@ -290,6 +314,30 @@ static void serve(int fd) {
     char proto[64];
     extract_proto(path, proto, sizeof(proto));
 
+    // Browser diagnostics (open these in the phone's browser, no PC needed):
+    //   http://127.0.0.1:42427/__ping  -> "reborn ok"
+    //   http://127.0.0.1:42427/__log   -> the request history (last proto = crash point)
+    if (!strcmp(proto, "__ping")) {
+        const char *ok = "reborn ok\n";
+        char h[160];
+        int hn = snprintf(h, sizeof(h), "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n"
+                          "Content-Length: %zu\r\nConnection: close\r\n\r\n", strlen(ok));
+        write(fd, h, hn); write(fd, ok, strlen(ok));
+        return;
+    }
+    if (!strcmp(proto, "__log")) {
+        FILE *lf = fopen(LOG_PATH, "r");
+        char buf[65536];
+        int n = lf ? (int)fread(buf, 1, sizeof(buf), lf) : 0;
+        if (lf) fclose(lf);
+        char h[200];
+        int hn = snprintf(h, sizeof(h), "HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\n"
+                          "Content-Length: %d\r\nConnection: close\r\n\r\n", n);
+        write(fd, h, hn);
+        if (n > 0) write(fd, buf, n);
+        return;
+    }
+
     // find b= (query for GET, body for POST)
     char env[12288] = {0};
     const char *b = strstr(path, "b=");
@@ -335,6 +383,7 @@ static void reborn_start(void) {
     pthread_mutex_lock(&g_lock);
     profile_load(&g_prof);
     pthread_mutex_unlock(&g_lock);
+    log_line("=== session start ===", 1, "");
     pthread_t t;
     pthread_create(&t, NULL, server_main, NULL);
     pthread_detach(t);
