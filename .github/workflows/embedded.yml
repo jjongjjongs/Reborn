@@ -31,16 +31,22 @@ jobs:
           "$CC" -shared -fPIC -O2 -s native/reborn_embedded/reborn_server.c -o libreborn.so
           file libreborn.so
 
-      - name: Patch libil2cpp.so (redirect + anti-tamper noop + NEEDED libreborn.so)
+      - name: Patch libil2cpp.so (redirect + anti-tamper + no-Google + NEEDED libreborn.so)
         run: |
           set -e
           mkdir -p work
           unzip -o -q dist/SpecialSoldier-reborn-3.4.7.apk "lib/arm64-v8a/libil2cpp.so" -d work
           SO=work/lib/arm64-v8a/libil2cpp.so
           echo "$IL2CPP_SHA  $SO" | sha256sum -c
+          # base URL -> embedded localhost server
           python3 tools/build/patch_redirect.py "$SO" 0x1d382d4 0x189b254 42427
-          # GameManager.OnInjectionDetected -> ret (stops the INJECT DLL report + force-exit)
+          # GameManager.OnInjectionDetected -> ret (no INJECT DLL report / force-exit)
           python3 tools/build/patch_noop.py "$SO" 0x1c77dc8
+          # GPlayServiceManager.Connect -> false, GoogleSignIn -> ret
+          # (re-signed APK can't use Google Play Games; launching it crashed the
+          #  app at the 6s timeout. Skipping it lets the login-select / guest path run.)
+          python3 tools/build/patch_noop.py "$SO" --ret0 0x1ceaec0
+          python3 tools/build/patch_noop.py "$SO" 0x1ceb430
           patchelf --add-needed libreborn.so "$SO"
           readelf -dW "$SO" | grep -i needed | head
 
