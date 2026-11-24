@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/release.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish release with APK + OBB
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          TAG="reborn-3.4.7"
+          TITLE="Reborn 3.4.7 (build 347)"
+          NOTES="재서명 APK + 핀 교체 OBB. 두 파일을 함께 설치하세요.
+
+          설치:
+          1) 기존 앱 삭제
+          2) SpecialSoldier-reborn-3.4.7.apk 설치
+          3) main.347.com.wellgames.ss.obb 를 /sdcard/Android/obb/com.wellgames.ss/ 에 복사
+
+          서명 인증서 해시 -1575741080 (APK/OBB 일치). 서버 접속은 server/ 참고."
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" \
+              "dist/SpecialSoldier-reborn-3.4.7.apk" \
+              "dist/main.347.com.wellgames.ss.obb" --clobber
+          else
+            gh release create "$TAG" \
+              "dist/SpecialSoldier-reborn-3.4.7.apk" \
+              "dist/main.347.com.wellgames.ss.obb" \
+              --target "${{ github.sha }}" \
+              --title "$TITLE" \
+              --notes "$NOTES"
+          fi
