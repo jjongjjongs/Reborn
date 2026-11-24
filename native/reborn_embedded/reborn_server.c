@@ -315,6 +315,16 @@ static void serve(int fd) {
     char proto[64];
     extract_proto(path, proto, sizeof(proto));
 
+    // Log the method line the instant it arrives (before parsing/handling), so
+    // even a request that stalls or that we can't route still shows up.
+    if (strcmp(proto, "__ping") && strcmp(proto, "__log")) {
+        char firstline[256];
+        int fl = 0;
+        for (int i = 0; req[i] && req[i] != '\r' && req[i] != '\n' && fl < 200; i++) firstline[fl++] = req[i];
+        firstline[fl] = 0;
+        log_line("RECV", 1, firstline);
+    }
+
     // Browser diagnostics (open these in the phone's browser, no PC needed):
     //   http://127.0.0.1:42427/__ping  -> "reborn ok"
     //   http://127.0.0.1:42427/__log   -> the request history (last proto = crash point)
@@ -357,6 +367,14 @@ static void serve(int fd) {
     handle(fd, proto, env);
 }
 
+static void *conn_thread(void *arg) {
+    int c = *(int *)arg;
+    free(arg);
+    serve(c);
+    close(c);
+    return NULL;
+}
+
 static void *server_main(void *arg) {
     (void)arg;
     int s = socket(AF_INET, SOCK_STREAM, 0);
@@ -373,6 +391,21 @@ static void *server_main(void *arg) {
     for (;;) {
         int c = accept(s, NULL, NULL);
         if (c < 0) continue;
+        // never block forever on a slow/odd client
+        struct timeval tv = { 4, 0 };
+        setsockopt(c, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+        setsockopt(c, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+        // handle each connection on its own thread so one stall can't block others
+        pthread_t ct;
+        int *cp = (int *)malloc(sizeof(int));
+        if (cp) {
+            *cp = c;
+            if (pthread_create(&ct, NULL, conn_thread, cp) == 0) {
+                pthread_detach(ct);
+                continue;
+            }
+            free(cp);
+        }
         serve(c);
         close(c);
     }
