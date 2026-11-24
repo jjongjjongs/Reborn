@@ -19,7 +19,27 @@ REBORN_PORT=8080 python3 server/reborn_server.py
 
 모든 요청은 콘솔과 `server/requests.log`에 해독된 봉투째 기록된다.
 
-## 게임을 이 서버로 보내기 (DNS 리다이렉트)
+## 한 번에 실행 (권장)
+
+PC(폰과 같은 Wi‑Fi)에서:
+
+```bash
+sudo python3 server/run.py
+```
+
+DNS 리다이렉터(53)와 게임 서버(80)를 함께 띄우고, 폰에 넣을 설정을 출력한다.
+그다음 폰에서 **Wi‑Fi 설정 > 현재 네트워크 > IP 설정 '고정' > DNS 1 = PC의 LAN IP**
+로 바꾸고 게임을 실행한다. 루팅이 필요 없다.
+
+- `dns_redirect.py`: `fps.ss.nexon.com` 등 게임 호스트만 PC로 돌리고, 나머지 DNS는
+  상위 서버(기본 8.8.8.8)로 그대로 넘겨 폰의 다른 통신은 유지한다.
+  (상위 포워딩은 PC가 정상 인터넷이어야 동작)
+- `reborn_server.py`: 게임 HTTP 프로토콜 응답.
+
+> 윈도우에서는 `sudo` 대신 관리자 PowerShell에서 `python serverun.py`.
+> 53/80 포트를 다른 프로그램(Windows 공유, IIS 등)이 쓰고 있으면 종료 후 실행.
+
+## 게임을 이 서버로 보내기 (수동 DNS 리다이렉트)
 
 서버 주소는 APK 안에 RSA로 암호화돼 있어 APK만으로는 바꾸기 어렵다. 가장 깔끔한
 방법은 기기가 `fps.ss.nexon.com`을 이 서버 IP로 찾아가게 만드는 것이다.
