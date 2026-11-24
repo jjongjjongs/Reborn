@@ -59,4 +59,21 @@ tools/build/repack_sign.sh input.apk reborn-348.apk reborn-release.keystore <PAS
       (안티탬퍼를 제거하지 않고 핀만 우리 키로 바꾸는 방식)
 - (B) `libil2cpp.so`의 해당 검사 함수를 통과하도록 패치
 
-이 결정은 다음 단계에서 사용자와 함께 정한다.
+### 선택 1 적용 (OBB 핀 교체) — 완료
+
+재서명 키의 인증서 해시가 11자(`-1916262714`와 같은 길이)가 되도록 키스토어를
+생성해, OBB `level2`의 기대 해시를 그 값으로 그 자리에서 교체했다.
+
+```bash
+# 1) 11자 해시가 나오는 키스토어 찾기 (약 25% 확률, 보통 몇 번 안에 나옴)
+#    tools/build 의 생성 루프 참고. 찾은 키스토어가 이후 영구 키스토어가 된다.
+# 2) 그 키의 인증서 해시 계산 → NEW
+# 3) OBB 의 기대 해시 교체 (OLD/NEW 길이 동일해야 함)
+python3 tools/build/patch_obb_sig.py main.347.orig.obb main.347.com.wellgames.ss.obb -1916262714 <NEW>
+# 4) 같은 키스토어로 APK 재서명
+tools/build/repack_sign.sh in.apk out.apk reborn-release.keystore <PASS> reborn
+```
+
+현재 키스토어의 인증서 해시 = `-1575741080` (APK·OBB 양쪽 일치 확인).
+루팅/에뮬레이터 감지와 NGSM은 별개이며, 실행 테스트에서 걸리면 그때 처리한다.
+서버 주소를 우리 서버로 바꾸는 것은 다음 단계(3단계)다.
