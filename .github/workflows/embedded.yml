@@ -70,14 +70,6 @@ jobs:
           # (0x1c33790), so it ignores the err verdict and runs SetDefaultUrl ->
           # LoadingBar -> PlayMakerFSM.SendEvent to load the lobby.
           python3 tools/build/patch_branch.py "$SO" 0x1c336a8 0x1c33790
-          # M_CONFIG_DATA.Deserialize stores the parsed config dict into the
-          # singleton (str x20,[x21,#0x188] @0x1b0ec60) and only then parses the
-          # ~69 typed fields, which throws on our minimal config (the catch block
-          # shows the "update -> download page" popup). Jump straight from after
-          # the dict store to the return-the-singleton epilogue (0x1b0ef00), so
-          # Deserialize succeeds with the dict in place and no popup; the game
-          # reads config values lazily from that dict.
-          python3 tools/build/patch_branch.py "$SO" 0x1b0ec64 0x1b0ef00
           # Inline execution trace: hook boot/login method entries to append a
           # letter to /sdcard/reborn_trace.bin (game logging is stripped and the
           # app can't read the system log that says why it is torn down). Uses a

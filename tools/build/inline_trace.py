@@ -54,6 +54,11 @@ HOOKS = [
     (0x1C32E8C, "P", "U_Logo.set_REAL"),
     (0x1C33154, "Q", "U_Logo.set_PASS"),
     (0x1C332B8, "R", "U_Logo.go_Stage"),
+    # config / update-popup diagnosis
+    (0x1B0EAC8, "S", "M_CONFIG_DATA.Deserialize (entry)"),
+    (0x1B0EC64, "T", "M_CONFIG_DATA.Deserialize (past ToDictionary)"),
+    (0x1E973CC, "U", "ServerConfig.AMBOFFIEIFO (config cb)"),
+    (0x1E96EBC, "V", "ServerConfig.JBPINJJDCKI (config cb)"),
 ]
 
 
