@@ -63,6 +63,13 @@ jobs:
           # 400 for app id 1499779786990739 that a re-signed key can't validate)
           # and any FB web-login activity, without stalling boot.
           python3 tools/build/patch_noop.py "$SO" 0x1cd7d74
+          # The connection_string callback (U_Logo.<PM_SetConnectionString>m__0)
+          # wrongly took its error branch (traced O B M: LoadingBar, cb, error
+          # popup) and never advanced to the lobby. Force the success branch:
+          # its `cbz x21(err), success` at 0x1c336a8 -> unconditional `b success`
+          # (0x1c33790), so it ignores the err verdict and runs SetDefaultUrl ->
+          # LoadingBar -> PlayMakerFSM.SendEvent to load the lobby.
+          python3 tools/build/patch_branch.py "$SO" 0x1c336a8 0x1c33790
           # Inline execution trace: hook boot/login method entries to append a
           # letter to /sdcard/reborn_trace.bin (game logging is stripped and the
           # app can't read the system log that says why it is torn down). Uses a
