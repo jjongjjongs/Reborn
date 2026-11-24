@@ -2,7 +2,7 @@ name: Embedded APK
 
 # Builds the self-contained APK: an in-process native server (libreborn.so)
 # plus a redirect patch so the game talks to 127.0.0.1 — no PC, no server,
-# no internet. Needs the signing keystore as the KEYSTORE_B64 secret.
+# no internet. Signs with the keystore committed at tools/build/.
 on:
   workflow_dispatch:
 
@@ -18,13 +18,6 @@ jobs:
       IL2CPP_SHA: fee1ef4ec69a9cf00e1d12e53b5581ee34e17c542cb05e379c0a87f070686875
     steps:
       - uses: actions/checkout@v4
-
-      - name: Require keystore secret
-        run: |
-          if [ -z "${{ secrets.KEYSTORE_B64 }}" ]; then
-            echo "::error::KEYSTORE_B64 secret is not set. Add it (base64 of reborn-release.keystore) and re-run."
-            exit 1
-          fi
 
       - name: Install patchelf
         run: sudo apt-get update -q && sudo apt-get install -y -q patchelf
@@ -52,8 +45,6 @@ jobs:
       - name: Assemble + sign the embedded APK
         run: |
           set -e
-          echo "${{ secrets.KEYSTORE_B64 }}" | base64 -d > ks.keystore
-          PASS="${{ secrets.KEYSTORE_PASS }}"; PASS="${PASS:-reborn2024}"
           python3 tools/build/build_embedded.py \
             dist/SpecialSoldier-reborn-3.4.7.apk \
             dist/main.347.com.wellgames.ss.obb \
@@ -62,12 +53,9 @@ jobs:
             embedded-unsigned.apk
           JAVA_HOME="$(dirname "$(dirname "$(readlink -f "$(which jarsigner)")")")" \
             bash tools/build/repack_sign.sh embedded-unsigned.apk \
-            SpecialSoldier-reborn-3.4.7-embedded.apk ks.keystore "$PASS" reborn
-          rm -f ks.keystore
+            SpecialSoldier-reborn-3.4.7-embedded.apk \
+            tools/build/reborn-release.keystore reborn2024 reborn
           ls -l SpecialSoldier-reborn-3.4.7-embedded.apk
 
       - name: Attach to release
         run: gh release upload "$TAG" SpecialSoldier-reborn-3.4.7-embedded.apk --clobber
-
-# One-time setup: add repo secret KEYSTORE_B64 = base64 of reborn-release.keystore
-#   (optional KEYSTORE_PASS; defaults to reborn2024). Then run this workflow.
