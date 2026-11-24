@@ -97,24 +97,85 @@ def h_connection_string(guid, args, host):
     return {"URL": url, "NOTICE": "", "STATE": "live"}, PASS, None
 
 
-def h_login(guid, args, host):
-    # Hand the client a session so it proceeds to the lobby fetch sequence.
-    return {"GUID": guid or 1, "TOKEN": 1, "RESULT": "OK"}, PASS, None
+DEFAULT_GUID = 1000001
 
 
 def h_create(guid, args, host):
-    return {"GUID": guid or 1, "TOKEN": 1}, PASS, None
-
-
-def h_myinfo(guid, args, host):
+    # U_Lobby_Loading.CB_CREATE_ACCOUNT reads GUID, TOKEN, NEWACCOUNT, AGREE.
     return {
-        "GUID": guid or 1, "NICK": "Soldier", "LEVEL": 1, "EXP": 0,
-        "GOLD": 0, "CASH": 0, "SCOIN": 0,
+        "GUID": DEFAULT_GUID,
+        "TOKEN": 1,
+        "NEWACCOUNT": 1,
+        "AGREE": 1,
+        "AGREE_VER": 1,
     }, PASS, None
 
 
+def h_login(guid, args, host):
+    # U_Lobby_Loading.CB_LOGIN: absence of LEAVE_DATE => no deletion-recovery
+    # prompt; on success it logs "Login Success" and moves to RequestMyinfo.
+    return {"NOW_TIC": int(time.time()), "NEW_USER_CARE": 0}, PASS, None
+
+
+def _money(gold=0, cash=0, scoin=0, heart=0, coin=0):
+    # M_MONEY: properties GOLD/CASH/SCOIN/HEART/COIN (plain ints over ObscuredInt).
+    return {"GOLD": gold, "CASH": cash, "SCOIN": scoin, "HEART": heart, "COIN": coin}
+
+
+def _record():
+    # M_RECORD_PLAYER: all stat ints + EXP (property over ObscuredInt _EXP).
+    keys = ("KILL DEATH CLANSHOT HEADSHOT RIFLE MACHINE SNIPER PISTOL SHOTGUN "
+            "KNIFE SWORD GRENADE TEAM SUICIDE ASSIST DUALPISTOLS CROSSBOW ROCKET "
+            "DUALRIFLES THROW_WEAPON PVE2_BEST_TIME PVE2_BEST_SCORE COLLECTION_POINT "
+            "DINO_SCORE EXP").split()
+    return {k: 0 for k in keys}
+
+
+def _inven():
+    # M_INVEN: empty lists so the loadout UI has valid (if empty) collections.
+    return {
+        "WEAPON_LIST": [], "CHARACTER_LIST": [], "CHARACTER_SKIN_LIST": [],
+        "GRENADE": "", "PVP_INVENTORY_MAXSIZE": 100, "PVE_INVENTORY_MAXSIZE": 100,
+        "INVENTORY_EXPANSION_INFO": [],
+        "WEAPON_1": 0, "WEAPON_2": 0, "WEAPON_3": 0,
+        "CHARACTER": 0, "CHARACTER_SKINID": 0,
+    }
+
+
+def _player(guid):
+    # M_PLAYER (parsed by MyJson.UpdatePlayer). Uppercase keys = field names;
+    # nested objects are minimal-but-valid so the lobby can populate without
+    # null collections. Fill real values against device logs (requests.log).
+    return {
+        "ID": guid or DEFAULT_GUID,
+        "NAME": "Soldier",
+        "MONEY": _money(),
+        "RECORD": _record(),
+        "INVEN": _inven(),
+        "PVE_INVEN": _inven(),
+        "CLAN": None,
+        "CLAN_TYPE": 0,
+        "GACHA": {"TIME": "", "CASH": 0},
+        "FIRST": [], "EVENT": [], "ONEYEAR": [], "MEGA": [], "NEWBE": [], "MONTH": [],
+        "RECEIPTS": [],
+        "NCS_TOKEN": "",
+        "FRIEND_DENY": False, "CLAN_DENY": False, "PARTY_DENY": False,
+        "MAIN_ICON_ID": 0, "FRIEND_STATE": 0, "IS_RETURN": False,
+        "TITLE": 0,
+        "BOOSTER": [],
+        "VIP_LIST": [], "VIP2_LIST": [], "VIP3_LIST": [],
+        "VIP4_LIST": [], "VIP6_LIST": [], "VIP7_LIST": [],
+        "ATTEND_INFO": {"ATTEND": [], "THIS_MONTH": 0, "TODAY": 0, "ACC1020": [], "COUNT": 0},
+        "STATUS": 0,
+    }
+
+
+def h_myinfo(guid, args, host):
+    return _player(guid), PASS, None
+
+
 def h_money(guid, args, host):
-    return {"GOLD": 0, "CASH": 0, "SCOIN": 0}, PASS, None
+    return _money(), PASS, None
 
 
 HANDLERS = {
