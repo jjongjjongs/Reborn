@@ -45,9 +45,9 @@ jobs:
           # GPlayServiceManager.Connect -> false, GoogleSignIn -> ret (no Google activity)
           python3 tools/build/patch_noop.py "$SO" --ret0 0x1ceaec0
           python3 tools/build/patch_noop.py "$SO" 0x1ceb430
-          # U_Lobby_Loading.SocialLogin -> ConnectPlatForm (skip the Google dance that
-          # force-exits 6s in; go straight to the guest platform-connect -> server)
-          python3 tools/build/patch_branch.py "$SO" 0x1c223ec 0x1c23fdc
+          # CHECK_GOOGLE_LOGIN (the 6s callback that freezes the main thread) ->
+          # GameServerLogin, so the guest login request is sent to the server.
+          python3 tools/build/patch_branch.py "$SO" 0x1c228cc 0x1c23bdc
           patchelf --add-needed libreborn.so "$SO"
           readelf -dW "$SO" | grep -i needed | head
 
