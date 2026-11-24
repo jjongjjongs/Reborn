@@ -17,6 +17,8 @@ Usage:
 import sys
 import zipfile
 
+from strip_fb_manifest import strip_fb_providers
+
 
 def main():
     apk_path, obb_path, il2cpp_path, reborn_path, out_path = sys.argv[1:6]
@@ -33,7 +35,9 @@ def main():
 
     IL2CPP = "lib/arm64-v8a/libil2cpp.so"
     REBORN = "lib/arm64-v8a/libreborn.so"
+    MANIFEST = "AndroidManifest.xml"
     dropped = added = 0
+    fb_stripped = False
     with zipfile.ZipFile(out_path, "w") as out:
         for info in apk.infolist():
             name = info.filename
@@ -42,6 +46,16 @@ def main():
                 continue  # arm64-only build
             if name == IL2CPP:
                 out.writestr(info, il2cpp, compress_type=info.compress_type)
+                continue
+            if name == MANIFEST:
+                # drop Facebook's auto-init content providers: the native FB SDK
+                # inits from the manifest before any C# runs and its app-settings
+                # Graph fetch fails (HTTP 400) on a re-signed key, so disabling the
+                # C# FacebookManager is not enough.
+                man = strip_fb_providers(apk.read(name),
+                                         log=lambda m: print("  " + m))
+                out.writestr(info, man, compress_type=info.compress_type)
+                fb_stripped = True
                 continue
             out.writestr(info, apk.read(name), compress_type=info.compress_type)
         # add the embedded server lib (stored, so it mmaps cleanly)
@@ -55,8 +69,10 @@ def main():
             added += 1
     apk.close()
     obb.close()
+    if not fb_stripped:
+        sys.exit("AndroidManifest.xml not found in APK")
     print(f"embedded APK: replaced {IL2CPP}, added {REBORN}, merged {added} OBB assets, "
-          f"dropped {dropped} armeabi-v7a entries -> {out_path}")
+          f"dropped {dropped} armeabi-v7a entries, stripped FB providers -> {out_path}")
 
 
 if __name__ == "__main__":
