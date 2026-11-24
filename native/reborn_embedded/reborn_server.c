@@ -368,11 +368,30 @@ static void serve(int fd) {
     handle(fd, proto, env);
 }
 
+// Close a client connection gracefully so the client sees a clean FIN, not an
+// RST. A plain close() while the socket still holds unread request bytes (or
+// data the client sent after our reply) makes the kernel send RST, which
+// BestHTTP reports as "Software caused connection abort" -> the game marks the
+// reply a transport failure and shows the "connection unstable" popup (traced
+// as O B M: LoadingBar -> connection_string cb -> error popup). shutdown()
+// sends FIN first, then we briefly drain anything still in flight, then close.
+static void graceful_close(int fd) {
+    shutdown(fd, SHUT_WR);
+    struct timeval tv = { 0, 300000 };  // 300ms; don't linger on a quiet client
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+    char tmp[1024];
+    for (int i = 0; i < 16; i++) {
+        ssize_t r = read(fd, tmp, sizeof(tmp));
+        if (r <= 0) break;
+    }
+    close(fd);
+}
+
 static void *conn_thread(void *arg) {
     int c = *(int *)arg;
     free(arg);
     serve(c);
-    close(c);
+    graceful_close(c);
     return NULL;
 }
 
@@ -408,7 +427,7 @@ static void *server_main(void *arg) {
             free(cp);
         }
         serve(c);
-        close(c);
+        graceful_close(c);
     }
     return NULL;
 }
