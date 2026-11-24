@@ -1,6 +1,8 @@
 // Apply IL2CPP labels and decompile selected methods (headless).
 //
-// Script args: <labels.tsv> <targets.txt> <out_dir> [create_all_functions=true|false]
+// Script args: <labels.tsv> <targets.txt> <out_dir> [apply_labels=true|false]
+//   apply_labels=true (first run) labels and creates every method function;
+//   false reuses a project labelled earlier and only decompiles the targets.
 //   labels.tsv   from tools/il2cpp_v241/ghidra_labels.py
 //   targets.txt  one method name per line (Type$$Method, exact or prefix*)
 // Writes <out_dir>/<name>.c for each target and appends string-literal
@@ -41,10 +43,12 @@ public class DecompileIl2cpp extends GhidraScript {
             long rva = Long.parseLong(f[0], 16);
             Address addr = toAddr(base + rva);
             String name = f[2];
-            try {
-                createLabel(addr, name, true, SourceType.USER_DEFINED);
-            } catch (Exception e) {
-                // duplicate or invalid name; keep going
+            if (createAll) {  // false: project already labelled by an earlier run
+                try {
+                    createLabel(addr, name, true, SourceType.USER_DEFINED);
+                } catch (Exception e) {
+                    // duplicate or invalid name; keep going
+                }
             }
             if (f[1].equals("F")) {
                 byName.putIfAbsent(name, rva);

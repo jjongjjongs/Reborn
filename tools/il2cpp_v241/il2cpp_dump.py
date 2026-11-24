@@ -217,7 +217,7 @@ PRIMS = {1: "void", 2: "bool", 3: "char", 4: "sbyte", 5: "byte", 6: "short", 7: 
 
 class Namer:
     def __init__(self, elf, md, mreg):
-        self.elf, self.md = elf, md
+        self.elf, self.md, self.mreg = elf, md, mreg
         self.types_count = elf.u64(mreg + 6 * 8)
         self.type_ptrs = elf.ptr_array(elf.ptr(mreg + 7 * 8), self.types_count)
         self.field_offsets_ptr = elf.ptr(mreg + 11 * 8)
