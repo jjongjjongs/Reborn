@@ -1,2 +1,5 @@
 __pycache__/
 *.pyc
+
+# server runtime logs
+server/requests.log

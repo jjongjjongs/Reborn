@@ -132,3 +132,12 @@ analyzeHeadless <proj_dir> ss -process libil2cpp.so -noanalysis \
 
 Ghidra는 ELF를 0x100000에 올리므로, 디컴파일 결과의 `_DAT_xxxxxxxx` 주소는 RVA + 0x100000이다.
 `decompiled/`에 지금까지 디컴파일한 함수가 있다.
+
+## 3단계: 로컬 서버
+
+- 서버 주소는 RSA 암호화돼 있어 APK만으로 바꾸기 어렵다 → DNS 리다이렉트로
+  `fps.ss.nexon.com`을 사설 서버로 보낸다(`server/README.md`).
+- `server/reborn_server.py`: 봉투 해독(a=guid, b=base64url(M_WEB_REQUEST),
+  응답=M_WEB_RESPONSE)과 `connection_string/login/create/myinfo/money` 최소 응답.
+  모르는 프로토콜은 빈 PASS로 응답하고 `requests.log`에 기록.
+- 다음: 기기를 붙여 요청 순서·DATA 스키마를 수집하고 핸들러를 채운다.
