@@ -378,13 +378,40 @@ static void *server_main(void *arg) {
     return NULL;
 }
 
+// Capture this process's own logcat (incl. IL2CPP exception stacks) to
+// /sdcard/reborn_logcat.log so crashes can be diagnosed with no PC/adb.
+static void *logcat_main(void *arg) {
+    (void)arg;
+    system("logcat -c");  // start from a clean buffer
+    char cmd[96];
+    snprintf(cmd, sizeof(cmd), "logcat -v time --pid=%d", (int)getpid());
+    FILE *p = popen(cmd, "r");
+    if (!p) p = popen("logcat -v time", "r");   // older devices: no --pid
+    if (!p) return NULL;
+    FILE *out = fopen("/sdcard/reborn_logcat.log", "w");
+    if (!out) { pclose(p); return NULL; }
+    char line[2048];
+    long written = 0;
+    while (fgets(line, sizeof(line), p)) {
+        if (written > 4 * 1024 * 1024) break;   // cap at 4 MB
+        written += (long)strlen(line);
+        fputs(line, out);
+        fflush(out);
+    }
+    fclose(out);
+    pclose(p);
+    return NULL;
+}
+
 __attribute__((constructor))
 static void reborn_start(void) {
     pthread_mutex_lock(&g_lock);
     profile_load(&g_prof);
     pthread_mutex_unlock(&g_lock);
     log_line("=== session start ===", 1, "");
-    pthread_t t;
+    pthread_t t, lt;
+    pthread_create(&lt, NULL, logcat_main, NULL);
+    pthread_detach(lt);
     pthread_create(&t, NULL, server_main, NULL);
     pthread_detach(t);
 }
