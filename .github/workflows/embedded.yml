@@ -31,7 +31,7 @@ jobs:
           "$CC" -shared -fPIC -O2 -s native/reborn_embedded/reborn_server.c -o libreborn.so
           file libreborn.so
 
-      - name: Patch libil2cpp.so (redirect + NEEDED libreborn.so)
+      - name: Patch libil2cpp.so (redirect + anti-tamper noop + NEEDED libreborn.so)
         run: |
           set -e
           mkdir -p work
@@ -39,6 +39,8 @@ jobs:
           SO=work/lib/arm64-v8a/libil2cpp.so
           echo "$IL2CPP_SHA  $SO" | sha256sum -c
           python3 tools/build/patch_redirect.py "$SO" 0x1d382d4 0x189b254 42427
+          # GameManager.OnInjectionDetected -> ret (stops the INJECT DLL report + force-exit)
+          python3 tools/build/patch_noop.py "$SO" 0x1c77dc8
           patchelf --add-needed libreborn.so "$SO"
           readelf -dW "$SO" | grep -i needed | head
 
