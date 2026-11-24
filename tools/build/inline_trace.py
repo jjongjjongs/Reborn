@@ -47,6 +47,13 @@ HOOKS = [
     (0x1C25F00, "J", "U_Lobby_Loading.setError"),
     (0x1C23BDC, "K", "U_Lobby_Loading.GameServerLogin"),
     (0x1C2543C, "L", "U_Lobby_Loading.RequestMyinfo"),
+    # logo -> lobby transition (the stall is here, after the connection_string cb)
+    (0x1BB75E8, "M", "U_Popup.Confirm (error popup)"),
+    (0x1C901F4, "N", "HttpManager.SetDefaultUrl (cb success path)"),
+    (0x1A84B74, "O", "U_LoadingBar.View"),
+    (0x1C32E8C, "P", "U_Logo.set_REAL"),
+    (0x1C33154, "Q", "U_Logo.set_PASS"),
+    (0x1C332B8, "R", "U_Logo.go_Stage"),
 ]
 
 
