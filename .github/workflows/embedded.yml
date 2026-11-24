@@ -45,11 +45,12 @@ jobs:
           # GPlayServiceManager.Connect -> false, GoogleSignIn -> ret (no Google activity)
           python3 tools/build/patch_noop.py "$SO" --ret0 0x1ceaec0
           python3 tools/build/patch_noop.py "$SO" 0x1ceb430
-          # ACTIVE login is SocialConnect (not U_Lobby_Loading):
-          #  SocialConnect.Connect_Google -> CHECK_GOOGLE_LOGIN  (skip Google + 6s wait)
-          python3 tools/build/patch_branch.py "$SO" 0x9f2c58 0x9f2d58
-          #  M_CONFIG.IsSocialPlatform -> false  (force the guest branch -> platform_link)
-          python3 tools/build/patch_noop.py "$SO" --ret0 0x1b0cbe8
+          # Nexon security module (NGSM): neutralize its native engine entries so
+          # the Java/native CallStatic never runs (re-signed APK would trip it).
+          #  Ngsm.NGSM.ngsmInit -> ret   (startup; no direct C# caller = fire-and-forget)
+          python3 tools/build/patch_noop.py "$SO" 0x9cd1e0
+          #  Ngsm.NGSM.ngsmRun  -> ret   (called from U_Lobby_Loading.RequestNGSM, lobby)
+          python3 tools/build/patch_noop.py "$SO" 0x9cd2dc
           patchelf --add-needed libreborn.so "$SO"
           readelf -dW "$SO" | grep -i needed | head
 

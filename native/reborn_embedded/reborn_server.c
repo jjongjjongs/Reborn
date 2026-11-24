@@ -17,6 +17,7 @@
 
 #define _GNU_SOURCE 1
 #include <arpa/inet.h>
+#include <dirent.h>
 #include <netinet/in.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -437,15 +438,92 @@ static void *logcat_main(void *arg) {
     return NULL;
 }
 
+// ---------- watchdog: pinpoint where the Unity main thread blocks ----------
+// No PC/adb needed. Every second we snapshot the UnityMain/main threads from
+// /proc: scheduler state (R run, S sleep, D uninterruptible), the kernel
+// wait-channel (which syscall they're parked in), and the current user-space
+// PC. We also record libil2cpp.so's load base, so a frozen PC maps to an RVA
+// (pc - base) that we can resolve to an IL2CPP method offline. If the boot
+// freezes, the last lines name the exact spot.
+#define WATCH_LOG "/sdcard/reborn_watchdog.log"
+
+static unsigned long long il2cpp_base(void) {
+    FILE *m = fopen("/proc/self/maps", "r");
+    if (!m) return 0;
+    char line[512];
+    unsigned long long base = 0;
+    while (fgets(line, sizeof(line), m)) {
+        if (strstr(line, "libil2cpp.so")) { base = strtoull(line, NULL, 16); break; }
+    }
+    fclose(m);
+    return base;
+}
+
+static void read_small(const char *path, char *out, int cap) {
+    out[0] = 0;
+    FILE *f = fopen(path, "r");
+    if (!f) return;
+    size_t n = fread(out, 1, (size_t)cap - 1, f);
+    out[n] = 0;
+    for (size_t i = 0; i < n; i++) if (out[i] == '\n') out[i] = ' ';
+    fclose(f);
+}
+
+static void *watchdog_main(void *arg) {
+    (void)arg;
+    FILE *out = fopen(WATCH_LOG, "w");
+    if (!out) return NULL;
+    unsigned long long base = 0;
+    for (int tick = 0; tick < 70; tick++) {   // ~70s of coverage then stop
+        if (!base) base = il2cpp_base();
+        DIR *d = opendir("/proc/self/task");
+        if (d) {
+            struct dirent *e;
+            while ((e = readdir(d))) {
+                if (e->d_name[0] < '0' || e->d_name[0] > '9') continue;
+                char p[128], comm[64], stat[256], wchan[160], sysc[256];
+                snprintf(p, sizeof(p), "/proc/self/task/%s/comm", e->d_name);
+                read_small(p, comm, sizeof(comm));
+                if (strncmp(comm, "UnityMain", 9) && strncmp(comm, "main", 4)
+                    && strncmp(comm, "UnityGfx", 8))
+                    continue;   // only the threads that can freeze the boot
+                snprintf(p, sizeof(p), "/proc/self/task/%s/stat", e->d_name);
+                read_small(p, stat, sizeof(stat));
+                char st = '?';
+                char *rp = strrchr(stat, ')');
+                if (rp && rp[1] && rp[2]) st = rp[2];
+                snprintf(p, sizeof(p), "/proc/self/task/%s/wchan", e->d_name);
+                read_small(p, wchan, sizeof(wchan));
+                snprintf(p, sizeof(p), "/proc/self/task/%s/syscall", e->d_name);
+                read_small(p, sysc, sizeof(sysc));
+                unsigned long long pc = 0;
+                char *sp = strrchr(sysc, ' ');
+                if (sp) pc = strtoull(sp + 1, NULL, 16);
+                unsigned long long rva = (pc && base && pc > base) ? pc - base : 0;
+                fprintf(out,
+                    "%ld t=%02d %-9s S=%c wchan=%s rva=0x%llx pc=0x%llx base=0x%llx sys=[%s]\n",
+                    (long)time(NULL), tick, comm, st, wchan, rva, pc, base, sysc);
+            }
+            closedir(d);
+        }
+        fflush(out);
+        sleep(1);
+    }
+    fclose(out);
+    return NULL;
+}
+
 __attribute__((constructor))
 static void reborn_start(void) {
     pthread_mutex_lock(&g_lock);
     profile_load(&g_prof);
     pthread_mutex_unlock(&g_lock);
     log_line("=== session start ===", 1, "");
-    pthread_t t, lt;
+    pthread_t t, lt, wt;
     pthread_create(&lt, NULL, logcat_main, NULL);
     pthread_detach(lt);
+    pthread_create(&wt, NULL, watchdog_main, NULL);
+    pthread_detach(wt);
     pthread_create(&t, NULL, server_main, NULL);
     pthread_detach(t);
 }
