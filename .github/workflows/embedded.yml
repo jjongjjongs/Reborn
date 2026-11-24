@@ -57,6 +57,12 @@ jobs:
           # WWW_CreateAccount -> POST /game/create.php (embedded server). No
           # external Google/Facebook activity; straight to our create->login->myinfo.
           python3 tools/build/patch_branch.py "$SO" 0x1c31d94 0x1c31e78
+          # Disable Facebook entirely at boot: FacebookManager.Awake -> ret.
+          # OnInit is fire-and-forget (ActivateApp + a log; nothing gates on it),
+          # so this kills FB.Init, the app-settings graph calls (the recurring
+          # 400 for app id 1499779786990739 that a re-signed key can't validate)
+          # and any FB web-login activity, without stalling boot.
+          python3 tools/build/patch_noop.py "$SO" 0x1cd7d74
           patchelf --add-needed libreborn.so "$SO"
           readelf -dW "$SO" | grep -i needed | head
 
