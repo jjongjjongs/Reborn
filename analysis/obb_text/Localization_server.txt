@@ -1,0 +1,464 @@
+KEY,Korean,English,Desc
+Language,Korean,English,Desc
+#,{0},{0},server
+#GM,운영자,Operator,server
+#ADMIN,운영자,Operator,server
+#SYS,시스템,system,server
+#FRIEND,우정편지,Friendship write,server
+#WEB_001,해킹 프로그램이 감지되었습니다.,This hack program has been detected.,server
+#WEB_002,통신 데이터가 올바르지 않습니다.,The communication data is incorrect.,server
+#WEB_003,이미 처리된 메시지 입니다.,The message has already been processed.,server
+#WEB_004,당신은 해당 편지의 소유자가 아닙니다.,You are not the owner of the letters.,server
+#WEB_005,폐쇄된 클랜입니다,The closure Clan,server
+#WEB_006,정원 {0}명이 모두 찼습니다.,{0} people garden is full all.,server
+#WEB_007,게임서버 계정생성 실패,Failed to create game server account,server
+#WEB_008,올바르지 않은 세션입니다,The incorrect session,server
+#WEB_009,!인증 세션 생성 실패,! Failed to generate the authentication session,server
+#WEB_010,올바르지 않은 요청입니다,The request is not valid,server
+#WEB_011,이미 존재하는 클랜이름 입니다,The clan name that already exists,server
+#WEB_012,이미 클랜에 가입중 입니다.,You are already signed up for the Clan.,server
+#WEB_013,{0}골드가 부족합니다.,{0} There is not enough gold.,server
+#WEB_014,클랜 재가입은 {0}시간({1}분) 이후부터 가능합니다,Clan reactivation is possible since {0} time ({1} minutes),server
+#WEB_015,클랜에 가입중 이지 않습니다.,One does not join the clan.,server
+#WEB_016,해당 기능을 사용할 수 있는 등급이 아닙니다.,Not rated to use this feature.,server
+#WEB_017,존재하지 않는 클랜멤버 입니다.,The clan members do not exist.,server
+#WEB_018,입력 하실수 없는 단어나 문자가 포함되어 있습니다,Enter a word or contains characters that are not hasilsu,server
+#WEB_019,편지가 없습니다,Do not write,server
+#WEB_020,인벤토리가 모두 찼습니다.,All inventory is full.,server
+#WEB_021,상대 또는 나의 등록 가능 친구수  {0}명을 초과했습니다,Relative or my registration was possible to exceed the number of {0} Friends,server
+#WEB_022,이미 등록된 친구 입니다,I already have a friend,server
+#WEB_023,{0}보석이 부족합니다.,{0} The jewels are lacking.,server
+#WEB_024,클랜에 클랜원이 남아 있습니다,Clan remains in the clan,server
+#WEB_025,클랜 마스터는 탈퇴 할 수 없습니다.,Clan Master can not leave.,server
+#WEB_026,존재하지 않는 일일 미션 입니다.,The daily mission does not exist.,server
+#WEB_027,완료된 일일 미션 입니다.,The daily mission completed.,server
+#WEB_028,중복된 유저네임 입니다,Duplicate usernames,server
+#WEB_029,장착중인 아이템 입니다,The item being mounted,server
+#WEB_030,전적이 이미 초기화 되어 있습니다.,Whole is already initialized.,server
+#WEB_031,아직 시간이 되지 않았습니다.,This is not yet the time.,server
+#WEB_032,두 장비의 그레이드가 다릅니다.,Two different grades of equipment.,server
+#WEB_033,SS그레이드 무기는 조합 할 수 없습니다.,SS grade weapons can not be combined.,server
+#WEB_034,7레벨의 무기가 필요 합니다.,The seven levels of the weapons you need.,server
+#WEB_035,무료 행운카드는 ({0})에 가능합니다.,Free luck cards are available at {0}.,server
+#WEB_036,최소 영문기준 2글자 이상의 이름을 입력해 주세요.,Please enter the names of at least two or fewer characters.,server
+#WEB_037,네트웍에러가 발생했습니다.,A network error occurred.,server
+#WEB_038,미션 완료 보상,Mission complete compensation,server
+#WEB_039,1일 광고 시청 횟수를 초과 했습니다.,One day has exceeded the number of ad view.,server
+#WEB_040,쿠폰은 계정당 1회만 사용 가능합니다.,Coupons are available only once per account.,server
+#WEB_041,사용 기한이 만료된 쿠폰 입니다.,The use expired coupons.,server
+#WEB_042,상품이 우편함으로 지급되었습니다.,This item has been paid to the mailbox.,server
+#WEB_043,선물을 보내드립니다.,I will send a gift.,server
+#WEB_044,가입을 축하드립니다.,Congratulations on your subscription.,server
+#WEB_045,인벤토리가 꽉찼습니다.,The inventory was full.,server
+#WEB_046,{0} 클랜으로 당신을 초대합니다,{0} invites you to the clan,server
+#WEB_047,클랜 가입을 신청합니다,Apply to join the clan,server
+#WEB_048,클랜 리그 보상을 지급합니다,Pay compensation Clan League,server
+#WEB_049,{0} 님이 친구요청 하셨습니다,{0} I'm a friend request,server
+#WEB_050,{0} 님이 친구를 해지 하였습니다,{0} it is made to terminate a friend,server
+#WEB_051,{0} 님이 친구로 등록 되었습니다.,{0} is added as a friend.,server
+#WEB_052,{0} 님이 클랜원이 되었습니다,{0} is now the Clan,server
+#WEB_053,{0} 클랜에 가입을 축하드립니다,{0} Congratulations to join the clan,server
+#WEB_054,{0} 님이 경험치 증가 {1}시간 버프를 켰습니다,{0} is {1} You turned your experience increased time buffs,server
+#WEB_055,{0} 님이 골드 증가 {1}시간 버프를 켰습니다,{0} 's has turned the gold Increase {1} hours Buffs,server
+#WEB_056,{0} 님이 탈퇴 하였습니다,{0} it is made to leave,server
+#WEB_057,{0} 님이 강퇴 되었습니다,{0} it is now banned,server
+#WEB_058,{0} 님이 일반 등급으로 변경 되었습니다,{0} is now a general rating,server
+#WEB_059,{0} 님이 스텝으로 변경 되었습니다,{0} is now a step,server
+#WEB_060,{0} 님이 마스터가 되었습니다,{0} has become a master,server
+#WEB_061,클랜 마크가 변경 되었습니다,Mark Clancy has changed,server
+#WEB_062,클랜장 {0}에 의해 클랜이 해체 되었습니다,The Clan has been disbanded by the clan Chapter {0},server
+#WEB_063,클랜이름이 {0}로 변경 되었습니다,The clan name has been changed to {0},server
+#WEB_064,클랜 최대인원이 {0}명으로 변경되었습니다,The Clan Sleeps been changed to {0} people,server
+#WEB_065,클랜을 창설 하였습니다.,It has founded the clan.,server
+#WEB_066,[매일매일출석] 이벤트 선물입니다,[Attendance every day] event gift,server
+#WEB_067,{0} 까지 계정이 블럭되었습니다.,This account has been block until {0}.,server
+#WEB_068,클랜에서 알립니다.,In the clan informs.,server
+#WEB_070,클랜에 가입하셨습니다,He joined the Clan,server
+#WEB_071,클랜에서 방출 되었습니다,It has been released from the Clan,server
+#WEB_072,클랜원으로 변경 되었습니다,It has been changed to Clan,server
+#WEB_073,클랜스텝으로 변경 되었습니다,It has been changed to step Clan,server
+#WEB_074,클랜마스터 가 되었습니다,It became the clan master,server
+#WEB_075,클랜을 탈퇴 하였습니다.,It has left the clan.,server
+#WEB_076,검색된 결과가 없습니다,No Results Found,server
+#WEB_077,클랜장 변경은 7일이 지나야 할 수 있습니다,Clan chapter change can be delayed by 7 days,server
+#WEB_078,[프리미엄찬스] 출석 선물입니다,The Premium chance - Attendance gifts,server
+#WEB_079,중복된 지급 요청입니다,Duplicate the payment request,server
+#WEB_080,{0} 까지 디바이스가 블럭되었습니다.,The device has a block to {0}.,server
+#WEB_081,"주간 클랜 랭킹이 정산되었습니다, 어플 재 기동시 결과를 보실 수 있습니다","Weekly clan rank has been settled, you can see the results when application restarts",server
+#WEB_082,존재하지 않는 무기를 선택하였습니다.,We have selected a non-existent weapons.,server
+#WEB_083,[새해 복 많이 받으세요] 선물({0}일),[Happy New Year] Gifts ({0} day),server
+#WEB_084,[클랜포인트 모으기] 이벤트 선물,[Clan Gathering Points offers gift,server
+#WEB_085,D그레이드 무기는 분해 할 수 없습니다.,D-grade weapons can not be disassembled.,server
+#WEB_086,"(가독불가, 사칭, 미풍양속저해) 등의 이유로 유저명이 초기화 되었습니다","(Non-readable, claiming, breezy inhibition yangsok) is initialized user name, such as two euros",server
+#WEB_087,[새해 복 많이 받으세요] 이벤트 선물({0}일),[Happy New Year] event gifts ({0} day),server
+#WEB_088,"다른계정에서 결재한 영수증입니다, 해당 계정으로 로그인 하세요","A payment receipt from another account, please sign in to your account",server
+#WEB_089,어플 설치 이벤트 보상 입니다.,Appliance installation event rewards.,server
+#WEB_090,월간 출석 이벤트 보상 입니다. ({0}일),The monthly event attendance rewards. ({0} days),server
+#WEB_091,월간 연속출석 보상 입니다. ({0}일),The attendance consecutive monthly compensation. ({0} days),server
+#WEB_092,프리미엄 찬스가 ({0}일) 남았습니다.,Premium Chance ({0} one) remaining.,server
+#WEB_093,어플 [{0}] 설치 보상입니다.,Applications [{0}] is the installation compensation.,server
+#WEB_094,이벤트 기간이 아닙니다.,Not the duration of the event.,server
+#WEB_095,[난투전] 일일 점수달성 보상입니다.,[Scuffle ago - a daily score to achieve compensation.,server
+#WEB_096,[난투전] 주간 순위달성 보상입니다.,[Scuffle ago - a weekly ranking achieve compensation.,server
+#WEB_097,난투전에 참가하기위한 메달이 부족합니다.,The lack of medals for participation before the melee.,server
+#WEB_098,[난투전] 참여가능한 시간이 아닙니다.,[Scuffle ago] NOT A time involved.,server
+#WEB_099,[난투전] 메달이 남아있을경우 사용이 불가능합니다.,"[Scuffle before], the unavailable if the remaining medals.",server
+#WEB_100,이미 캐릭터가 존재합니다. 기간 만료후 사용 가능합니다.,The character already exists. After the expiration available.,server
+#WEB_101,기간제 캐릭터는 판매가 불가능합니다.,Fixed-term character can not sell.,server
+#WEB_102,기간제 캐릭터는 강화가 불가능합니다.,Fixed-term character is impossible strengthened.,server
+#WEB_103,기간제 무기는 판매가 불가능합니다.,Term arms sales is not possible.,server
+#WEB_104,기간제 무기는 강화가 불가능합니다.,Term weapons is impossible strengthened.,server
+#WEB_105,기간제 무기는 조합이 불가능합니다.,Term weapon can not be combined.,server
+#WEB_106,기간제 무기는 분해가 불가능합니다.,Term weapons will not be exploded.,server
+#WEB_107,기한이 지난 캐릭터는 장착이 불가능합니다.,Characters that are overdue will not be installed.,server
+#WEB_108,기한이 지난 무기는 장착이 불가능합니다.,Outdated weapons will not be installed.,server
+#WEB_109,설날 출석 이벤트 보상 입니다. ({0}일),The New Year's event attendance rewards. ({0} days),server
+#WEB_110,설날 출석 이벤트 보상 입니다. ({0}일),The New Year's event attendance rewards. ({0} days),server
+#WEB_111,[좀비전] 주간 점수달성 보상입니다.,The [some vision] weeks Scores achieve compensation.,server
+#WEB_112,[즐거운추석] 이벤트 선물({0}일),[Enjoy Thanksgiving] event gifts ({0} day),server
+#WEB_113,[구매불가]이미 구매하신 상품입니다.,- No purchase - a product you have already purchased.,server
+#WEB_114,[깃발전] 주간 승리달성 보상입니다.,[Flag-wide rewards weeks to achieve victory.,server
+#WEB_115,[깃발전] 주간 참여 보상입니다.,[Flag before] the day involvement compensation.,server
+#WEB_116,{0}이벤트코인이 부족합니다.,{0} is a lack Events Coin.,server
+#WEB_117,[일일 미션] 보상을 받기 위한 조건을 만족하지 못했습니다.,[Eleven missions] failed to satisfy the conditions for receiving compensation.,server
+#WEB_118,[일일 미션] 이미 보상을 받았습니다.,I received the [eleven missions - already rewarded.,server
+#WEB_119,메가팩 지급이 ({0}일) 남았습니다.,Mega Pack payment ({0} one) remaining.,server
+#WEB_120,[일일 미션] 달성 보상입니다.,[Eleven mission] is to achieve compensation.,server
+#WEB_121,[일일 미션] 모든 미션을 완료했습니다.,[Eleven Mission] have completed all the missions.,server
+#WEB_122,결제 오류입니다. 약 1분후 확인해 주세요,"A payment error. Approximately one minute later, please check",server
+#WEB_123,1 vs 1 주간보상입니다.,1 week 1 vs the reward.,server
+#WEB_124,생존모드 보상입니다.,Survival mode is a reward.,server
+#WEB_125,협동모드 보상입니다.,The co-op compensation.,server
+#WEB_126,협동모드 주간 보상입니다.,The co-op Week compensation.,server
+#WEB_127,2주년 기념 출석체크! 보상입니다. ({0}일),2nd Anniversary attendance check! The rewards. ({0} days),server
+#WEB_128,슈퍼팩 지급이 ({0}일) 남았습니다.,Super Pack payment ({0} one) remaining.,server
+#WEB_129,도둑잡기 주간 보상입니다.,Catching the thief week compensation.,server
+#WEB_130,"출석부는 매월 28일까지 진행되며, 다음달 1일에 초기화 됩니다.","Rosters will run until the 28th of the month, the next month will be reset daily.",server
+#WEB_131,케미폭발 출석체크! 보상입니다. ({0}일),Chemie explosions Attendance check! The rewards. ({0} days),server
+#WEB_132,상품정보 리스트를 초기화가 필요합니다.,It initializes the product information list is required.,server
+#WEB_133,타이거 무기는 조합이 불가능합니다.,Tiger weapon can not be combined.,server
+#WEB_134,타이거 무기는 분해가 불가능합니다.,Tiger weapons will not be exploded.,server
+#WEB_135,PVP 인벤토리가 꽉 차서 수령 할 수 없습니다. 인벤토리를 비워주세요.,PVP inventory is full and can not receive. Please empty your inventory.,server
+#WEB_136,분해는 S 또는 SS급만 가능 합니다.,Decomposition can be geupman S or SS.,server
+#WEB_137,재조합 횟수를 초과하였습니다.,It has exceeded the number of recombination.,server
+#WEB_138,상품을 구매하실 수 없습니다.\n공식카페를 확인해 주세요.,You can not buy a product. \ N Please check the official cafe.,server
+#WEB_139,넥슨이 쏩니다!! 1탄,Nexon is ssopnida! One shot,server
+#WEB_140,충전 회수가 초과 하였습니다.,The charges collected exceeded.,server
+#WEB_141,친구가 있는 상태에서는 탈퇴가 불가능합니다,In a state where friends leave the impossible,server
+#WEB_142,클랜에 가입된 상태에서는 탈퇴가 불가능합니다,In the state joined the clan to leave the impossible,server
+#WEB_143,오류가 발생했습니다. 게임을 삭제후 다시 설치해 주세요,"An error has occurred. After the deleting and reinstalling the game, please",server
+#WEB_144,넥슨이 쏩니다!! 2탄,Nexon is ssopnida! 2nd,server
+#WEB_145,어시스트 횟수가 0입니다,Assist the number 0,server
+#WEB_146,플레이 시간이 유효하지 않아 무효게임이 되었습니다. 무효게임은 기록이 쌓이지 않습니다.,"I do not play this time was not valid, invalid game. Invalid game is irresistible record.",server
+#WEB_147,구매 가능 횟수를 초과했습니다.\n(나만의 일일 한정 상품은 매일 자정 갱신됩니다.),It has exceeded the number of possible purchases. \ N (only one day of restricted items will be updated daily at midnight.),server
+#WEB_148,상품 리스트가 변경되었습니다. 다시 시도해 주세요.,The product list has been changed. please try again.,server
+#WEB_149,등급 달성 이벤트 보상이 우편함으로 지급되었습니다.,Rating achieve Event compensation has been paid to the mailbox.,server
+#WEB_150,구매 가능 횟수를 초과했습니다.,It has exceeded the number of possible purchases.,server
+#WEB_151,주간 정보를 초기화 중 입니다.,Weekly information is being initialized.,server
+#WEB_152,공룡전 보상입니다.,Dinosaur former compensation.,server
+#WEB_153,공룡전 주간 보상입니다.,A week ago the dinosaurs compensation.,server
+#WEB_154,출석부가 새로고침 중입니다. 잠시 후에 다시 시도해 주세요.,The attendance of a refresh. Please try again in a few minutes.,server
+#WEB_155,존재하지 않는 계정입니다.,The account does not exist.,server
+#WEB_156,인벤토리를 확장할 수 없습니다.,Unable to expand the inventory.,server
+#WEB_157,PVP 무기만 가능합니다.,The PVP weapons only.,server
+#WEB_158,"옵션은 S급은 MAX레벨, SS급의 1번 슬롯은 3레벨, 2번슬롯은 MAX레벨일 때 가능합니다.","Options are S-class is MAX level, slot 1 of SS grade 3 level, the second slot is available when the MAX level.",server
+#WEB_159,옵션 부여할 수 있는 상태가 아닙니다.,Option not to grant status.,server
+#WEB_160,옵션 변경할 수 있는 상태가 아닙니다.,Option is not a state that can be changed.,server
+#WEB_161,솔져코인이 부족합니다.,The Soldier coin insufficient.,server
+#WEB_162,현재 지원하지 않는 기능입니다.,This function is not currently supported.,server
+#WEB_163,[치킨전] 주간 점수달성 보상입니다.,Compensation is achieved [chicken-wide weekly scores.,server
+#WEB_164,[숨바꼭질] 주간 점수달성 보상입니다.,[Hy] The weekly scores to achieve compensation.,server
+#WEB_165,필요한 경험치 보다 많은 재료가 선택되어 강화할 수 없습니다.,"Is a lot of material selection than the required experience, it can not enforce.",server
+#WEB_166,킬데스가 이미 초기화 되어 있습니다.,Death Kills You are already initialized.,server
+#WEB_167,승률이 이미 초기화 되어 있습니다.,Odds are already initialized.,server
+#WEB_168,새로운 카드팩으로 교체 중입니다.,It is being replaced by a new pack of cards.,server
+#WEB_169,현재 상품 준비 중입니다,Product is currently preparing,server
+#WEB_170,이미 처리된 상태입니다.,It has already been processed.,server
+#WEB_171,1:1 플레이는 5판까지만 보상이 지급됩니다.,1:01 Play will be paid compensation only five rounds.,server
+#WEB_172,기한이 지난 캐릭터 스킨은 장착이 불가능합니다.,Character Skin overdue will not be installed.,server
+#WEB_173,스킨 아이템을 구매하려면 캐릭터를 소유해야 합니다.,"To purchase the item, you must own skin for your character.",server
+#WEB_174,30판까지만 보상이 지급됩니다.,This compensation will be paid only up to 30 plates.,server
+#WEB_175,{0}단계 성장 미션 보상 입니다.,{0} is the growth stage mission rewards.,server
+#WEB_176,지급이 정상적으로 완료되었으나 이미 보유 중인 스킨입니다.,"Although payment is successfully completed, the skin is already being held.",server
+#WEB_177,전적 기록에 실패 하였습니다.,It written entirely failed.,server
+#WEB_178,30판까지만 보상이 지급됩니다.,This compensation will be paid only up to 30 plates.,server
+#WEB_179,불법프로그램이 감지 되었습니다.,The illegal program has been detected.,server
+#WEB_180,"정보가 올바르지 않습니다. 게임을 재설치 해보거나, 화면을 캡쳐해서 고객센터에 문의 해주세요.","The information is not correct. Try reinstalling the game, or to capture a screenshot, please contact us.",server
+#WEB_181,{0}단계 스페셜 미션 보상 입니다.,{0} Step Special Mission reward.,server
+#WEB_182,{0}을(를) 럭키찬스에서 획득하셨습니다.,{0} Completed obtained from Lucky chance.,server
+#WEB_183,허용시간이 지나 기존 옵션을 되 선택할 수 없습니다.,Over time allowed can not be selected are the existing options.,server
+#WEB_184,출석 이벤트 보상 입니다. ({0}일),The Event attendance rewards. ({0} days),server
+#WEB_185,신규 출석 이벤트 보상 입니다. ({0}일),A new event attendance rewards. ({0} days),server
+#WEB_186,복귀 출석 이벤트 보상 입니다. ({0}일),A return to attend the event rewards. ({0} days),server
+#WEB_187,어뷰징 행위가 감지 되었습니다. 어뷰징을 반복하면 제재를 받을 수 있습니다.,The abusing had detected. Repeat an abusing may result in restriction.,server
+#WEB_188,어뷰징 행위로 인해 {0}까지 접속을 차단합니다.,Deny access to {0} due to abusing actions.,server
+#WEB_996,게임계정을 생성 하지 못했습니다,It failed to create a game account,server
+#WEB_997,게임 계정 연결을 실패 했습니다,Game account connection fails,server
+#WEB_998,서비스 정기 점검중 입니다.\n자세한 내용은 네이버 카페 공지사항을 참고해 주세요.,"Service is regular maintenance. \ N For more information, please refer to Naver Cafe announcements.",server
+#WEB_999,파라메터 오류발생 ({0}),Generating parameter error ({0}),server
+#CHAT_001,요청하신 유저는 접속중이지 않습니다,The requested user does not Chatting,server
+#CHAT_002,{0}초 이내에 동일한 글을 입력 하실 수 없습니다,{0} seconds You can not enter the same post within,server
+#CHAT_003,요청 데이터의 내용이 올바르지 않습니다.,The content of the requested data is not correct.,server
+#CHAT_004,클랜에 가입한 사용자만 사용 할 수 있습니다.,You can use only one user to join a clan.,server
+#CHAT_005,입력 하실수 있는 채널의 범위는 ({0} ~ {1}) 입니다.,The range of hasilsu input channels ({0} - {1}) is.,server
+#CHAT_006,[FFFFFF] 친구를 신청하셨습니다.,[FFFFFF] have signed a friend.,server
+#CHAT_007,[FFFFFF]님이 친구를 수락 하셨습니다.,[FFFFFF] wrote accepted a friend.,server
+#CHAT_008,[FFFFFF]님이 클랜에 가입하셨습니다.,[FFFFFF] s has joined the clan.,server
+#CHAT_009,[FFFFFF]님이 클랜을 탈퇴하셨습니다.,[FFFFFF] Ruthless Gladiator leave the clan.,server
+#CHAT_010,{0}님 접속을 환영합니다,{0} 's connection Welcome,server
+#CHAT_011,[FFFFFF]를 [00FF00]무기조합[FFFFFF]에서 획득했습니다.,The [FFFFFF] received from [00FF00] weapon combinations [FFFFFF].,server
+#CHAT_012,[FFFFFF]를 [00FF00]고급보급함[FFFFFF]에서 획득했습니다.,The [FFFFFF] [00FF00] obtained from Advanced bogeupham [FFFFFF].,server
+#CHAT_013,[FFFFFF]를 [00FF00]스페셜보급함[FFFFFF]에서 획득했습니다.,The [FFFFFF] [00FF00] obtained from the Special bogeupham [FFFFFF].,server
+#CHAT_014,{0}번 채널에 입장 하셨습니다.,{0} You have one entrance to the channel.,server
+#CHAT_015,다른 장치에서 게임에 접속하였습니다.,In other devices it was connected to the game.,server
+#CHAT_016,셰션 인증이 실패 하였습니다.,The syesyeon authentication failed.,server
+#CHAT_017,[00FF00]경험치증가[FFFFFF] 클랜 버프를 구매 하였습니다.,[00FF00] bought experience increased [FFFFFF] clan buffs.,server
+#CHAT_018,[00FF00]골드증가[FFFFFF] 클랜 버프를 구매 하였습니다.,[00FF00] I bought a gold increased [FFFFFF] clan buffs.,server
+#CHAT_019,패치 또는 점검을 위해 강제 종료 되었습니다.,It was forced to shut down a patch or a check.,server
+#CHAT_020,접속 하였습니다,It has access,server
+#CHAT_021,접속을 종료 하였습니다.,It has ended the connection.,server
+#CHAT_022,강퇴된 방에는 다시 들어갈 수 없습니다,The room has banned you can not go back,server
+#CHAT_023,[FF0000]{0} 까지 채팅이 블럭되었습니다,[FF0000] was chatting up the block {0},server
+#CHAT_024,※[FF0000]귓말 명령어: /닉네임 메세지,※ [FF0000] gwitmal command: / nickname message,server
+#CHAT_025,"※[FF0000]음란,욕설,비속어,계정거래,치트사용 등은 이용약관에 의해 계정 영구 정지 될 수 있습니다","※ [FF0000] obscene, abusive, profane, account transactions, such as using cheats may be permanently disabled account by the Terms and Conditions",server
+#CHAT_026,[FFFFFF] 를 상점에서 획득했습니다.,The [FFFFFF] obtained from the store.,server
+#CHAT_027,"※[FF0000]개인정보의 요구는 범죄에 악용될 수 있으니 절대로 쓰시면 안되며,","※ [FF0000] should not request personal information will never need to write, it may be exploited in criminal,",server
+#CHAT_028,※[FF0000]음란물 전송 및 성매매 등 불법행위는 법적인 처벌을 받을 수 있습니다.,"※ [FF0000] illegal activities such as prostitution, pornography and transmission can be legal consequences.",server
+#CHAT_029,"[00FF00]경험치,골드 증가[FFFFFF] 클랜 버프를 받았습니다.","[00FF00] I got the experience, gold increase [FFFFFF] clan buffs.",server
+#CHAT_030,[FFFFFF]를 [00FF00]한번더![FFFFFF]에서 획득 했습니다.,The [FFFFFF] [00FF00] one more time! Obtained in [FFFFFF].,server
+#CHAT_031,[FFFFFF]를 [00FF00]컬렉션[FFFFFF]에서 획득 했습니다.,The [FFFFFF] received from [00FF00] collection [FFFFFF].,server
+#CHAT_032,[FFFFFF]를 [00FF00]GOLD고급보급함[FFFFFF]에서 획득 했습니다.,The [FFFFFF] [00FF00] obtained from Advanced GOLD bogeupham [FFFFFF].,server
+#CHAT_033,[FFFFFF]를 [00FF00]RED고급보급함[FFFFFF]에서 획득 했습니다.,The [FFFFFF] [00FF00] obtained from the RED advanced bogeupham [FFFFFF].,server
+#CHAT_034,[FFFFFF]를 [00FF00]CAMO고급보급함[FFFFFF]에서 획득 했습니다.,The [FFFFFF] [00FF00] obtained from the CAMO Advanced bogeupham [FFFFFF].,server
+#CHAT_035,[FFFFFF]를 [00FF00]ALCAD고급보급함[FFFFFF]에서 획득 했습니다.,The [FFFFFF] [00FF00] obtained from ALCAD advanced bogeupham [FFFFFF].,server
+#CHAT_036,[FFFFFF]를 [00FF00]등급전 보급함[FFFFFF]에서 획득 했습니다.,The [FFFFFF] [00FF00] obtained in the ratings before bogeupham [FFFFFF].,server
+#CHAT_037,[FFFFFF]를 [00FF00]S-A급 주무기 보급함[FFFFFF]에서 획득 했습니다.,[FFFFFF] received from [00FF00] S-A grade primary weapon bogeupham [FFFFFF].,server
+#CHAT_038,[FFFFFF]를 [00FF00]일반보급함[FFFFFF]에서 획득했습니다.,The [FFFFFF] [00FF00] obtained from regular bogeupham [FFFFFF].,server
+#CHAT_039,[FFFFFF]를 [00FF00]S급보급함[FFFFFF]에서 획득했습니다.,The [FFFFFF] [00FF00] obtained from the S-class bogeupham [FFFFFF].,server
+#CHAT_040,[FFFFFF]를 [00FF00]SS급보급함[FFFFFF]에서 획득했습니다.,The [FFFFFF] [00FF00] obtained in SS Class bogeupham [FFFFFF].,server
+#CHAT_041,[00FF00]등급[FFFFFF]으로 승급했습니다!,[00FF00] it was promoted to grade [FFFFFF]!,server
+#CHAT_042,[FFFFFF]를 [00FF00]프리미엄 보급함[FFFFFF]에서 획득 했습니다.,The [FFFFFF] [00FF00] it obtained in the premium bogeupham [FFFFFF].,server
+#ROOM_001,빈방이 없어 입장할 수 없습니다.,No vacancy can not be allowed to enter.,server
+#ROOM_002,방에 빈자리가 없습니다.,There is no vacancy in the room.,server
+#ROOM_003,입장 암호가 다릅니다.,The position is different passwords.,server
+#ROOM_004,클랜에 가입한 유저만 참여 할수 있습니다.,You can participate in only one user to join a clan.,server
+#ROOM_005,"빈방 입니다, 목록을 갱신하여 다시 시도해 주세요.","A vacancy, to update the list and try again.",server
+#ROOM_006,모든 플레이어가 나가서 방을 종료합니다.,All players go out and exit the room.,server
+#ROOM_007,방장에 의해 강제 퇴장 되었습니다,It was forced to leave by the moderator,server
+#ROOM_008,해킹이 감지되어 접속을 종료합니다,"This hack is detected, terminates the connection",server
+#ROOM_009,처리할 수 없는 요청입니다.,It is unable to handle the request.,server
+#ROOM_010,나와 그룹을 맺고 있는 대상은 강퇴시킬 수 없습니다.,Out targets with whom the group can not be banned.,server
+#PARTY_001,그룹 시스템 오픈을 준비 중입니다.,A group of open systems ready.,server
+#PARTY_002,{0}님이 그룹으로 초대했습니다. 참여하시겠습니까?,{0} has invited a group. Would you like to participate?,server
+#PARTY_003,4명 초과해서 초대할 수 없습니다.,You can not invite exceed four.,server
+#PARTY_004,[c0c0c0]{0}님이 그룹에 참여했습니다.,[C0c0c0] {0} has joined the group.,server
+#PARTY_005,[ff0000]{0}님이 그룹에 참여하지 않았습니다.,[Ff0000] {0} 's did not participate in the group.,server
+#PARTY_006,[ff0000]{0}님이 강퇴 되었습니다.,[Ff0000] {0} 's has been banned.,server
+#PARTY_007,대상이 그룹원이 아닙니다.,The target is not a group member.,server
+#PARTY_008,[ff0000]{0}님이 방장이 되었습니다.,[Ff0000] {0} 's has been a moderator.,server
+#PARTY_009,[ff0000]{0}님이 그룹을 나갔습니다.,[Ff0000] {0} has left the group.,server
+#PARTY_010,[c0c0c0]방장이 게임 모드를 선택하고 있습니다. 잠시 기다려 주세요.,[C0c0c0] and moderator choose the game mode. Please wait a moment.,server
+#PARTY_011,[c0c0c0]{0}님이 {1}님에게 그룹 초대 메시지를 보냈습니다.,[C0c0c0] {0} to {1} wrote it sent a group invitation.,server
+#PARTY_012,상대가 그룹 초대를 받을 수 없습니다.,Opponents can not get a group invite.,server
+#PARTY_013,그룹에 빈자리가 없거나 그룹을 찾을 수 없습니다.,If there are no vacancies in the group you can not find a group.,server
+#PARTY_014,이미 그룹이 생성된 상태입니다.,The group has already created state.,server
+#PARTY_015,상대방이 그룹초대 거부 상태입니다.,The State party is invited to refuse the group.,server
+#PARTY_016,오류가 발생했습니다. 그룹을 다시 결성해주세요.\n불편을 드려 죄송합니다. ({0}),An error has occurred. Please formed a group again. \ N sorry for the inconvenience. ({0}),server
+#PARTY_017,1분 이상 응답이 없어 초대 요청이 만료되었습니다.,The answer is not more than one minute invitation has expired.,server
+#MISSION_1,[이등병] 미션완료 보상,[Pvt] mission complete compensation,server
+#MISSION_2,[일병] 미션완료 보상,[PFC] mission complete compensation,server
+#MISSION_3,[상병] 미션완료 보상,[SPC] mission complete compensation,server
+#MISSION_4,[병장] 미션완료 보상,[Sergeant] mission complete compensation,server
+#MISSION_5,[하사 1호봉] 미션완료 보상,[Bottom dead center 1 salary] mission complete compensation,server
+#MISSION_6,[하사 2호봉] 미션완료 보상,[Bottom dead 2 salary] mission complete compensation,server
+#MISSION_7,[하사 3호봉] 미션완료 보상,[Bottom dead 3 salary] mission complete compensation,server
+#MISSION_8,[하사 4호봉] 미션완료 보상,[Bottom dead center 4 salary] mission complete compensation,server
+#MISSION_9,[하사 5호봉] 미션완료 보상,[Bottom dead center of 5 salary] mission complete compensation,server
+#MISSION_10,[중사 1호봉] 미션완료 보상,[1 heavy salary] mission complete compensation,server
+#MISSION_11,[중사 2호봉] 미션완료 보상,[2 heavy salary] mission complete compensation,server
+#MISSION_12,[중사 3호봉] 미션완료 보상,[3 heavy salary] mission complete compensation,server
+#MISSION_13,[중사 4호봉] 미션완료 보상,[4 heavy salary] mission complete compensation,server
+#MISSION_14,[중사 5호봉] 미션완료 보상,[5 heavy salary] mission complete compensation,server
+#MISSION_15,[상사 1호봉] 미션완료 보상,- one salary supervisor] Mission complete compensation,server
+#MISSION_16,[상사 2호봉] 미션완료 보상,[2 supervisor salary] Mission complete compensation,server
+#MISSION_17,[상사 3호봉] 미션완료 보상,[3 supervisor salary] Mission complete compensation,server
+#MISSION_18,[상사 4호봉] 미션완료 보상,[4 bosses salary] Mission complete compensation,server
+#MISSION_19,[상사 5호봉] 미션완료 보상,[5 supervisor salary] Mission complete compensation,server
+#MISSION_20,[소위 1호봉] 미션완료 보상,[So-called first-class salary] mission complete compensation,server
+#MISSION_21,[소위 2호봉] 미션완료 보상,[So-called second-class salary] mission complete compensation,server
+#MISSION_22,[소위 3호봉] 미션완료 보상,[So-called third-class salary] mission complete compensation,server
+#MISSION_23,[소위 4호봉] 미션완료 보상,[So-called 4 salary] mission complete compensation,server
+#MISSION_24,[소위 5호봉] 미션완료 보상,[So-called 5 salary] mission complete compensation,server
+#MISSION_25,[중위 1호봉] 미션완료 보상,[Middle 1 salary] mission complete compensation,server
+#MISSION_26,[중위 2호봉] 미션완료 보상,[Lt. 2 salary] mission complete compensation,server
+#MISSION_27,[중위 3호봉] 미션완료 보상,[Median 3 salary] mission complete compensation,server
+#MISSION_28,[중위 4호봉] 미션완료 보상,[Lt. 4 salary] mission complete compensation,server
+#MISSION_29,[중위 5호봉] 미션완료 보상,[5 Lt salary] mission complete compensation,server
+#MISSION_30,[대위 1호봉] 미션완료 보상,[Track 1 salary] mission complete compensation,server
+#MISSION_31,[대위 2호봉] 미션완료 보상,[Track 2 salary] mission complete compensation,server
+#MISSION_32,[대위 3호봉] 미션완료 보상,[Track 3 salary] mission complete compensation,server
+#MISSION_33,[대위 4호봉] 미션완료 보상,[4 tracks salary] mission complete compensation,server
+#MISSION_34,[대위 5호봉] 미션완료 보상,[5 tracks salary] mission complete compensation,server
+#MISSION_35,[소령 1호봉] 미션완료 보상,[Major 1 salary] mission complete compensation,server
+#MISSION_36,[소령 2호봉] 미션완료 보상,[Major 2 salary] mission complete compensation,server
+#MISSION_37,[소령 3호봉] 미션완료 보상,[Major 3 salary] mission complete compensation,server
+#MISSION_38,[소령 4호봉] 미션완료 보상,[Major 4 salary] mission complete compensation,server
+#MISSION_39,[소령 5호봉] 미션완료 보상,[Major 5 salary] mission complete compensation,server
+#MISSION_40,[중령 1호봉] 미션완료 보상,[Col. 1 salary] mission complete compensation,server
+#MISSION_41,[중령 2호봉] 미션완료 보상,[Col. 2 salary] mission complete compensation,server
+#MISSION_42,[중령 3호봉] 미션완료 보상,[Col. 3 salary] mission complete compensation,server
+#MISSION_43,[중령 4호봉] 미션완료 보상,[Col. 4 salary] mission complete compensation,server
+#MISSION_44,[중령 5호봉] 미션완료 보상,[Col. 5 salary] mission complete compensation,server
+#MISSION_45,[대령 1호봉] 미션완료 보상,[Col. 1 salary] mission complete compensation,server
+#MISSION_46,[대령 2호봉] 미션완료 보상,[Col. 2 salary] mission complete compensation,server
+#MISSION_47,[대령 3호봉] 미션완료 보상,[Col. 3 salary] mission complete compensation,server
+#MISSION_48,[대령 4호봉] 미션완료 보상,[Col. 4 salary] mission complete compensation,server
+#MISSION_49,[대령 5호봉] 미션완료 보상,[Col. 5 salary] mission complete compensation,server
+#MISSION_50,[준장 1호봉] 미션완료 보상,[1 Brigadier salary] Mission complete compensation,server
+#MISSION_51,[준장 2호봉] 미션완료 보상,[Brigadier two salary - Mission Complete Reward,server
+#MISSION_52,[준장 3호봉] 미션완료 보상,[3 Brigadier salary] Mission complete compensation,server
+#MISSION_53,[준장 4호봉] 미션완료 보상,[4 Brigadier salary] Mission complete compensation,server
+#MISSION_54,[준장 5호봉] 미션완료 보상,[5 Brigadier salary] Mission complete compensation,server
+#MISSION_55,[소장 1호봉] 미션완료 보상,[1 salary director] Mission complete compensation,server
+#MISSION_56,[소장 2호봉] 미션완료 보상,[2 Director salary - Mission Complete Reward,server
+#MISSION_57,[소장 3호봉] 미션완료 보상,[3 salary director] Mission complete compensation,server
+#MISSION_58,[소장 4호봉] 미션완료 보상,[4 director salary] Mission complete compensation,server
+#MISSION_59,[소장 5호봉] 미션완료 보상,[5 Director salary - Mission Complete Reward,server
+#MISSION_60,[중장 1호봉] 미션완료 보상,[Lt. 1 salary] mission complete compensation,server
+#MISSION_61,[중장 2호봉] 미션완료 보상,[2 heavy salary] mission complete compensation,server
+#MISSION_62,[중장 3호봉] 미션완료 보상,[3 heavy salary] mission complete compensation,server
+#MISSION_63,[중장 4호봉] 미션완료 보상,[4 heavy salary] mission complete compensation,server
+#MISSION_64,[중장 5호봉] 미션완료 보상,[5 heavy salary] mission complete compensation,server
+#MISSION_65,[대장 1호봉] 미션완료 보상,[1 colon salary] mission complete compensation,server
+#MISSION_66,[대장 2호봉] 미션완료 보상,[2 colon salary] mission complete compensation,server
+#MISSION_67,[대장 3호봉] 미션완료 보상,[3 colon salary] mission complete compensation,server
+#MISSION_68,[대장 4호봉] 미션완료 보상,[4 colon salary] mission complete compensation,server
+#MISSION_69,[대장 5호봉] 미션완료 보상,[5 colon salary] mission complete compensation,server
+#MISSION_70,[원수 1호봉] 미션완료 보상,- raw water 1 salary] mission complete compensation,server
+#MISSION_71,[원수 2호봉] 미션완료 보상,[2 enemy salary] mission complete compensation,server
+#MISSION_72,[원수 3호봉] 미션완료 보상,[3 enemy salary] mission complete compensation,server
+#MISSION_73,[원수 4호봉] 미션완료 보상,[4 enemy salary] mission complete compensation,server
+#MISSION_74,[원수 5호봉] 미션완료 보상,[5 enemies salary] mission complete compensation,server
+#MISSION_100,[라이플 킬 10회] 미션완료 보상,[Rifle Kills 10] Mission complete compensation,server
+#MISSION_101,[라이플킬 100회] 미션완료 보상,[Rifle Kill 100 times - Mission Complete Reward,server
+#MISSION_102,[라이플킬 1000회] 미션완료 보상,[Rifle Kills 1000] Mission complete compensation,server
+#MISSION_110,[머신건 킬 10회] 미션완료 보상,[Machine Gun Kills 10] Mission complete compensation,server
+#MISSION_111,[머신건 킬 100회] 미션완료 보상,[Machine Gun Kill 100 times - Mission Complete Reward,server
+#MISSION_112,[머신건 킬 1000회] 미션완료 보상,[Machine Gun Kills 1000] Mission complete compensation,server
+#MISSION_120,[스나이퍼 킬 10회] 미션완료 보상,[Sniper Kill 10] Mission complete compensation,server
+#MISSION_121,[스나이퍼 킬 100회] 미션완료 보상,[Sniper Kill 100 times - Mission Complete Reward,server
+#MISSION_122,[스나이퍼 킬 1000회] 미션완료 보상,[Sniper Kill 1000] Mission complete compensation,server
+#MISSION_130,[피스톨 킬 10회] 미션완료 보상,[Pistol Kills 10] Mission complete compensation,server
+#MISSION_131,[피스톨 킬 100회] 미션완료 보상,[Pistol Kill 100 times - Mission Complete Reward,server
+#MISSION_132,[피스톨 킬 1000회] 미션완료 보상,[Pistol Kills 1000] Mission complete compensation,server
+#MISSION_140,[샷건 킬 10회] 미션완료 보상,[Shotgun Kills 10] Mission complete compensation,server
+#MISSION_141,[샷건 킬 100회] 미션완료 보상,[Shotgun Kill 100 times - Mission Complete Reward,server
+#MISSION_142,[샷건 킬 1000회] 미션완료 보상,[Shotgun Kills 1000] Mission complete compensation,server
+#MISSION_150,[나이프킬 10회] 미션완료 보상,[Knife Kill 10] Mission complete compensation,server
+#MISSION_151,[나이프킬 100회] 미션완료 보상,[Knife Kill 100 times - Mission Complete Reward,server
+#MISSION_152,[나이프킬 1000회] 미션완료 보상,[Knife Kill 1000] Mission complete compensation,server
+#MISSION_160,[수류탄 킬 10회] 미션완료 보상,[Grenade Kills 10] Mission complete compensation,server
+#MISSION_161,[수류탄 킬 100회] 미션완료 보상,[Grenade Kill 100 times - Mission Complete Reward,server
+#MISSION_162,[수류탄 킬 1000회] 미션완료 보상,[Grenade Kills 1000] Mission complete compensation,server
+#MISSION_170,[헤드샷 10회] 미션완료 보상,Head shot 10] Mission complete compensation,server
+#MISSION_171,[헤드샷 100회] 미션완료 보상,Head shot 100 times - Mission Complete Reward,server
+#MISSION_172,[헤드샷 1000회] 미션완료 보상,Head Shot 1000 - Mission Complete Reward,server
+#MISSION_180,[쌍권총 킬 10회] 미션완료 보상,[Meet the twins Kill 10] Mission complete compensation,server
+#MISSION_181,[쌍권총 킬 100회] 미션완료 보상,[Meet the twins Kill 100 times - Mission Complete Reward,server
+#MISSION_182,[쌍권총 킬  1000회] 미션완료 보상,[Meet the twins Kiel 1000 - Mission Complete Reward,server
+#MISSION_190,[석궁 킬 10회] 미션완료 보상,[Crossbow Kill 10] Mission complete compensation,server
+#MISSION_191,[석궁 킬 100회] 미션완료 보상,[Crossbow Kill 100 times - Mission Complete Reward,server
+#MISSION_192,[석궁 킬  1000회] 미션완료 보상,[Crossbow Kill 1000] Mission complete compensation,server
+#MISSION_200,[일반팀전 1회 승리] 미션완료 보상,General Team 1st win] Mission complete compensation,server
+#MISSION_201,[일반팀전 100회 승리] 미션완료 보상,General Team to win 100 times - Mission Complete Reward,server
+#MISSION_202,[일반팀전 1000회 승리] 미션완료 보상,General Team wins 1000] Mission complete compensation,server
+#MISSION_210,[클랜전 1회 승리] 미션완료 보상,[Keulraenjeon 1st win] Mission complete compensation,server
+#MISSION_211,[클랜전 100회 승리] 미션완료 보상,[Keulraenjeon 100th victory - Mission Complete Reward,server
+#MISSION_212,[클랜전 1000 회 승리] 미션완료 보상,[1000 keulraenjeon win] Mission complete compensation,server
+#MISSION_300,[튜토리얼 완료] 미션완료 보상,[Tutorial Complete Mission Complete Reward,server
+#MISSION_301,[리뷰작성] 미션완료 보상,[Write a review] Mission complete compensation,server
+#MISSION_302,[페이스북 연동] 미션완료 보상,[Facebook linked - Mission Complete Reward,server
+#MISSION_303,[구글플러스 연동] 미션완료 보상,[Google Plus works - Mission Complete Reward,server
+#MISSION_304,[카카오 연동] 미션완료 보상,[Cocoa beans interlocking] mission complete compensation,server
+#MISSION_305,[닉네임 변경] 미션완료 보상,[Nickname Change mission complete compensation,server
+#MISSION_306,[클랜생성] 미션완료 보상,[Clancy generate] mission complete compensation,server
+#MISSION_307,[클랜 경험치 상승 버프 실행] 미션완료 보상,[Clancy experience elevated buff Run mission complete compensation,server
+#MISSION_308,[클랜 골드 상승 버프 실행] 미션완료 보상,[Clan gold rose buff Run Mission Complete Reward,server
+#MISSION_309,[클랜 확장] 미션완료 보상,[Clan Expansion Mission Complete Reward,server
+#MISSION_310,[좋아요 +1] 미션완료 보상,[Right +1] mission complete compensation,server
+#MISSION_311,[앱 추천] 미션완료 보상,[Recommended app] Mission complete compensation,server
+#MISSION_312,[유튜브 구독] 미션완료 보상,[YouTube subscription - complete the mission reward,server
+#MISSION_400,[D등급 최대레벨 1회] 미션완료 보상,[D rated maximum level once; Mission complete compensation,server
+#MISSION_401,[D등급 최대레벨 5회] 미션완료 보상,[D up to grade level five - Mission Complete Reward,server
+#MISSION_402,[D등급 최대레벨 10회] 미션완료 보상,[D up to grade level 10 - Mission Complete Reward,server
+#MISSION_403,[C등급 최대레벨 1회] 미션완료 보상,[C rated maximum level once; Mission complete compensation,server
+#MISSION_404,[C등급 최대레벨 5회] 미션완료 보상,[C rates up to level five] mission complete compensation,server
+#MISSION_405,[C등급 최대레벨 10회] 미션완료 보상,[C rates up to level 10] Mission complete compensation,server
+#MISSION_406,[B등급 최대레벨 1회] 미션완료 보상,[B rated maximum level once; Mission complete compensation,server
+#MISSION_407,[B등급 최대레벨 5회] 미션완료 보상,[B grade level up to 5 times] mission complete compensation,server
+#MISSION_408,[B등급 최대레벨 10회] 미션완료 보상,[B grade level up to 10] Mission complete compensation,server
+#MISSION_409,[A등급 최대레벨 1회] 미션완료 보상,[A rated maximum level once; Mission complete compensation,server
+#MISSION_410,[A등급 최대레벨 5회] 미션완료 보상,[A rating up to level five] mission complete compensation,server
+#MISSION_411,[A등급 최대레벨 10회] 미션완료 보상,[A rated maximum level 10] Mission complete compensation,server
+#MISSION_412,[S등급 최대레벨 1회] 미션완료 보상,[S rated maximum level once; Mission complete compensation,server
+#MISSION_413,[S등급 최대레벨 5회] 미션완료 보상,[S grade levels up to 5 times - Mission Complete Reward,server
+#MISSION_414,[S등급 최대레벨 10회] 미션완료 보상,[S rated maximum level 10] Mission complete compensation,server
+#MISSION_415,[SS등급 최대레벨 1회] 미션완료 보상,[SS grade maximum level once; Mission complete compensation,server
+#MISSION_416,[SS등급 최대레벨 5회] 미션완료 보상,[SS grade maximum level 5 times] mission complete compensation,server
+#MISSION_417,[SS등급 최대레벨 10회] 미션완료 보상,[SS grade maximum level 10] Mission complete compensation,server
+#MISSION_500,[D급 컬렉션 달성 10개] 미션완료 보상,[D-class collection achieved 10] Mission complete compensation,server
+#MISSION_501,[C급 컬렉션 달성 10개] 미션완료 보상,[C-class collection achieved 10] Mission complete compensation,server
+#MISSION_502,[B급 컬렉션 달성 10개] 미션완료 보상,[B-class collection achieved 10] Mission complete compensation,server
+#MISSION_503,[A급 컬렉션 달성 10개] 미션완료 보상,[A-class collection achieved 10] Mission complete compensation,server
+#MISSION_504,[S급 컬렉션 달성 10개] 미션완료 보상,[S-class collection achieved 10] Mission complete compensation,server
+#MISSION_505,[D급 컬렉션 달성 50개] 미션완료 보상,[D-class collection of 50 achieved] Mission complete compensation,server
+#MISSION_506,[C급 컬렉션 달성 50개] 미션완료 보상,[C-class collection of 50 achieved] Mission complete compensation,server
+#MISSION_507,[B급 컬렉션 달성 50개] 미션완료 보상,[B-class collection of 50 achieved] Mission complete compensation,server
+#MISSION_508,[A급 컬렉션 달성 50개] 미션완료 보상,[A collection of 50 grade achieved - Mission Complete Reward,server
+#MISSION_509,[S급 컬렉션 달성 50개] 미션완료 보상,[S-class collection of 50 achieved] Mission complete compensation,server
+#MISSION_510,[D급 컬렉션 달성 100개] 미션완료 보상,[D-class collection of 100 achieved] Mission complete compensation,server
+#MISSION_511,[C급 컬렉션 달성 100개] 미션완료 보상,[C-class collection of 100 achieved] Mission complete compensation,server
+#MISSION_512,[B급 컬렉션 달성 100개] 미션완료 보상,[B-class collection of 100 achieved] Mission complete compensation,server
+#MISSION_513,[A급 컬렉션 달성 100개] 미션완료 보상,[A-class collection of 100 achieved] Mission complete compensation,server
+#MISSION_514,[S급 컬렉션 달성 100개] 미션완료 보상,[S-class collection of 100 achieved] Mission complete compensation,server
+#MISSION_515,[전체 컬렉션 100개] 미션완료 보상,[100 Full Collection Mission Complete Reward,server
+#MISSION_516,[전체 컬렉션 200개] 미션완료 보상,[200 Full Collection Mission Complete Reward,server
+#MISSION_517,[전체 컬렉션 300개] 미션완료 보상,[300 Full Collection Mission Complete Reward,server
+#MISSION_518,[전체 컬렉션 400개] 미션완료 보상,[400 Full Collection Mission Complete Reward,server
+#MISSION_519,[전체 컬렉션 500개] 미션완료 보상,[500 Full Collection Mission Complete Reward,server
+#MISSION_520,[전체 컬렉션 600개] 미션완료 보상,[600 through the collection] mission complete compensation,server
+#MISSION_521,[전체 컬렉션 700개] 미션완료 보상,Entire Collection 700 - Mission Complete Reward,server
+#MISSION_522,[TIGER 무기 10개] 미션완료 보상,[TIGER weapons 10] Mission complete compensation,server
+#MISSION_523,[TIGER 무기 30개] 미션완료 보상,[TIGER weapons 30] Mission complete compensation,server
+#MISSION_524,[TIGER 무기 50개] 미션완료 보상,[TIGER 50 gae weapon] mission complete compensation,server
+#MISSION_525,[TIGER 무기 70개] 미션완료 보상,[TIGER 70 dogs weapons] Mission complete compensation,server
+#MISSION_526,[TIGER 무기 90개] 미션완료 보상,[TIGER 90 dogs weapons] Mission complete compensation,server
+#MISSION_527,[TIGER 무기 110개] 미션완료 보상,[TIGER 110 gae weapon] mission complete compensation,server
+#MISSION_528,[TIGER 무기 130개] 미션완료 보상,[TIGER 130 gae weapon] mission complete compensation,server
+#MISSION_529,[TIGER 무기 150개] 미션완료 보상,[TIGER 150 gae weapon] mission complete compensation,server
+#MISSION_530,[SS급 컬렉션 달성 10개] 미션완료 보상,[SS-class collections achieved 10] Mission complete compensation,server
+#MISSION_531,[SS급 컬렉션 달성 50개] 미션완료 보상,[SS-class collections achieved 50] Mission complete compensation,server
+#MISSION_532,[SS급 컬렉션 달성 100개] 미션완료 보상,[SS-class collection of 100 achieved] Mission complete compensation,server
+#MISSION_550,[S급 무기 옵션 1개 장착] 미션완료 보상,"[S-grade weapons option, one mounted - Mission Complete Reward",server
+#MISSION_555,[SS급 무기 옵션 1개 장착] 미션완료 보상,"[SS-grade weapons option, one mounted - Mission Complete Reward",server
+#MISSION_556,[SS급 무기 옵션 2개 장착] 미션완료 보상,[SS Class 2 mounted weapon options] Mission complete compensation,server
+#MISSION_600,[솔져코인 상점 아이템 10회 구매] 미션완료 보상,[Soldier coin shop buying items 10] Mission complete compensation,server
+#MISSION_601,[솔져코인 상점 아이템 100회 구매] 미션완료 보상,[Soldier coin shops buy items 100 times - Mission Complete Reward,server
+#MISSION_602,[솔져코인 상점 아이템 1000회 구매] 미션완료 보상,[Soldier coin shops buy items 1000 - Mission Complete Reward,server
+#MISSION_701,[최초 30 캐시] 미션완료 보상,[The first cache 30] Mission complete compensation,server
+#MISSION_702,[최초 315 캐시] 미션완료 보상,[The first 315 caches - Mission Complete Reward,server
+#MISSION_703,[최초 1200 캐시] 미션완료 보상,[1200 first cache; Mission complete compensation,server
+#MISSION_704,[프리미엄찬스] 미션완료 보상,Premium chance] to complete the mission reward,server
+#MISSION_801,[추석-클랜-5000] 미션완료 보상,[Thanksgiving - Clan -5000] to complete the mission reward,server
+#MISSION_802,[추석-클랜-10000] 미션완료 보상,[Thanksgiving - Clan -10000] Mission complete compensation,server
+#MISSION_803,[추석-클랜-20000] 미션완료 보상,[Thanksgiving - Clan -20000] Mission complete compensation,server
+#MISSION_804,[추석-클랜-40000] 미션완료 보상,[Thanksgiving - Clan -40000] Mission complete compensation,server
+#MISSION_811,[추석-출석-1일] 미션완료 보상,[Thanksgiving - Attendance -1] Mission complete compensation,
+#MISSION_812,[추석-출석-2일] 미션완료 보상,[Thanksgiving - Attendance -2-yl] Mission complete compensation,
+#MISSION_813,[추석-출석-3일] 미션완료 보상,[Thanksgiving - Attendance three days - Mission Complete Reward,
+#MISSION_196,[듀얼라이플 10회] 미션완료 보상,[Dual rifle 10] Mission complete compensation,
+#MISSION_197,[듀얼라이플 100회] 미션완료 보상,[Dual rifle 100 times] mission complete compensation,
+#MISSION_198,[듀얼라이플 1000회] 미션완료 보상,[Dual rifle 1000] Mission complete compensation,
+#MISSION_220,[듀얼라이플 10회] 미션완료 보상,[Dual rifle 10] Mission complete compensation,
+#MISSION_221,[듀얼라이플 100회] 미션완료 보상,[Dual rifle 100 times] mission complete compensation,
+#MISSION_222,[듀얼라이플 1000회] 미션완료 보상,[Dual rifle 1000] Mission complete compensation,

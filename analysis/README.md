@@ -23,6 +23,16 @@
 - 따라서 OBB가 `/sdcard/Android/obb/com.wellgames.ss/main.347.com.wellgames.ss.obb`에 없으면 `FPS` 장면을 불러오지 못해 검은 화면에서 멈춘다.
 - Unity는 OBB 안의 build-id가 APK와 같은지(`6630b1da-…`) 확인하므로, 같은 빌드의 OBB가 필요하다.
 
+### OBB 확보 (APKPure XAPK)
+
+- `SpecialSoldier - Best FPS_3.4.7_APKPure.xapk`에 `main.347.com.wellgames.ss.obb`(SHA-256 `896a66d7…f225`)가 들어 있다.
+  - XAPK 안의 APK는 처음 받은 APK와 파일 내용이 같다(압축 방식만 다름).
+- OBB 안에는 빌드 ID 파일 `assets/6630b1da-14d9-46da-9643-67b04201d9f2`가 있어서 APK와 짝이 맞는다.
+- 내용물: `level1`~`level45` 장면, `sharedassets*.assets`, 번들 46개
+- 꺼낸 텍스트(`obb_text/`):
+  - `T_PROTOCOLS.json`: 프로토콜 이름 → 경로 (177개, `/game/*.php` 174개, `/init/*.php` 3개)
+  - `Localization_server.txt`: 서버 오류 메시지 키
+
 ### 2. 서버 종료
 
 OBB가 있더라도 다음 단계에서 `connection_string` 요청이 실패한다(아래 참고).
@@ -66,7 +76,8 @@ POST {서버 주소}{protocols[프로토콜 이름]}
 ```
 
 - `MD5`: JSON 안의 자리표시자를 JSON 자체의 MD5(hex)로 바꾼 값(`GLLPHABKNEO.OCOEIBNMPBK`). 위변조 검사용이라 로컬 서버는 무시해도 된다.
-- 프로토콜 이름을 경로로 바꾸는 표(`protocols`)는 `DataManager`의 TextAsset(JSON)에 있다. 이 파일은 APK에 없고 OBB 쪽에 있다.
+- 프로토콜 이름을 경로로 바꾸는 표는 OBB의 `T_PROTOCOLS` TextAsset이다(`obb_text/T_PROTOCOLS.json`).
+  예: `connection_string` → `/game/connection_string.php`, `login` → `/game/login.php`
 
 ### 응답 형식
 
