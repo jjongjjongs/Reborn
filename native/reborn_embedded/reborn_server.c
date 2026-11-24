@@ -255,24 +255,7 @@ static void send_raw(int fd, const char *body) {
 // M_CONFIG_DATA.Deserialize's dict["KEY"] lookups don't throw KeyNotFound (an
 // empty {} throws, which the game's catch block mis-reports as "update
 // required" -> the download-page popup).
-#define REBORN_CONFIG_JSON \
-"{\"DEV\":{},\"SD_CONFIG\":{},\"CLASS_GAME_CONFIG\":{},\"HIDE_AND_SEEK_CONFIG\":{}," \
-"\"ROCKET_CONFIG_C\":{},\"GLADIATOR_CONFIG\":{},\"ZOMBIE_2_CONFIG\":{},\"FAIRPLAY_CONFIG\":{}," \
-"\"GUIDE_MISSION_CONFIG\":{},\"DRAW_CARD\":[],\"MODE_SETTING\":{},\"SNOW_FIGHT_CONFIG_C\":{}," \
-"\"TIME\":\"0\",\"NEWBIE_EXP\":\"0\",\"SERVER_STATUS_1\":{},\"SERVER_STATUS\":[]," \
-"\"PATCH_RESOURCE\":[],\"PATCH_RESOURCE_NEW\":[],\"GAME_SERVER\":\"\",\"CHAT_SERVER\":[]," \
-"\"BATTLE_SERVER\":[],\"SERVER_ENDPOINT\":{},\"MARKET_URL\":[],\"HELP_URL\":\"\"," \
-"\"ROOT_CHECK\":false,\"ROOT_APP\":false,\"ROOT_PACK\":[],\"NEW_MAP\":[],\"OPEN_MAP\":[]," \
-"\"MAP_LIST\":[],\"QUICK\":[],\"ROOM_MAKE\":[],\"BOOST_LIST\":[],\"REFRESH_ROOM\":\"0\"," \
-"\"INVENTORY_MAXSIZE\":\"0\",\"FRIEND_MAXSIZE\":\"0\",\"MBOX_LIST_MAXSIZE\":\"0\"," \
-"\"CLAN_BOARD_MAXSIZE\":\"0\",\"CLAN_LOG_MAXSIZE\":\"0\",\"PENALTY_TIME\":\"0\",\"BATTLE_BALANCE\":[]," \
-"\"ROOM_LIST\":{},\"ROOM_LIST_NEW\":[],\"BANNER_INFO\":{},\"CLASSUP_INFO\":{},\"DISJOIN_INFO\":{}," \
-"\"CHARACTER_UPGRADE_DATA\":{},\"INFO_NOTICE_URL\":[],\"LOBBY_QUICK\":[],\"WEAPON_SKIN_SET\":[]," \
-"\"LUCKY_CHANCE_CONFIG\":{},\"STACKED_ATTEND_REWARD_CONFIG\":[],\"INSTALLS\":[],\"PLAY_TIME\":\"0\"," \
-"\"PLAY_TIME_ROUND\":\"0\",\"COST_CLAN_CREATE\":\"0\",\"COST_CLAN_MARK\":\"0\",\"COST_CLAN_EXPAND\":\"0\"," \
-"\"CLAN_EXPAND_MAX\":\"0\",\"COST_CLAN_RENAME\":\"0\",\"COST_CLAN_INVITE\":\"0\"," \
-"\"COST_CLAN_JOIN\":\"0\",\"COST_ADD_FRIEND\":\"0\",\"COST_GACHA\":\"0\",\"SHOP_VER\":\"0\"," \
-"\"MD5_SEED\":\"\",\"PARTY_SYSTEM\":\"0\",\"MODE_CONFIG\":[],\"TEAM_MATCHING_CUSTOM\":{}}"
+#define REBORN_CONFIG_JSON "{}"
 
 // Route one protocol to its response. Returns via send_envelope.
 static void handle(int fd, const char *proto, const char *env) {
