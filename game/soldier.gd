@@ -17,6 +17,7 @@ const MAP := {
 	"Shoulder.R": "DEF-shoulder.R", "UpperArm.R": "DEF-upper_arm.R", "LowerArm.R": "DEF-forearm.R", "Hand.R": "DEF-hand.R",
 	"UpperLeg.L": "DEF-thigh.L", "LowerLeg.L": "DEF-shin.L", "Foot.L": "DEF-foot.L",
 	"UpperLeg.R": "DEF-thigh.R", "LowerLeg.R": "DEF-shin.R", "Foot.R": "DEF-foot.R",
+	"Foot.L_end": "DEF-toe.L", "Foot.R_end": "DEF-toe.R",
 	"Index2.L": "DEF-f_index.01.L", "Index3.L": "DEF-f_index.02.L", "Index4.L": "DEF-f_index.03.L",
 	"Middle2.L": "DEF-f_middle.01.L", "Middle3.L": "DEF-f_middle.02.L", "Middle4.L": "DEF-f_middle.03.L",
 	"Ring2.L": "DEF-f_ring.01.L", "Ring3.L": "DEF-f_ring.02.L", "Ring4.L": "DEF-f_ring.03.L",
@@ -35,6 +36,7 @@ const LIMB_CHILD := {
 	"Shoulder.R": "UpperArm.R", "UpperArm.R": "LowerArm.R", "LowerArm.R": "Hand.R",
 	"UpperLeg.L": "LowerLeg.L", "LowerLeg.L": "Foot.L",
 	"UpperLeg.R": "LowerLeg.R", "LowerLeg.R": "Foot.R",
+	"Foot.L": "Foot.L_end", "Foot.R": "Foot.R_end",       # foot yaw: ankle->toe direction
 	"Hand.L": "Middle2.L", "Hand.R": "Middle2.R",
 	"Index2.L": "Index3.L", "Index3.L": "Index4.L", "Middle2.L": "Middle3.L", "Middle3.L": "Middle4.L",
 	"Ring2.L": "Ring3.L", "Ring3.L": "Ring4.L", "Pinky2.L": "Pinky3.L", "Pinky3.L": "Pinky4.L",
