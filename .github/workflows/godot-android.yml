@@ -65,22 +65,28 @@ jobs:
           set -e
           cd game
           mkdir -p build
+          CODE=$(grep 'version/code' export_presets.cfg | grep -o '[0-9]\+' | head -1)
+          VER=$(grep 'version/name' export_presets.cfg | cut -d'"' -f2)
+          APK="reborn-v${CODE}.apk"
+          echo "APK=$APK" >> "$GITHUB_ENV"
+          echo "VER=$VER" >> "$GITHUB_ENV"
+          echo "CODE=$CODE" >> "$GITHUB_ENV"
           godot --headless --import || true
-          godot --headless --verbose --export-debug "Android" build/reborn.apk
+          godot --headless --verbose --export-debug "Android" "build/$APK"
           echo "--- build dir ---"
           ls -la build
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: reborn-apk
-          path: game/build/reborn.apk
+          name: ${{ env.APK }}
+          path: game/build/${{ env.APK }}
 
       - name: Attach to release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: game-latest
-          name: "리본 게임 · 최신 빌드"
-          body: "Godot 4.3 · 오프라인 PvE 서바이벌. 폰에 reborn.apk 설치(덮어쓰기). 좌: 이동 / 우측 드래그: 조준 / 사격·장전·점프 버튼."
-          files: game/build/reborn.apk
+          name: "리본 게임 · v${{ env.CODE }} (${{ env.VER }})"
+          body: "Godot 4.3 · 오프라인. 최신: ${{ env.APK }} 설치. 메뉴에서 PvE 서바이벌 / 데스매치 선택. (파일명 버전 숫자가 클수록 최신)"
+          files: game/build/${{ env.APK }}
           fail_on_unmatched_files: true
