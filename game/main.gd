@@ -151,6 +151,9 @@ func _build_hud() -> void:
 	_ammo_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	layer.add_child(_ammo_lbl)
 
+	# in-run upgrade shop (shows itself during prep)
+	layer.add_child(UpgradeShop.new())
+
 func _mk_label(txt: String, size: int, pos: Vector2) -> Label:
 	var l := Label.new()
 	l.text = txt

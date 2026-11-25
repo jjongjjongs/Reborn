@@ -23,6 +23,15 @@ var wave_total: int = 5
 var zombies_left: int = 0
 var prep_left: float = -1.0   # >=0 while in prep countdown
 var cleared: bool = false
+# upgrades (applied multipliers + levels)
+var dmg_mult: float = 1.0
+var speed_mult: float = 1.0
+var reload_mult: float = 1.0
+var atk_lv: int = 0
+var spd_lv: int = 0
+var hp_lv: int = 0
+var wp_lv: int = 0
+var shop_open: bool = false
 
 func request_jump() -> void:
 	_jump = true

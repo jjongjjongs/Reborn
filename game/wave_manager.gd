@@ -3,7 +3,7 @@ extends Node
 ## M3 wave flow: prep countdown -> spawn a scheduled batch -> wait for clear ->
 ## prep next (escalating) -> ... -> cleared. Kills/clears feed Controls.points.
 
-const PREP := 6.0
+const PREP := 9.0
 const CLEAR_BONUS := 50
 const WAVES := [
 	{"count": 6, "interval": 0.9, "hp_mul": 1.0, "spd_mul": 1.0},

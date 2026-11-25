@@ -81,8 +81,8 @@ func _physics_process(delta: float) -> void:
 	dir.y = 0.0
 	if dir.length() > 1.0:
 		dir = dir.normalized()
-	velocity.x = dir.x * SPEED
-	velocity.z = dir.z * SPEED
+	velocity.x = dir.x * SPEED * Controls.speed_mult
+	velocity.z = dir.z * SPEED * Controls.speed_mult
 	if is_on_floor():
 		if Controls.consume_jump():
 			velocity.y = JUMP_VELOCITY
@@ -94,9 +94,9 @@ func _physics_process(delta: float) -> void:
 	if _reload_t > 0.0:
 		_reload_t -= delta
 		if _reload_t <= 0.0:
-			Controls.ammo = MAG
+			Controls.ammo = Controls.ammo_max
 			Controls.reloading = false
-	elif Controls.consume_reload() and Controls.ammo < MAG:
+	elif Controls.consume_reload() and Controls.ammo < Controls.ammo_max:
 		_start_reload()
 
 	# fire
@@ -114,7 +114,7 @@ func _physics_process(delta: float) -> void:
 	Controls.spread_deg = clampf(SPREAD_MIN + (2.0 if moving else 0.0) + _bloom, SPREAD_MIN, SPREAD_MAX)
 
 func _start_reload() -> void:
-	_reload_t = RELOAD_TIME
+	_reload_t = RELOAD_TIME * Controls.reload_mult
 	Controls.reloading = true
 
 func _shoot() -> void:
@@ -146,6 +146,7 @@ func _shoot() -> void:
 				dmg = int(dmg * HEAD_MULT)
 			if randf() < CRIT_CHANCE:
 				dmg = int(dmg * CRIT_MULT)
+			dmg = int(dmg * Controls.dmg_mult)
 			col.hit(dmg, is_head)
 	_tracer(_muzzle.global_position, end)
 	_muzzle_flash()

@@ -51,6 +51,8 @@ func _has_other(role: String, except_idx: int) -> bool:
 	return false
 
 func _input(event: InputEvent) -> void:
+	if Controls.shop_open:
+		return
 	if event is InputEventScreenTouch:
 		var t := event as InputEventScreenTouch
 		if t.pressed:
