@@ -39,10 +39,9 @@ var _hand_idx := -1
 var _gun: Node3D
 var _tgt_idx := PackedInt32Array()
 var _src_idx := PackedInt32Array()
-var _tgt_rest: Array[Quaternion] = []
-var _src_rest_inv: Array[Quaternion] = []
-var _m: Array[Quaternion] = []        # change-of-basis: source bone frame -> target bone frame
-var _m_inv: Array[Quaternion] = []
+var _tgt_par := PackedInt32Array()                 # target bone's parent index
+var _tgt_grest: Array[Quaternion] = []             # target bone global rest rotation
+var _src_grest_inv: Array[Quaternion] = []         # source bone global rest rotation, inverted
 var _loco := 0.0
 var _aiming := false
 var _dead := false
@@ -76,19 +75,25 @@ func setup(team_color: Color, _gear: Color = Color.BLACK) -> void:
 
 func _build_map() -> void:
 	if _tgt == null or _src == null: return
+	var entries := []
 	for swat_bone in MAP:
 		var ti := _tgt.find_bone(swat_bone)
 		var si := _src.find_bone(MAP[swat_bone])
 		if ti < 0 or si < 0: continue
-		_tgt_idx.append(ti); _src_idx.append(si)
-		_tgt_rest.append(_tgt.get_bone_rest(ti).basis.get_rotation_quaternion())
-		_src_rest_inv.append(_src.get_bone_rest(si).basis.get_rotation_quaternion().inverse())
-		# model-space orientation of each bone's rest, to transfer the local delta
-		# across rigs whose bone axes differ (otherwise limbs twist/flip)
-		var sg := _src.get_bone_global_rest(si).basis.get_rotation_quaternion()
-		var tg := _tgt.get_bone_global_rest(ti).basis.get_rotation_quaternion()
-		var m := tg.inverse() * sg
-		_m.append(m); _m_inv.append(m.inverse())
+		entries.append({"ti": ti, "si": si, "depth": _depth(ti)})
+	entries.sort_custom(func(a, b): return a["depth"] < b["depth"])   # parents before children
+	for e in entries:
+		_tgt_idx.append(e["ti"]); _src_idx.append(e["si"])
+		_tgt_par.append(_tgt.get_bone_parent(e["ti"]))
+		_tgt_grest.append(_tgt.get_bone_global_rest(e["ti"]).basis.get_rotation_quaternion())
+		_src_grest_inv.append(_src.get_bone_global_rest(e["si"]).basis.get_rotation_quaternion().inverse())
+
+func _depth(idx: int) -> int:
+	var d := 0
+	var p := _tgt.get_bone_parent(idx)
+	while p >= 0:
+		d += 1; p = _tgt.get_bone_parent(p)
+	return d
 
 func drive(loco_ratio: float, aiming: bool) -> void:
 	_loco = loco_ratio; _aiming = aiming
@@ -122,11 +127,17 @@ func _process(dt: float) -> void:
 
 func _retarget() -> void:
 	if _tgt == null or _src == null: return
+	# model-space (global) retarget: take the source bone's rotation relative to its
+	# own global rest, apply it onto the target's global rest, then convert back to a
+	# local pose using the (already-updated) parent. Handles A-pose vs T-pose rigs.
 	for i in _tgt_idx.size():
-		var cur := _src.get_bone_pose_rotation(_src_idx[i])
-		var d := _src_rest_inv[i] * cur                 # source local delta from rest
-		var td := _m[i] * d * _m_inv[i]                 # express it in target bone frame
-		_tgt.set_bone_pose_rotation(_tgt_idx[i], _tgt_rest[i] * td)
+		var srg := _src.get_bone_global_pose(_src_idx[i]).basis.get_rotation_quaternion()
+		var desired := (srg * _src_grest_inv[i]) * _tgt_grest[i]
+		var par := _tgt_par[i]
+		var pg := Quaternion.IDENTITY
+		if par >= 0:
+			pg = _tgt.get_bone_global_pose(par).basis.get_rotation_quaternion()
+		_tgt.set_bone_pose_rotation(_tgt_idx[i], pg.inverse() * desired)
 
 func _team_tint(mi: MeshInstance3D) -> void:
 	if mi.mesh == null: return
