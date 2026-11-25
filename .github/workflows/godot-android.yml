@@ -64,11 +64,7 @@ jobs:
         run: |
           set -e
           cd game
-          mkdir -p build android/build
-          echo "--- install Android build template (gradle) ---"
-          unzip -o -q /root/.local/share/godot/export_templates/4.3.stable/android_source.zip -d android/build
-          : > android/.gdignore
-          ls android/build | head
+          mkdir -p build
           godot --headless --import || true
           godot --headless --verbose --export-debug "Android" build/reborn-m0.apk
           echo "--- build dir ---"
