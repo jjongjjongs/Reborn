@@ -49,8 +49,11 @@ func hit(dmg: int, _is_head: bool = false, attacker = null) -> void:
 	if attacker != null and team != -1 and "team" in attacker and attacker.team == team:
 		return   # no friendly fire
 	Controls.hp = maxi(0, Controls.hp - dmg)
+	Fx.hurt()
+	Sfx.play("hurt")
 	if Controls.hp <= 0:
 		alive = false
+		Sfx.play("die")
 		died.emit(attacker)
 
 func take_damage(dmg: int) -> void:   # melee convenience (zombies)
@@ -65,21 +68,8 @@ func respawn_at(pos: Vector3) -> void:
 	visible = true
 
 func _build() -> void:
-	var body := MeshInstance3D.new()
-	var cap := CapsuleMesh.new(); cap.radius = 0.4; cap.height = 1.8
-	body.mesh = cap
-	var mat := StandardMaterial3D.new(); mat.albedo_color = Color(0.95, 0.62, 0.24)
-	body.material_override = mat
-	body.position = Vector3(0, 0.9, 0)
-	add_child(body)
-	# gun stub + muzzle (points -Z = forward)
-	var gun := MeshInstance3D.new()
-	var gm := BoxMesh.new(); gm.size = Vector3(0.14, 0.14, 0.7); gun.mesh = gm
-	var gmat := StandardMaterial3D.new(); gmat.albedo_color = Color(0.1, 0.1, 0.12); gun.material_override = gmat
-	gun.position = Vector3(0.28, 1.25, -0.35)
-	add_child(gun)
-	_muzzle = Node3D.new(); _muzzle.position = Vector3(0.28, 1.25, -0.75)
-	add_child(_muzzle)
+	var rig := ActorBuild.soldier(self, Color(0.95, 0.62, 0.24), Color(0.20, 0.85, 1.0))
+	_muzzle = rig["muzzle"]
 	var col := CollisionShape3D.new()
 	var shape := CapsuleShape3D.new(); shape.radius = 0.4; shape.height = 1.8
 	col.shape = shape; col.position = Vector3(0, 0.9, 0)
@@ -142,9 +132,11 @@ func _physics_process(delta: float) -> void:
 func _start_reload() -> void:
 	_reload_t = RELOAD_TIME * Controls.reload_mult
 	Controls.reloading = true
+	Sfx.play("reload")
 
 func _shoot() -> void:
 	Controls.ammo -= 1
+	Sfx.play("shot", -3.0)
 	_bloom = minf(_bloom + BLOOM_PER_SHOT, SPREAD_MAX)
 	var cam := get_viewport().get_camera_3d()
 	if cam == null:
@@ -174,6 +166,8 @@ func _shoot() -> void:
 				dmg = int(dmg * CRIT_MULT)
 			dmg = int(dmg * Controls.dmg_mult)
 			col.hit(dmg, is_head, self)
+			Fx.hitmarker()
+			Sfx.play("hit")
 	_tracer(_muzzle.global_position, end)
 	_muzzle_flash()
 

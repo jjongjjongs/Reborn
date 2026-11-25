@@ -43,25 +43,9 @@ var _burst_cd := 0.0
 
 func _ready() -> void:
 	add_to_group("combatant")
-	var body := MeshInstance3D.new()
-	var cap := CapsuleMesh.new(); cap.radius = 0.4; cap.height = 1.8
-	body.mesh = cap
-	_mat = StandardMaterial3D.new(); _mat.albedo_color = tint
-	body.material_override = _mat
-	body.position = Vector3(0, 0.9, 0)
-	add_child(body)
-	var head := MeshInstance3D.new()
-	var hm := SphereMesh.new(); hm.radius = 0.26; hm.height = 0.52; head.mesh = hm
-	var hmat := StandardMaterial3D.new(); hmat.albedo_color = tint.lightened(0.15); head.material_override = hmat
-	head.position = Vector3(0, 1.62, 0)
-	add_child(head)
-	var gun := MeshInstance3D.new()
-	var gm := BoxMesh.new(); gm.size = Vector3(0.12, 0.12, 0.6); gun.mesh = gm
-	var gmat := StandardMaterial3D.new(); gmat.albedo_color = Color(0.1, 0.1, 0.12); gun.material_override = gmat
-	gun.position = Vector3(0.26, 1.2, -0.3)
-	add_child(gun)
-	_muzzle = Node3D.new(); _muzzle.position = Vector3(0.26, 1.2, -0.7)
-	add_child(_muzzle)
+	var rig := ActorBuild.soldier(self, tint, tint.lightened(0.25))
+	_mat = rig["mat"]
+	_muzzle = rig["muzzle"]
 	var col := CollisionShape3D.new()
 	var cs := CapsuleShape3D.new(); cs.radius = 0.4; cs.height = 2.0
 	col.shape = cs; col.position = Vector3(0, 1.0, 0)
@@ -84,6 +68,7 @@ func hit(dmg: int, _is_head: bool = false, attacker = null) -> void:
 			if c is CollisionShape3D:
 				c.set_deferred("disabled", true)
 		visible = false
+		Sfx.play_at("die", global_position)
 		died.emit(attacker)
 
 func respawn_at(pos: Vector3) -> void:
@@ -199,6 +184,7 @@ func _fire_one() -> void:
 	if _target == null:
 		return
 	var from := _muzzle.global_position
+	Sfx.play_at("shot", from, -4.0)
 	var aim := (_target.global_position + Vector3(0, 1.1, 0)) - from
 	var dir := aim.normalized()
 	var s := deg_to_rad(SPREAD)

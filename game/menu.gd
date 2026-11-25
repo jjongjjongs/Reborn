@@ -38,6 +38,7 @@ func _mode_button(txt: String, anchor_y: float, scene: String) -> void:
 	b.anchor_left = 0.5; b.anchor_right = 0.5; b.anchor_top = anchor_y; b.anchor_bottom = anchor_y
 	b.offset_left = -300; b.offset_right = 300; b.offset_top = 0; b.offset_bottom = 86
 	b.pressed.connect(func() -> void:
+		Sfx.play("ui")
 		Controls.reset()
 		get_tree().change_scene_to_file(scene))
 	add_child(b)

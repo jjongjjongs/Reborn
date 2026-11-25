@@ -102,6 +102,7 @@ func _die() -> void:
 	if _last_head:
 		Controls.points += 5
 		Controls.headshots += 1
+	Sfx.play_at("die", global_position)
 	died.emit()
 	# fall over + fade out
 	var t := create_tween()
