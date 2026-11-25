@@ -138,6 +138,9 @@ func _bottom_nav() -> void:
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if i == "설정":
 			b.pressed.connect(func() -> void: Sfx.play("ui"); Settings.open())
+		elif i == "장비":
+			b.add_theme_color_override("font_color", ACCENT)
+			b.pressed.connect(func() -> void: Sfx.play("ui"); add_child(LoadoutScreen.new()))
 		else:
 			b.pressed.connect(func() -> void: Sfx.play("ui"))
 		bar.add_child(b)

@@ -385,7 +385,7 @@ func _update_gun() -> void:
 	if _gun == null or _tgt == null or _wdef.is_empty(): return
 	var dt := get_process_delta_time()
 	_aim_b = move_toward(_aim_b, 1.0 if _aiming else 0.0, dt * 6.0)
-	_kick = move_toward(_kick, 0.0, dt * 9.0)
+	_kick = move_toward(_kick, 0.0, dt * (4.0 if _wdef.get("kind", "") == "knife" else 9.0))
 	var throwing := _windup or _throw_t > 0.0
 	var show := not _dead and not throwing
 	_gun.visible = visible and show
@@ -429,7 +429,7 @@ func _pose_weapon() -> void:
 		_hand("R", _anchor("grip"), Vector3(-0.3, -0.5, -0.8), Vector3(-1, 0, 0), 0.02, 66.0, Vector3(0.8, -1.0, 0.2))
 		_hand("L", _anchor("grip"), Vector3(0.3, -0.5, -0.8), Vector3(1, 0, 0), 0.05, 60.0, Vector3(-0.8, -1.0, 0.2))
 	else:   # knife: hammer grip, blade forward, guard hand up
-		var gp := sh_r + Vector3(-0.08, -0.17, -0.30 - 0.32 * _kick)
+		var gp := sh_r + Vector3(-0.08, -0.17, -0.30 - 0.32 * sin(PI * (1.0 - _kick)))
 		var basis := Basis(Vector3.RIGHT, deg_to_rad(12.0))
 		_gun_s = Transform3D(basis, gp - basis * _anchor("grip"))
 		_hand("R", _anchor("grip"), Vector3(-0.1, -0.75, -0.65), Vector3(-1, 0, 0.2), 0.02, 72.0, Vector3(0.7, -1.0, 0.4))

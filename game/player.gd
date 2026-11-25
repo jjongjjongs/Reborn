@@ -7,19 +7,11 @@ const SPEED := 5.0
 const JUMP_VELOCITY := 8.0
 const GRAVITY := 20.0
 
-# weapon (rifle-ish, M4). Real tuning moves to weapons.json later.
-const FIRE_INTERVAL := 0.11
-const MAG := 30
-const RELOAD_TIME := 1.5
-const SPREAD_MIN := 0.8
-const SPREAD_MAX := 7.0
-const BLOOM_PER_SHOT := 0.55
-const BLOOM_RECOVER := 7.0   # deg/sec
-const DMG_MIN := 18
-const DMG_MAX := 26
+# weapon stats come from Weapons (weapons.gd); these are shared rules
 const HEAD_MULT := 2.5
 const CRIT_CHANCE := 0.08
 const CRIT_MULT := 1.8
+const BLOOM_RECOVER := 7.0   # deg/sec
 
 signal died(attacker)
 
@@ -33,6 +25,10 @@ var _spawn := Vector3.ZERO
 var aim_yaw := 0.0     # degrees
 var aim_pitch := 0.0   # degrees (camera only)
 var _bloom := 0.0
+var _ammo := {}            # weapon id -> rounds in the mag
+var _swap_t := 0.0
+var _fire_was := false     # for semi-auto (one shot per press)
+var scope_k := 0.0         # 0..1 scope blend (modes read it for the camera)
 var _fire_cd := 0.0
 var _reload_t := 0.0
 var _muzzle: Node3D
@@ -52,6 +48,35 @@ func _ready() -> void:
 	_build()
 	_spawn = global_position
 	Controls.hp = Controls.hp_max
+	for i in 3:
+		var id: String = Controls.loadout[i]
+		_ammo[id] = _mag_of(id)
+	_equip(Controls.slot, true)
+
+func _wid() -> String:
+	return Controls.weapon_id
+
+func _mag_of(id: String) -> int:
+	var m := int(Weapons.get_w(id)["mag"])
+	return m + Controls.mag_bonus if m > 0 else 0
+
+func _equip(slot: int, instant := false) -> void:
+	Controls.slot = slot
+	Controls.weapon_id = Controls.loadout[slot]
+	Controls.scoped = false
+	_reload_t = 0.0; Controls.reloading = false
+	_swap_t = 0.0 if instant else Weapons.SWAP_TIME
+	Controls.swapping = _swap_t > 0.0
+	if _soldier: _soldier.set_weapon(Controls.weapon_id)
+	_sync_hud()
+
+func _sync_hud() -> void:
+	for i in 3:
+		var id: String = Controls.loadout[i]
+		Controls.slot_ammo[i] = int(_ammo.get(id, 0))
+		Controls.slot_mag[i] = _mag_of(id)
+	Controls.ammo = int(_ammo.get(_wid(), 0))
+	Controls.ammo_max = _mag_of(_wid())
 
 func hit(dmg: int, _is_head: bool = false, attacker = null) -> void:
 	if not alive or invuln_t > 0.0:
@@ -80,6 +105,9 @@ func respawn_at(pos: Vector3) -> void:
 	velocity = Vector3.ZERO
 	visible = true
 	Controls.grenades = Controls.NADE_MAX
+	for i in 3:
+		_ammo[Controls.loadout[i]] = _mag_of(Controls.loadout[i])
+	_equip(Controls.slot, true)
 	_set_crouch(false)
 	if _soldier: _soldier.set_dead(false)
 
@@ -140,7 +168,8 @@ func _physics_process(delta: float) -> void:
 	dir.y = 0.0
 	if dir.length() > 1.0:
 		dir = dir.normalized()
-	var spd := SPEED * Controls.speed_mult * (CROUCH_SPEED if crouched else 1.0)
+	var spd := SPEED * Controls.speed_mult * (CROUCH_SPEED if crouched else 1.0) \
+		* float(Weapons.get_w(_wid())["speed"]) * (0.6 if Controls.scoped else 1.0)
 	velocity.x = dir.x * spd
 	velocity.z = dir.z * spd
 	if Controls.consume_crouch():
@@ -153,13 +182,27 @@ func _physics_process(delta: float) -> void:
 		velocity.y -= GRAVITY * delta
 	move_and_slide()
 
+	# weapon swap (HUD chip) / scope toggle
+	var sw := Controls.consume_swap()
+	if sw >= 0 and sw != Controls.slot:
+		_equip(sw)
+	if _swap_t > 0.0:
+		_swap_t -= delta
+		if _swap_t <= 0.0: Controls.swapping = false
+	var w := Weapons.get_w(_wid())
+	var melee := Weapons.is_melee(_wid())
+	if Controls.consume_scope() and w.has("scope"):
+		Controls.scoped = not Controls.scoped
+	scope_k = move_toward(scope_k, 1.0 if Controls.scoped and alive else 0.0, delta * 6.0)
+
 	# reload
 	if _reload_t > 0.0:
 		_reload_t -= delta
 		if _reload_t <= 0.0:
-			Controls.ammo = Controls.ammo_max
+			_ammo[_wid()] = _mag_of(_wid())
 			Controls.reloading = false
-	elif Controls.consume_reload() and Controls.ammo < Controls.ammo_max:
+			_sync_hud()
+	elif Controls.consume_reload() and not melee and int(_ammo.get(_wid(), 0)) < _mag_of(_wid()):
 		_start_reload()
 
 	# grenade: hold = aim + trajectory preview, release = throw
@@ -182,70 +225,121 @@ func _physics_process(delta: float) -> void:
 		_soldier.throw()
 		Sfx.play("throw")
 
-	# fire (not while holding a grenade)
+	# fire (not while holding a grenade / swapping)
 	_fire_cd = maxf(0.0, _fire_cd - delta)
-	if Controls.fire_held and not nade_aim and _fire_cd <= 0.0 and _reload_t <= 0.0:
-		if Controls.ammo > 0:
-			_shoot()
-			_fire_cd = FIRE_INTERVAL
+	var pressed := Controls.fire_held and not _fire_was
+	_fire_was = Controls.fire_held
+	var want_fire := Controls.fire_held if (melee or bool(w.get("auto", false))) else pressed
+	if want_fire and not nade_aim and _fire_cd <= 0.0 and _reload_t <= 0.0 and _swap_t <= 0.0:
+		if melee:
+			_stab()
+			_fire_cd = Weapons.interval(_wid())
+		elif int(_ammo.get(_wid(), 0)) > 0:
+			_shoot(w)
+			_fire_cd = Weapons.interval(_wid())
 		else:
 			_start_reload()
 
 	# dynamic spread
 	var moving := inp.length() > 0.1
+	var sp_min: float = w.get("spread", [1.0, 1.0])[0]
+	var sp_max: float = w.get("spread", [1.0, 1.0])[1]
 	_bloom = maxf(0.0, _bloom - BLOOM_RECOVER * delta)
-	var sp := SPREAD_MIN + (2.0 if moving else 0.0) + _bloom
+	var sp := sp_min + (2.0 if moving else 0.0) + _bloom
 	if crouched: sp *= CROUCH_SPREAD
-	Controls.spread_deg = clampf(sp, SPREAD_MIN * (CROUCH_SPREAD if crouched else 1.0), SPREAD_MAX)
+	sp = clampf(sp, sp_min * (CROUCH_SPREAD if crouched else 1.0), sp_max)
+	if w.has("spread_scoped"):
+		sp = lerpf(sp, float(w["spread_scoped"]) + (1.5 if moving else 0.0), scope_k)
+	Controls.spread_deg = 0.0 if melee else sp
 
 	# animation
 	if _soldier:
 		var hspeed := Vector2(velocity.x, velocity.z).length()
 		var ratio := hspeed / (SPEED * maxf(0.1, Controls.speed_mult) * (CROUCH_SPEED if crouched else 1.0))
+		_soldier.visible = scope_k < 0.5          # scoped: first-person view
 		_soldier.drive(ratio, Controls.fire_held or _reload_t > 0.0)
 
 func _start_reload() -> void:
-	_reload_t = RELOAD_TIME * Controls.reload_mult
+	if Weapons.is_melee(_wid()): return
+	Controls.scoped = false
+	_reload_t = float(Weapons.get_w(_wid())["reload"]) * Controls.reload_mult
 	Controls.reloading = true
 	Sfx.play("reload")
 
-func _shoot() -> void:
-	Controls.ammo -= 1
+func _shoot(w: Dictionary) -> void:
+	_ammo[_wid()] = int(_ammo[_wid()]) - 1
+	_sync_hud()
 	Sfx.play("shot", -3.0)
 	if _soldier: _soldier.shoot()
-	_bloom = minf(_bloom + BLOOM_PER_SHOT, SPREAD_MAX)
+	_bloom = minf(_bloom + float(w["bloom"]), float(w["spread"][1]))
+	aim_pitch = clampf(aim_pitch + float(w["kick"]) * (0.5 if scope_k > 0.5 else 1.0), -45.0, 45.0)
 	var cam := get_viewport().get_camera_3d()
 	if cam == null:
 		return
 	var from := cam.global_position
-	var dir := -cam.global_transform.basis.z
-	# apply spread cone
-	var s := deg_to_rad(Controls.spread_deg)
-	dir = dir.rotated(cam.global_transform.basis.x, randf_range(-s, s))
-	dir = dir.rotated(cam.global_transform.basis.y, randf_range(-s, s))
-	var to := from + dir * 200.0
+	var fwd := -cam.global_transform.basis.z
 	var space := get_world_3d().direct_space_state
-	var q := PhysicsRayQueryParameters3D.create(from, to)
-	q.exclude = [self]
-	var hit := space.intersect_ray(q)
-	var end := to
-	if hit:
-		end = hit.position
-		_impact(hit.position)
-		var col = hit.collider
-		if col and col.has_method("hit"):
-			var is_head: bool = hit.position.y > (col.global_position.y + 1.55)
-			var dmg := randi_range(DMG_MIN, DMG_MAX)
-			if is_head:
-				dmg = int(dmg * HEAD_MULT)
-			if randf() < CRIT_CHANCE:
-				dmg = int(dmg * CRIT_MULT)
-			dmg = int(dmg * Controls.dmg_mult)
-			col.hit(dmg, is_head, self)
-			Fx.hitmarker()
-			Sfx.play("hit")
-	_tracer(_muzzle.global_position, end)
+	var s := deg_to_rad(Controls.spread_deg)
+	var any_hit := false
+	var last_end := from + fwd * 200.0
+	for p in int(w.get("pellets", 1)):
+		var dir := fwd.rotated(cam.global_transform.basis.x, randf_range(-s, s))
+		dir = dir.rotated(cam.global_transform.basis.y, randf_range(-s, s))
+		var to := from + dir * 200.0
+		var q := PhysicsRayQueryParameters3D.create(from, to)
+		q.exclude = [self]
+		var hit := space.intersect_ray(q)
+		var end := to
+		if hit:
+			end = hit.position
+			_impact(hit.position)
+			var col = hit.collider
+			if col and col.has_method("hit"):
+				var is_head: bool = hit.position.y > (col.global_position.y + 1.55)
+				var dmg := randi_range(int(w["dmg"][0]), int(w["dmg"][1]))
+				if is_head:
+					dmg = int(dmg * HEAD_MULT)
+				if randf() < CRIT_CHANCE:
+					dmg = int(dmg * CRIT_MULT)
+				dmg = int(dmg * Controls.dmg_mult)
+				col.hit(dmg, is_head, self)
+				any_hit = true
+		if p == 0 or randf() < 0.35:
+			_tracer(_muzzle.global_position, end)
+		last_end = end
+	if any_hit:
+		Fx.hitmarker()
+		Sfx.play("hit")
 	_muzzle_flash()
+
+# knife: short sweep in front; from behind = 'back' damage (one-shot)
+func _stab() -> void:
+	if _soldier: _soldier.shoot()
+	Sfx.play("throw", -2.0)
+	var w := Weapons.get_w("knife")
+	var reach := float(w["range"])
+	var fwd := -global_transform.basis.z
+	var best: Node3D = null
+	var bd := 1e9
+	for c in get_tree().get_nodes_in_group("combatant"):
+		if c == self or not ("alive" in c and c.alive): continue
+		var to: Vector3 = (c as Node3D).global_position - global_position
+		to.y = 0.0
+		var d := to.length()
+		if d > reach + 0.4 or d < 0.01: continue
+		if fwd.dot(to / d) < 0.5: continue          # ~60 deg cone in front
+		if d < bd: bd = d; best = c
+	if best == null:
+		for z in get_tree().get_nodes_in_group("zombie"):
+			var tz: Vector3 = (z as Node3D).global_position - global_position
+			tz.y = 0.0
+			if tz.length() <= reach + 0.4 and tz.length() > 0.01 and fwd.dot(tz.normalized()) > 0.5:
+				best = z; break
+	if best == null or not best.has_method("hit"): return
+	var dmg := int(Weapons.knife_damage(self, best) * Controls.dmg_mult)
+	best.hit(dmg, false, self)
+	Fx.hitmarker()
+	Sfx.play("hit")
 
 func _impact(pos: Vector3) -> void:
 	var m := MeshInstance3D.new()

@@ -3,9 +3,9 @@ extends Control
 ## Edits fire/jump/reload (move stick stays dynamic). Saves fractions to
 ## Controls.hud_layout. Launched from Settings; returns to the menu.
 
-const BASE := {"fire": 100.0, "jump": 66.0, "reload": 66.0, "crouch": 58.0, "nade": 58.0}
-const LABELS := {"fire": "사격", "jump": "점프", "reload": "장전", "crouch": "앉기", "nade": "수류탄"}
-const KEYS := ["fire", "jump", "reload", "crouch", "nade"]
+const BASE := {"fire": 100.0, "jump": 66.0, "reload": 66.0, "crouch": 58.0, "nade": 58.0, "scope": 54.0}
+const LABELS := {"fire": "사격", "jump": "점프", "reload": "장전", "crouch": "앉기", "nade": "수류탄", "scope": "조준경"}
+const KEYS := ["fire", "jump", "reload", "crouch", "nade", "scope"]
 
 var _layout := {}          # key -> {x,y (frac 0..1), s (scale)}
 var _sel := "fire"
@@ -41,6 +41,7 @@ func _default_center(key: String, s: Vector2) -> Vector2:
 		"reload": return Vector2(rx, s.y - 160.0)
 		"crouch": return Vector2(330.0 if lh else s.x - 330.0, s.y - 330.0)
 		"nade": return Vector2(560.0 if lh else s.x - 560.0, s.y - 150.0)
+		"scope": return Vector2(s.x * 0.785, s.y * 0.32)
 	return s * 0.5
 
 func _center(key: String) -> Vector2:

@@ -3,7 +3,6 @@ extends Node3D
 
 var player: PlayerBody
 var cam: Camera3D
-var _ammo_lbl: Label
 var _wave_lbl: Label
 var _pts_lbl: Label
 var _hp_fill: ColorRect
@@ -84,12 +83,12 @@ func _process(_dt: float) -> void:
 		var b := Basis.from_euler(Vector3(deg_to_rad(player.aim_pitch), deg_to_rad(player.aim_yaw), 0))
 		var fwd := -b.z
 		var pivot := player.global_position + Vector3(0, player.eye_h, 0)
-		var want := pivot - fwd * 4.0 + b.x * 0.7 + Vector3(0, 0.3, 0)
-		cam.global_position = cam.global_position.lerp(want, 0.35)
+		var k := player.scope_k                     # sniper scope: first person + zoom
+		var want := pivot - fwd * lerpf(4.0, -0.2, k) + b.x * lerpf(0.7, 0.0, k) + Vector3(0, lerpf(0.3, 0.1, k), 0)
+		cam.global_position = cam.global_position.lerp(want, lerpf(0.35, 1.0, k))
 		cam.look_at(pivot + fwd * 12.0, Vector3.UP)
+		cam.fov = lerpf(65.0, 65.0 / 2.5, k)
 		cam.global_position += Controls.shake_offset()
-	if _ammo_lbl:
-		_ammo_lbl.text = ("재장전…" if Controls.reloading else "%d / %d" % [Controls.ammo, Controls.ammo_max])
 	if _pts_lbl:
 		_pts_lbl.text = "◆ %d" % Controls.points
 	if _wave_lbl:
@@ -148,11 +147,6 @@ func _build_hud() -> void:
 	_hp_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(_hp_fill)
 
-	_ammo_lbl = _mk_label("30 / 30", 36, Vector2.ZERO)
-	_ammo_lbl.anchor_left = 1.0; _ammo_lbl.anchor_right = 1.0
-	_ammo_lbl.offset_left = -470; _ammo_lbl.offset_top = -330; _ammo_lbl.offset_right = -270
-	_ammo_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	layer.add_child(_ammo_lbl)
 
 	# in-run upgrade shop (shows itself during prep)
 	layer.add_child(UpgradeShop.new())

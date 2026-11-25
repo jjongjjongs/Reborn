@@ -21,6 +21,17 @@ var _nade_throw: bool = false
 var shake: float = 0.0            # camera shake amount (decays)
 
 # --- weapon / player ---
+# loadout (persisted, chosen in the menu 장비 tab): primary / secondary / melee
+var loadout: Array = ["m4", "pistol", "knife"]
+var slot: int = 0                 # active slot (HUD chip)
+var weapon_id: String = "m4"      # active weapon (mirrors the player)
+var slot_ammo: Array = [30, 12, 0]   # HUD chip numbers per slot
+var slot_mag: Array = [30, 12, 0]
+var swapping: bool = false
+var _swap_to: int = -1
+var scoped: bool = false          # sniper scope on
+var _scope: bool = false
+var mag_bonus: int = 0            # shop "weapon" upgrade
 var ammo: int = 30
 var ammo_max: int = 30
 var reloading: bool = false
@@ -105,6 +116,21 @@ func shake_offset() -> Vector3:
 	if shake <= 0.001: return Vector3.ZERO
 	return Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * shake * 0.25
 
+func request_swap(i: int) -> void: _swap_to = i
+func consume_swap() -> int:
+	var i := _swap_to
+	_swap_to = -1
+	return i
+
+func request_scope() -> void: _scope = true
+func consume_scope() -> bool:
+	if _scope: _scope = false; return true
+	return false
+
+func set_loadout(i: int, id: String) -> void:
+	loadout[i] = id
+	save_settings()
+
 func request_reload() -> void: _reload = true
 func consume_reload() -> bool:
 	if _reload: _reload = false; return true
@@ -136,6 +162,8 @@ func reset() -> void:
 	_crouch = false; crouched = false; grenades = NADE_MAX; nade_aiming = false
 	nade_over_cancel = false; _nade_throw = false; shake = 0.0
 	ammo = 30; ammo_max = 30; reloading = false
+	slot = 0; weapon_id = str(loadout[0]); swapping = false; _swap_to = -1
+	scoped = false; _scope = false; mag_bonus = 0
 	hp = 100; hp_max = 100
 	hits = 0; kills = 0; headshots = 0; points = 0; run_time = 0.0
 	wave = 0; zombies_left = 0; prep_left = -1.0; cleared = false
@@ -159,6 +187,11 @@ func _load_best() -> void:
 		vibrate_on = bool(data.get("vibrate_on", true))
 		look_sens = clampf(float(data.get("look_sens", 1.0)), 0.4, 2.0)
 		left_handed = bool(data.get("left_handed", false))
+		var lo = data.get("loadout", [])
+		if typeof(lo) == TYPE_ARRAY and lo.size() == 3:
+			for i in 3:
+				if Weapons.ids_for_slot(i).has(str(lo[i])): loadout[i] = str(lo[i])
+		weapon_id = str(loadout[0])
 		var hl = data.get("hud_layout", {})
 		if typeof(hl) == TYPE_DICTIONARY:
 			hud_layout = hl
@@ -174,6 +207,6 @@ func _save_best() -> void:
 		"best_wave": best_wave, "best_kills": best_kills, "best_time": best_time,
 		"sfx_on": sfx_on, "vibrate_on": vibrate_on,
 		"look_sens": look_sens, "left_handed": left_handed,
-		"hud_layout": hud_layout,
+		"hud_layout": hud_layout, "loadout": loadout,
 	}))
 	f.close()

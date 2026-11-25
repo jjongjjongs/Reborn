@@ -11,13 +11,16 @@ const GRAVITY := 20.0
 const COMBAT_DIST := 18.0   # start shooting within this
 const MIN_DIST := 6.0       # back off if closer
 const REACTION := 0.3       # retarget / react cadence (difficulty)
-const DMG_MIN := 7
-const DMG_MAX := 13
+const BOT_DMG := 0.45       # bots deal this share of the weapon's damage (difficulty)
+const BOT_KNIFE := 0.6      # knife: 30 front / 60 behind
 const SPREAD := 4.5         # aim inaccuracy (deg)
 const BURST_MIN := 3
 const BURST_MAX := 6
-const SHOT_DELAY := 0.13
 const BURST_COOL := 0.9
+const KNIFE_IN := 2.6       # pull the knife when the target is this close
+const KNIFE_OUT := 4.2      # back to the gun beyond this
+# engagement range per primary [combat, min]: shotgun bots rush, snipers keep away
+const RANGE := {"shotgun": [9.0, 2.0], "mp5": [12.0, 3.0], "sniper": [30.0, 12.0], "rpk": [20.0, 6.0]}
 const MAX_HP := 100.0
 
 const INVULN := 2.0
@@ -39,6 +42,12 @@ var _retarget_cd := 0.0
 var _burst := 0
 var _shot_cd := 0.0
 var _burst_cd := 0.0
+var loadout := ["m4", "pistol", "knife"]
+var wid := "m4"
+var _ammo := {}
+var _reload_t := 0.0
+var _swap_t := 0.0
+var rusher := false        # some bots close in for the knife when a target is near
 # grenades: lob one at a mid-range target (more likely when it's behind cover)
 const NADE_MIN := 7.0
 const NADE_MAX_D := 22.0
@@ -53,6 +62,10 @@ func _ready() -> void:
 	_soldier = Soldier.new()
 	add_child(_soldier)
 	_soldier.setup(tint)
+	loadout = [Weapons.ORDER_PRIMARY.pick_random(), Weapons.ORDER_SECONDARY.pick_random(), "knife"]
+	rusher = randf() < (0.6 if loadout[0] in ["shotgun", "mp5"] else 0.25)
+	_refill()
+	_equip(loadout[0])
 	_muzzle = Node3D.new(); _muzzle.position = Vector3(0.22, 1.3, -0.5)
 	add_child(_muzzle)
 	var col := CollisionShape3D.new()
@@ -61,7 +74,7 @@ func _ready() -> void:
 	add_child(col)
 	_agent = NavigationAgent3D.new()
 	_agent.path_desired_distance = 0.6
-	_agent.target_desired_distance = COMBAT_DIST * 0.8
+	_agent.target_desired_distance = _combat() * 0.8
 	add_child(_agent)
 
 func hit(dmg: int, _is_head: bool = false, attacker = null) -> void:
@@ -94,6 +107,8 @@ func respawn_at(pos: Vector3) -> void:
 	_warmup = 0.4
 	nades = 2
 	_nade_cd = randf_range(8.0, 14.0)
+	_refill()
+	_equip(loadout[0])
 	_windup_t = -1.0
 	if _soldier: _soldier.windup(false)
 	for c in get_children():
@@ -138,11 +153,28 @@ func _physics_process(delta: float) -> void:
 		if _windup_t >= 0.0:
 			pass
 		elif _warmup <= 0.0:
-			if dist > COMBAT_DIST:
+			_swap_t = maxf(0.0, _swap_t - delta)
+			# close quarters: knife out, rush in and stab; back to the gun when it opens up
+			if wid != "knife" and dist < KNIFE_IN:
+				_equip("knife")
+			elif wid == "knife" and dist > KNIFE_OUT:
+				_equip(loadout[0])
+			if wid == "knife":
+				if dist > 1.3:
+					var dn := to.normalized()
+					velocity.x = dn.x * _speed(); velocity.z = dn.z * _speed()
+				else:
+					velocity.x = 0.0; velocity.z = 0.0
+				_try_stab(delta, dist)
+			elif rusher and dist < 13.0 and _has_los():
+				var dr := to.normalized()           # charge in, firing, then knife
+				velocity.x = dr.x * _speed(); velocity.z = dr.z * _speed()
+				_try_fire(delta)
+			elif dist > _combat():
 				_move_to(_target.global_position, to)
-			elif dist < MIN_DIST:
+			elif dist < _min_d():
 				var away := -to.normalized()
-				velocity.x = away.x * SPEED; velocity.z = away.z * SPEED
+				velocity.x = away.x * _speed(); velocity.z = away.z * _speed()
 				_try_fire(delta)
 			else:
 				velocity.x = 0.0; velocity.z = 0.0
@@ -158,7 +190,28 @@ func _physics_process(delta: float) -> void:
 
 	if _soldier:
 		var hs := Vector2(velocity.x, velocity.z).length()
-		_soldier.drive(hs / SPEED, _target != null and _alive_of(_target))
+		_soldier.drive(hs / SPEED, _target != null and _alive_of(_target) and wid != "knife")
+
+func _refill() -> void:
+	for id in loadout:
+		_ammo[id] = int(Weapons.get_w(id)["mag"])
+	_reload_t = 0.0
+
+func _equip(id: String) -> void:
+	if _soldier and _soldier.weapon == id: return
+	wid = id
+	_swap_t = Weapons.SWAP_TIME
+	_burst = 0
+	if _soldier: _soldier.set_weapon(id)
+
+func _combat() -> float:
+	return float(RANGE.get(loadout[0], [COMBAT_DIST, MIN_DIST])[0])
+
+func _min_d() -> float:
+	return float(RANGE.get(loadout[0], [COMBAT_DIST, MIN_DIST])[1])
+
+func _speed() -> float:
+	return SPEED * float(Weapons.get_w(wid)["speed"])
 
 func _move_to(dest: Vector3, to_flat: Vector3) -> void:
 	_agent.target_position = dest
@@ -169,8 +222,8 @@ func _move_to(dest: Vector3, to_flat: Vector3) -> void:
 		dir = to_flat
 	if dir.length() > 0.05:
 		dir = dir.normalized()
-		velocity.x = dir.x * SPEED
-		velocity.z = dir.z * SPEED
+		velocity.x = dir.x * _speed()
+		velocity.z = dir.z * _speed()
 
 func _alive_of(n: Node) -> bool:
 	return n != null and "alive" in n and n.alive
@@ -214,39 +267,66 @@ func _has_los() -> bool:
 func _try_fire(delta: float) -> void:
 	_burst_cd -= delta
 	_shot_cd -= delta
+	if _swap_t > 0.0:
+		return
+	if _reload_t > 0.0:
+		_reload_t -= delta
+		if _reload_t <= 0.0:
+			_ammo[wid] = int(Weapons.get_w(wid)["mag"])
+		return
+	if int(_ammo.get(wid, 0)) <= 0:
+		_reload_t = float(Weapons.get_w(wid)["reload"])
+		return
 	if not _has_los():
 		return
+	var w := Weapons.get_w(wid)
+	var auto := bool(w.get("auto", false))
 	if _burst > 0:
 		if _shot_cd <= 0.0:
-			_fire_one()
+			_fire_one(w)
 			_burst -= 1
-			_shot_cd = SHOT_DELAY
+			# semi-auto/bolt guns: slower human tap rate
+			_shot_cd = Weapons.interval(wid) * (1.0 if auto else 1.6) + (0.0 if auto else randf_range(0.05, 0.25))
 	elif _burst_cd <= 0.0:
-		_burst = randi_range(BURST_MIN, BURST_MAX)
-		_burst_cd = BURST_COOL
+		_burst = randi_range(BURST_MIN, BURST_MAX) if auto else randi_range(1, 3)
+		_burst_cd = BURST_COOL + (0.6 if wid == "sniper" else 0.0)
 
-func _fire_one() -> void:
+func _try_stab(delta: float, dist: float) -> void:
+	_shot_cd -= delta
+	if _swap_t > 0.0 or _shot_cd > 0.0 or dist > float(Weapons.get_w("knife")["range"]):
+		return
+	_shot_cd = Weapons.interval("knife") + randf_range(0.0, 0.2)
+	if _soldier: _soldier.shoot()
+	Sfx.play_at("throw", global_position, -4.0)
+	if _target and _target.has_method("hit"):
+		_target.hit(int(Weapons.knife_damage(self, _target) * BOT_KNIFE), false, self)
+
+func _fire_one(w: Dictionary) -> void:
 	if _target == null:
 		return
+	_ammo[wid] = int(_ammo[wid]) - 1
 	var from := _muzzle.global_position
 	Sfx.play_at("shot", from, -4.0)
 	if _soldier: _soldier.shoot()
 	var aim := (_target.global_position + Vector3(0, _aim_h(_target), 0)) - from
-	var dir := aim.normalized()
-	var s := deg_to_rad(SPREAD)
-	dir = dir.rotated(Vector3.UP, randf_range(-s, s))
-	dir = dir.rotated(global_transform.basis.x, randf_range(-s, s))
-	var to := from + dir * 120.0
-	var q := PhysicsRayQueryParameters3D.create(from, to)
-	q.exclude = [self]
-	var hit := get_world_3d().direct_space_state.intersect_ray(q)
-	var end := to
-	if hit:
-		end = hit.position
-		var col = hit.collider
-		if col and col.has_method("hit"):
-			col.hit(randi_range(DMG_MIN, DMG_MAX), false, self)
-	_tracer(from, end)
+	var base := aim.normalized()
+	var acc := SPREAD * (0.45 if wid == "sniper" else 1.0) + (float(w["spread"][0]) if w.has("pellets") else 0.0)
+	var s := deg_to_rad(acc)
+	for p in int(w.get("pellets", 1)):
+		var dir := base.rotated(Vector3.UP, randf_range(-s, s))
+		dir = dir.rotated(global_transform.basis.x, randf_range(-s, s))
+		var to := from + dir * 120.0
+		var q := PhysicsRayQueryParameters3D.create(from, to)
+		q.exclude = [self]
+		var hit := get_world_3d().direct_space_state.intersect_ray(q)
+		var end := to
+		if hit:
+			end = hit.position
+			var col = hit.collider
+			if col and col.has_method("hit"):
+				col.hit(maxi(1, int(randi_range(int(w["dmg"][0]), int(w["dmg"][1])) * BOT_DMG)), false, self)
+		if p == 0 or randf() < 0.3:
+			_tracer(from, end)
 
 func _tracer(a: Vector3, b: Vector3) -> void:
 	var m := MeshInstance3D.new()

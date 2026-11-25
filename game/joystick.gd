@@ -14,7 +14,9 @@ const LOOK_SENS := 0.25
 const R_FIRE := 100.0
 const R_SMALL := 66.0
 const R_TINY := 58.0
-const KEYS := ["fire", "jump", "reload", "crouch", "nade"]
+const KEYS := ["fire", "jump", "reload", "crouch", "nade", "scope"]
+const R_SCOPE := 54.0
+const CHIP_H := 84.0
 const CANCEL_R := 64.0
 
 var _font: Font
@@ -28,6 +30,7 @@ var _last_state := ""
 
 func _ready() -> void:
 	_font = ThemeDB.fallback_font
+	z_index = 1          # above the crosshair / scope mask
 
 func _process(_dt: float) -> void:
 	# While the shop is open input is ignored; a finger released during that time
@@ -43,7 +46,8 @@ func _process(_dt: float) -> void:
 		queue_redraw()
 	# redraw when state changes outside of touch events (throw consumed by the
 	# player, grenade count, crouch toggled) or while the cancel zone is live
-	var st := "%s|%d|%s|%s" % [Controls.nade_aiming, Controls.grenades, Controls.crouched, Controls.nade_over_cancel]
+	var st := "%s|%d|%s|%s|%s|%s|%s|%s|%s" % [Controls.nade_aiming, Controls.grenades, Controls.crouched, Controls.nade_over_cancel,
+		Controls.slot, Controls.slot_ammo, Controls.reloading, Controls.scoped, Controls.swapping]
 	if st != _last_state or Controls.nade_aiming:
 		_last_state = st
 		queue_redraw()
@@ -52,6 +56,7 @@ func _base_radius(key: String) -> float:
 	match key:
 		"fire": return R_FIRE
 		"crouch", "nade": return R_TINY
+		"scope": return R_SCOPE
 	return R_SMALL
 
 func _default_center(key: String, s: Vector2) -> Vector2:
@@ -64,7 +69,24 @@ func _default_center(key: String, s: Vector2) -> Vector2:
 		"reload": return Vector2(rx, s.y - 160.0)
 		"crouch": return Vector2(330.0 if lh else s.x - 330.0, s.y - 330.0)
 		"nade": return Vector2(560.0 if lh else s.x - 560.0, s.y - 150.0)
+		"scope": return Vector2(s.x * 0.785, s.y * 0.32)
 	return Vector2.ZERO
+
+static func has_scope() -> bool:
+	return Weapons.get_w(Controls.weapon_id).has("scope")
+
+# weapon chip: 3 tappable segments (주무기 / 보조 / 근접), bottom centre
+func _chip_rects() -> Array:
+	var s := get_viewport().get_visible_rect().size
+	var x0 := s.x * 0.21
+	var w := s.x * 0.52 - x0
+	var gap := 8.0
+	var sw := (w - gap * 2.0) / 3.0
+	var y := s.y - 14.0 - CHIP_H
+	var out := []
+	for i in 3:
+		out.append(Rect2(x0 + i * (sw + gap), y, sw, CHIP_H))
+	return out
 
 func _cancel_center() -> Vector2:
 	var s := get_viewport().get_visible_rect().size
@@ -87,8 +109,14 @@ func _layout() -> Dictionary:
 	return out
 
 func _role_at(pos: Vector2) -> String:
+	var rects := _chip_rects()
+	for i in 3:
+		if (rects[i] as Rect2).grow(4.0).has_point(pos):
+			return "swap%d" % i
 	var L := _layout()
 	for key in KEYS:
+		if key == "scope" and not has_scope():
+			continue
 		if pos.distance_to(L[key]["c"]) <= float(L[key]["r"]):
 			return key
 	var on_left := pos.x < get_viewport().get_visible_rect().size.x * 0.5
@@ -126,6 +154,10 @@ func _input(event: InputEvent) -> void:
 				Controls.request_reload()
 			elif role == "crouch":
 				Controls.request_crouch()
+			elif role == "scope":
+				Controls.request_scope()
+			elif role.begins_with("swap"):
+				Controls.request_swap(int(role.substr(4)))
 			elif role == "nade":
 				if Controls.grenades > 0 and _nade_idx == -1:
 					Controls.nade_aiming = true
@@ -173,9 +205,14 @@ func _active(role: String) -> bool:
 
 func _draw() -> void:
 	var L := _layout()
-	_draw_btn(L["fire"]["c"], float(L["fire"]["r"]), "사격", _active("fire"), Color(1.0, 0.36, 0.22))
+	var melee := Weapons.is_melee(Controls.weapon_id)
+	_draw_btn(L["fire"]["c"], float(L["fire"]["r"]), "찌르기" if melee else "사격", _active("fire"), Color(1.0, 0.36, 0.22))
 	_draw_btn(L["jump"]["c"], float(L["jump"]["r"]), "점프", _active("jump"), Color(0.8, 0.85, 0.9))
-	_draw_btn(L["reload"]["c"], float(L["reload"]["r"]), "장전", _active("reload"), Color(0.8, 0.85, 0.9))
+	_draw_btn(L["reload"]["c"], float(L["reload"]["r"]), "장전", _active("reload"),
+		Color(0.45, 0.48, 0.52) if melee else Color(0.8, 0.85, 0.9))
+	if has_scope():
+		_draw_btn(L["scope"]["c"], float(L["scope"]["r"]), "조준경", Controls.scoped, Color(0.21, 0.83, 0.61), 24)
+	_draw_chip()
 	var cr_c := Color(0.56, 0.76, 1.0)
 	_draw_btn(L["crouch"]["c"], float(L["crouch"]["r"]), "서기" if Controls.crouched else "앉기",
 		Controls.crouched or _active("crouch"), cr_c, 28)
@@ -200,6 +237,35 @@ func _draw() -> void:
 		draw_circle(_m_origin, MOVE_RADIUS, Color(1, 1, 1, 0.06))
 		draw_arc(_m_origin, MOVE_RADIUS, 0.0, TAU, 48, Color(1.0, 0.61, 0.24, 0.5), 3.0, true)
 		draw_circle(_m_knob, KNOB, Color(1.0, 0.61, 0.24, 0.65))
+
+func _draw_chip() -> void:
+	var rects := _chip_rects()
+	var acc := Color(1.0, 0.48, 0.10)
+	for i in 3:
+		var r: Rect2 = rects[i]
+		var on := i == Controls.slot
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(1.0, 0.48, 0.10, 0.16) if on else Color(0.04, 0.055, 0.07, 0.82)
+		sb.border_color = acc if on else Color(0.17, 0.20, 0.24)
+		sb.set_border_width_all(2 if on else 1)
+		sb.set_corner_radius_all(9)
+		draw_style_box(sb, r)
+		var id: String = Controls.loadout[i]
+		var w := Weapons.get_w(id)
+		var x := r.position.x + 12.0
+		draw_string(_font, Vector2(x, r.position.y + 24.0), Weapons.SLOT_NAMES[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.55, 0.62, 0.69))
+		var nm: String = w["name"]
+		var fs := 24
+		while fs > 14 and _font.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > r.size.x - 20.0:
+			fs -= 1
+		draw_string(_font, Vector2(x, r.position.y + 52.0), nm, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.95, 0.96, 0.98))
+		var am := "—"
+		if not w.get("melee", false):
+			am = "%d / %d" % [int(Controls.slot_ammo[i]), int(Controls.slot_mag[i])]
+			if on and Controls.reloading: am = "재장전…"
+		if on and Controls.swapping: am = "교체 중…"
+		draw_string(_font, Vector2(x, r.position.y + 76.0), am, HORIZONTAL_ALIGNMENT_LEFT, -1, 18,
+			Color(0.95, 0.96, 0.98) if on else Color(0.55, 0.62, 0.69))
 
 func _draw_btn(center: Vector2, radius: float, label: String, pressed: bool, tint: Color, fsize := 34) -> void:
 	var fill := Color(tint.r, tint.g, tint.b, 0.35 if pressed else 0.16)

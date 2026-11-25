@@ -181,7 +181,7 @@ func _buy(upg: Dictionary) -> void:
 		"atk": Controls.atk_lv += 1; Controls.dmg_mult += 0.10
 		"spd": Controls.spd_lv += 1; Controls.speed_mult += 0.05
 		"hp": Controls.hp_lv += 1; Controls.hp_max += 25; Controls.hp += 25
-		"wp": Controls.wp_lv += 1; Controls.ammo_max += 2; Controls.reload_mult *= 0.95
+		"wp": Controls.wp_lv += 1; Controls.mag_bonus += 2; Controls.ammo_max += 2; Controls.reload_mult *= 0.95
 		"nade": Controls.grenades += 1
 		"heal": Controls.hp = mini(Controls.hp_max, Controls.hp + int(Controls.hp_max * 0.5))
 

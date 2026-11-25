@@ -24,6 +24,7 @@ var _flash := 0.0
 var player: Node3D
 
 func _ready() -> void:
+	add_to_group("zombie")
 	hp = MAX_HP * hp_scale
 	var body := MeshInstance3D.new()
 	var cap := CapsuleMesh.new(); cap.radius = 0.4; cap.height = 1.8
