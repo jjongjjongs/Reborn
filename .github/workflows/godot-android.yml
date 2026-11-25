@@ -82,6 +82,24 @@ jobs:
           name: ${{ env.APK }}
           path: game/build/${{ env.APK }}
 
+      - name: Remove old release assets (keep only this build)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = 'game-latest';
+            const { owner, repo } = context.repo;
+            let rel;
+            try {
+              rel = await github.rest.repos.getReleaseByTag({ owner, repo, tag });
+            } catch (e) {
+              core.info('no existing release yet');
+              return;
+            }
+            for (const a of rel.data.assets) {
+              core.info('deleting old asset: ' + a.name);
+              await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: a.id });
+            }
+
       - name: Attach to release
         uses: softprops/action-gh-release@v2
         with:
