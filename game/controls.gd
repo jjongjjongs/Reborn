@@ -24,7 +24,7 @@ var shake: float = 0.0            # camera shake amount (decays)
 # loadout (persisted, chosen in the menu 장비 tab): primary / secondary / melee
 var loadout: Array = ["m4", "pistol", "knife"]
 var bot_diff: String = "reg"      # 출격 준비: bot difficulty (persisted)
-var sel_map: String = "range"     # 출격 준비: map (persisted)
+var sel_map: String = "downtown"     # 출격 준비: map (persisted)
 var slot: int = 0                 # active slot (HUD chip)
 var weapon_id: String = "m4"      # active weapon (mirrors the player)
 var slot_ammo: Array = [30, 12, 0]   # HUD chip numbers per slot
@@ -196,7 +196,7 @@ func _load_best() -> void:
 		weapon_id = str(loadout[0])
 		bot_diff = str(data.get("bot_diff", "reg"))
 		if not ["rook", "reg", "vet", "elite"].has(bot_diff): bot_diff = "reg"
-		sel_map = str(data.get("sel_map", "range"))
+		sel_map = str(data.get("sel_map", "downtown"))
 		var hl = data.get("hud_layout", {})
 		if typeof(hl) == TYPE_DICTIONARY:
 			hud_layout = hl

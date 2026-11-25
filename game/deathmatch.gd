@@ -105,14 +105,7 @@ func _leader() -> Array:   # [name, kills]
 
 func _process(dt: float) -> void:
 	if player:
-		var bb := Basis.from_euler(Vector3(deg_to_rad(player.aim_pitch), deg_to_rad(player.aim_yaw), 0))
-		var fwd := -bb.z
-		var pivot := player.global_position + Vector3(0, player.eye_h, 0)
-		var k := player.scope_k                     # sniper scope: first person + zoom
-		cam.global_position = cam.global_position.lerp(pivot - fwd * lerpf(4.0, -0.2, k) + bb.x * lerpf(0.7, 0.0, k) + Vector3(0, lerpf(0.3, 0.1, k), 0), lerpf(0.35, 1.0, k))
-		cam.look_at(pivot + fwd * 12.0, Vector3.UP)
-		cam.fov = lerpf(65.0, 65.0 / 2.5, k)
-		cam.global_position += Controls.shake_offset()
+		CamRig.follow(cam, player)
 	# respawn countdown overlay
 	if _respawn_lbl:
 		var dead: bool = player != null and not player.alive and not _over

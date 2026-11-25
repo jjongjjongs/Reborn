@@ -16,6 +16,10 @@ static func build(id: String, parent: Node3D) -> Dictionary:
 	var b := MapBuilder.new()
 	b.root = parent
 	match id:
+		"downtown":
+			var d := MapDowntown.new()
+			d.root = parent
+			return d.build_downtown()
 		"bazaar": return b._bazaar()
 		"cell": return b._cell()
 		"harbor": return b._harbor()
@@ -26,7 +30,8 @@ func _env(bg: Color, ambient: Color, amb_e: float, sun_rot: Vector3, sun_col: Co
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = sun_rot; sun.light_energy = sun_e; sun.light_color = sun_col
 	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 60.0
+	sun.directional_shadow_max_distance = 45.0
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL   # one shadow pass (mobile)
 	root.add_child(sun)
 	var we := WorldEnvironment.new()
 	var env := Environment.new()

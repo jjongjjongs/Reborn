@@ -52,15 +52,7 @@ func _build_camera() -> void:
 
 func _process(_dt: float) -> void:
 	if player:
-		var b := Basis.from_euler(Vector3(deg_to_rad(player.aim_pitch), deg_to_rad(player.aim_yaw), 0))
-		var fwd := -b.z
-		var pivot := player.global_position + Vector3(0, player.eye_h, 0)
-		var k := player.scope_k                     # sniper scope: first person + zoom
-		var want := pivot - fwd * lerpf(4.0, -0.2, k) + b.x * lerpf(0.7, 0.0, k) + Vector3(0, lerpf(0.3, 0.1, k), 0)
-		cam.global_position = cam.global_position.lerp(want, lerpf(0.35, 1.0, k))
-		cam.look_at(pivot + fwd * 12.0, Vector3.UP)
-		cam.fov = lerpf(65.0, 65.0 / 2.5, k)
-		cam.global_position += Controls.shake_offset()
+		CamRig.follow(cam, player)
 	if _pts_lbl:
 		_pts_lbl.text = "◆ %d" % Controls.points
 	if _wave_lbl:

@@ -15,6 +15,8 @@ const SOFT := Color(0.65, 0.71, 0.75)
 
 # maps: only the training ground is built so far; the others are planned originals
 const MAPS := [
+	{"id": "downtown", "name": "다운타운", "en": "DOWNTOWN", "size": "중형 · 4–8명", "tag": "대로 + 뒷골목, 옥상 2곳", "ready": true,
+		"ground": Color("3a3d42"), "rects": [[0, 44, 100, 12, "23262a"], [0, 60, 22, 40, "8a4a3a"], [78, 0, 22, 40, "8a4a3a"], [29, 14, 20, 24, "b9b2a6"], [51, 60, 20, 24, "b9b2a6"], [54, 14, 21, 24, "7a3b2e"], [25, 60, 21, 24, "7a3b2e"], [10, 46, 6, 6, "d6c63a"], [62, 48, 6, 6, "3a6fd6"]]},
 	{"id": "range", "name": "훈련장", "en": "TRAINING", "size": "소형 · 2–8명", "tag": "상자 엄폐 기본 맵", "ready": true,
 		"ground": Color("27303a"), "rects": [[8, 14, 12, 18, "46505b"], [78, 14, 12, 18, "46505b"], [42, 36, 16, 26, "55606c"], [14, 66, 12, 18, "46505b"], [74, 66, 12, 18, "46505b"]]},
 	{"id": "bazaar", "name": "사막 시장", "en": "BAZAAR", "size": "중형 · 4–8명", "tag": "골목 + 광장, 지붕 저격", "ready": true,
@@ -200,26 +202,26 @@ func _map_card(m: Dictionary) -> Button:
 	var on: bool = m["id"] == Controls.sel_map
 	var ready: bool = m["ready"]
 	var b := Button.new(); b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(253, 213)
+	b.custom_minimum_size = Vector2(253, 150)
 	for k in ["normal", "hover", "pressed", "disabled"]:
 		b.add_theme_stylebox_override(k, _sb(SEL_BG if on else CARD, ACCENT if on else LINE2, 2 if on else 1, 12))
 	var th := ColorRect.new(); th.color = m["ground"]
-	th.position = Vector2(2, 2); th.size = Vector2(249, 128); th.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	th.position = Vector2(2, 2); th.size = Vector2(249, 92); th.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	th.clip_contents = true
 	b.add_child(th)
 	for r in m["rects"]:
 		var rr := ColorRect.new(); rr.color = Color(str(r[4])); rr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		rr.position = Vector2(float(r[0]) * 2.49, float(r[1]) * 1.28)
-		rr.size = Vector2(float(r[2]) * 2.49, float(r[3]) * 1.28)
+		rr.position = Vector2(float(r[0]) * 2.49, float(r[1]) * 0.92)
+		rr.size = Vector2(float(r[2]) * 2.49, float(r[3]) * 0.92)
 		th.add_child(rr)
 	var en := _label(m["en"], 11, Color(1, 1, 1, 0.8)); en.position = Vector2(8, 4); th.add_child(en)
 	if not ready:
 		var dim := ColorRect.new(); dim.color = Color(0, 0, 0, 0.55); dim.size = th.size
 		dim.mouse_filter = Control.MOUSE_FILTER_IGNORE; th.add_child(dim)
-		var soon := _label("제작 예정", 18, FG); soon.position = Vector2(84, 50); th.add_child(soon)
-	var nm := _label(m["name"], 18, FG if ready else MUTED); nm.position = Vector2(12, 136); b.add_child(nm)
-	var sz := _label(m["size"], 13, MUTED); sz.position = Vector2(140, 141); b.add_child(sz)
-	var tg := _label(m["tag"], 13, SOFT if ready else MUTED); tg.position = Vector2(12, 172); b.add_child(tg)
+		var soon := _label("제작 예정", 18, FG); soon.position = Vector2(84, 34); th.add_child(soon)
+	var nm := _label(m["name"], 17, FG if ready else MUTED); nm.position = Vector2(12, 98); b.add_child(nm)
+	var sz := _label(m["size"], 12, MUTED); sz.position = Vector2(140, 102); b.add_child(sz)
+	var tg := _label(m["tag"], 12, SOFT if ready else MUTED); tg.position = Vector2(12, 124); b.add_child(tg)
 	var mid: String = m["id"]
 	b.disabled = not ready
 	b.pressed.connect(func() -> void: Sfx.play("ui"); Controls.sel_map = mid; _refresh())
