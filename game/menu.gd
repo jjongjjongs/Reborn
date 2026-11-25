@@ -10,6 +10,18 @@ const FG := Color(0.92, 0.95, 0.97)
 const MUTED := Color(0.55, 0.62, 0.69)
 const DIM := Color(0.38, 0.44, 0.50)
 
+var _upd_btn: Button
+
+func _on_update_checked(has_update: bool, latest: int) -> void:
+	if _upd_btn == null:
+		return
+	if has_update:
+		_upd_btn.text = "● 업데이트 v%d" % latest
+		_upd_btn.add_theme_color_override("font_color", Color(1.0, 0.45, 0.35))
+	else:
+		_upd_btn.text = "⟳ 최신"
+		_upd_btn.add_theme_color_override("font_color", MUTED)
+
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	var bg := ColorRect.new()
@@ -21,6 +33,9 @@ func _ready() -> void:
 	_logo()
 	_mode_stack()
 	_bottom_nav()
+	if not Updater.checked.is_connected(_on_update_checked):
+		Updater.checked.connect(_on_update_checked)
+	Updater.refresh()
 
 # ---- top bar: avatar + name/level, gold ----
 func _top_bar() -> void:
@@ -45,6 +60,18 @@ func _top_bar() -> void:
 	var coin := _panel(Vector2(16, 12), Vector2(24, 24), Color(0.90, 0.68, 0.18), Color(0.66, 0.47, 0.10), 1, 12)
 	pill.add_child(coin)
 	var gv := _label("0", 22, FG, true); gv.position = Vector2(52, 10); pill.add_child(gv)
+
+	# update button (left of gold)
+	_upd_btn = Button.new()
+	_upd_btn.text = "⟳ 업데이트"; _upd_btn.flat = true; _upd_btn.focus_mode = Control.FOCUS_NONE
+	_upd_btn.add_theme_font_size_override("font_size", 20)
+	_upd_btn.add_theme_color_override("font_color", MUTED)
+	_upd_btn.add_theme_color_override("font_hover_color", FG)
+	_upd_btn.anchor_left = 1.0; _upd_btn.anchor_right = 1.0
+	_upd_btn.offset_left = -400; _upd_btn.offset_right = -214
+	_upd_btn.offset_top = 30; _upd_btn.offset_bottom = 78
+	_upd_btn.pressed.connect(func() -> void: Updater.show_dialog())
+	add_child(_upd_btn)
 
 # ---- logo (left) ----
 func _logo() -> void:

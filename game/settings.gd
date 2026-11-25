@@ -78,10 +78,6 @@ func _build() -> void:
 	v.add_child(srow)
 	v.add_child(_sep())
 
-	v.add_child(_toggle("왼손 모드", "조이스틱/사격 좌우 전환", Controls.left_handed, func(on: bool) -> void:
-		Controls.left_handed = on; Controls.save_settings(); Sfx.play("ui")))
-	v.add_child(_sep())
-
 	var he := Button.new(); he.text = "HUD 버튼 편집  ›"; he.focus_mode = Control.FOCUS_NONE
 	he.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	he.add_theme_font_size_override("font_size", 24)

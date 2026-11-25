@@ -52,7 +52,7 @@ func hit(dmg: int, _is_head: bool = false, attacker = null) -> void:
 	Controls.hp = maxi(0, Controls.hp - dmg)
 	Fx.hurt()
 	Sfx.play("hurt")
-	Controls.vibrate(45)
+	Controls.vibrate(120)
 	if Controls.hp <= 0:
 		alive = false
 		if _soldier: _soldier.set_dead(true)
