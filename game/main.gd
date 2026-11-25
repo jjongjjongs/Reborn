@@ -97,19 +97,7 @@ func _build_hud() -> void:
 	_hit_lbl.add_theme_color_override("font_color", Color(1.0, 0.7, 0.35))
 	layer.add_child(_hit_lbl)
 
-	# fire (hold)
-	var fire := _mk_btn("사격", 40, -250, -250, -50, -50)
-	fire.button_down.connect(func() -> void: Controls.fire_held = true)
-	fire.button_up.connect(func() -> void: Controls.fire_held = false)
-	layer.add_child(fire)
-	# jump (above fire)
-	var jump := _mk_btn("점프", 30, -250, -470, -120, -340)
-	jump.pressed.connect(func() -> void: Controls.request_jump())
-	layer.add_child(jump)
-	# reload (left of fire)
-	var reload := _mk_btn("장전", 30, -470, -250, -340, -120)
-	reload.pressed.connect(func() -> void: Controls.request_reload())
-	layer.add_child(reload)
+	# (fire / jump / reload are drawn + handled by TouchInput for true multi-touch)
 	# ammo label (above-left of fire)
 	_ammo_lbl = _mk_label("30 / 30", 36, Vector2.ZERO)
 	_ammo_lbl.anchor_left = 1.0; _ammo_lbl.anchor_right = 1.0
@@ -123,11 +111,3 @@ func _mk_label(txt: String, size: int, pos: Vector2) -> Label:
 	l.add_theme_font_size_override("font_size", size)
 	l.position = pos
 	return l
-
-func _mk_btn(txt: String, fsize: int, ol: float, ot: float, orr: float, ob: float) -> Button:
-	var b := Button.new()
-	b.text = txt
-	b.add_theme_font_size_override("font_size", fsize)
-	b.anchor_left = 1.0; b.anchor_top = 1.0; b.anchor_right = 1.0; b.anchor_bottom = 1.0
-	b.offset_left = ol; b.offset_top = ot; b.offset_right = orr; b.offset_bottom = ob
-	return b
