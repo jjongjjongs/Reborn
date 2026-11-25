@@ -9,16 +9,22 @@ const ATTACK_COOL := 1.1
 const ATTACK_DMG := 10
 const MAX_HP := 60.0
 
+signal died
+
+var hp_scale := 1.0
+var spd_scale := 1.0
 var hp := MAX_HP
 var _atk_cd := 0.0
 var _warmup := 0.6   # idle until the nav map is synced
 var _dead := false
+var _last_head := false
 var _agent: NavigationAgent3D
 var _mat: StandardMaterial3D
 var _flash := 0.0
 var player: Node3D
 
 func _ready() -> void:
+	hp = MAX_HP * hp_scale
 	var body := MeshInstance3D.new()
 	var cap := CapsuleMesh.new(); cap.radius = 0.4; cap.height = 1.8
 	body.mesh = cap
@@ -68,8 +74,8 @@ func _physics_process(delta: float) -> void:
 		dir.y = 0.0
 		if dir.length() > 0.05:
 			dir = dir.normalized()
-			velocity.x = dir.x * SPEED
-			velocity.z = dir.z * SPEED
+			velocity.x = dir.x * SPEED * spd_scale
+			velocity.z = dir.z * SPEED * spd_scale
 			look_at(global_position + Vector3(dir.x, 0, dir.z), Vector3.UP)
 	else:
 		velocity.x = 0.0; velocity.z = 0.0
@@ -77,9 +83,10 @@ func _physics_process(delta: float) -> void:
 		velocity.y -= GRAVITY * delta
 	move_and_slide()
 
-func hit(dmg: int, _is_head: bool) -> void:
+func hit(dmg: int, is_head: bool) -> void:
 	if _dead:
 		return
+	_last_head = is_head
 	hp -= dmg
 	_flash = 1.0
 	if hp <= 0.0:
@@ -88,6 +95,10 @@ func hit(dmg: int, _is_head: bool) -> void:
 func _die() -> void:
 	_dead = true
 	Controls.kills += 1
+	Controls.points += 10
+	if _last_head:
+		Controls.points += 5
+	died.emit()
 	# fall over + fade out
 	var t := create_tween()
 	t.tween_property(self, "rotation_degrees:x", -90.0, 0.25)

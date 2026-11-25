@@ -16,6 +16,13 @@ var hits: int = 0
 var kills: int = 0
 var hp: int = 100
 var hp_max: int = 100
+# wave + economy
+var points: int = 0
+var wave: int = 0
+var wave_total: int = 5
+var zombies_left: int = 0
+var prep_left: float = -1.0   # >=0 while in prep countdown
+var cleared: bool = false
 
 func request_jump() -> void:
 	_jump = true

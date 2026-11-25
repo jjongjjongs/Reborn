@@ -1,10 +1,11 @@
 extends Node3D
-## M2 world: NavMesh-baked arena, zombies (chase + attack), player HP, HUD.
+## M3 world: NavMesh arena + wave manager + player HP + wave/points HUD.
 
 var player: PlayerBody
 var cam: Camera3D
 var _ammo_lbl: Label
-var _kill_lbl: Label
+var _wave_lbl: Label
+var _pts_lbl: Label
 var _hp_fill: ColorRect
 const HP_W := 360.0
 
@@ -13,10 +14,10 @@ func _ready() -> void:
 	_build_player()
 	_build_camera()
 	_build_hud()
-	# let the NavigationServer sync the freshly-baked map before agents query it
-	await get_tree().physics_frame
-	await get_tree().physics_frame
-	_spawn_zombies()
+	var wm := WaveManager.new()
+	wm.arena = self
+	wm.player = player
+	add_child(wm)
 
 func _build_world() -> void:
 	var sun := DirectionalLight3D.new()
@@ -38,7 +39,6 @@ func _build_world() -> void:
 	we.environment = env
 	add_child(we)
 
-	# nav region holds the walkable geometry so it bakes into the navmesh
 	var nav := NavigationRegion3D.new()
 	add_child(nav)
 	_add_box(nav, Vector3(70, 1, 70), Vector3(0, -0.5, 0), Color(0.12, 0.14, 0.13))
@@ -52,9 +52,6 @@ func _build_world() -> void:
 	nm.agent_max_climb = 0.4
 	nav.navigation_mesh = nm
 	nav.bake_navigation_mesh(false)
-
-	for p in [Vector3(6, 0, -13), Vector3(-5, 0, -15)]:
-		var t := Target.new(); t.position = p; add_child(t)
 
 func _add_box(parent: Node, size: Vector3, pos: Vector3, c: Color) -> void:
 	var sb := StaticBody3D.new()
@@ -80,14 +77,6 @@ func _build_camera() -> void:
 	cam.position = Vector3(0, 2, 5)
 	add_child(cam)
 
-func _spawn_zombies() -> void:
-	for p in [Vector3(10, 0.1, -8), Vector3(-10, 0.1, -6), Vector3(14, 0.1, 2),
-			Vector3(-12, 0.1, 6), Vector3(0, 0.1, -20), Vector3(8, 0.1, -18)]:
-		var z := Zombie.new()
-		z.position = p
-		z.player = player
-		add_child(z)
-
 func _process(_dt: float) -> void:
 	if player:
 		var b := Basis.from_euler(Vector3(deg_to_rad(player.aim_pitch), deg_to_rad(player.aim_yaw), 0))
@@ -98,8 +87,15 @@ func _process(_dt: float) -> void:
 		cam.look_at(pivot + fwd * 12.0, Vector3.UP)
 	if _ammo_lbl:
 		_ammo_lbl.text = ("재장전…" if Controls.reloading else "%d / %d" % [Controls.ammo, Controls.ammo_max])
-	if _kill_lbl:
-		_kill_lbl.text = "처치 %d" % Controls.kills
+	if _pts_lbl:
+		_pts_lbl.text = "◆ %d" % Controls.points
+	if _wave_lbl:
+		if Controls.cleared:
+			_wave_lbl.text = "클리어!"
+		elif Controls.prep_left >= 0.0:
+			_wave_lbl.text = "다음 웨이브 %d · 준비 %d" % [Controls.wave + 1, ceili(Controls.prep_left)]
+		else:
+			_wave_lbl.text = "웨이브 %d / %d · 남은 %d" % [Controls.wave, Controls.wave_total, Controls.zombies_left]
 	if _hp_fill:
 		_hp_fill.size.x = HP_W * float(Controls.hp) / float(Controls.hp_max)
 
@@ -117,20 +113,35 @@ func _build_hud() -> void:
 	cross.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(cross)
 
-	layer.add_child(_mk_label("리본 · M2 — 좀비", 28, Vector2(28, 20)))
-	_kill_lbl = _mk_label("처치 0", 34, Vector2(28, 58))
-	_kill_lbl.add_theme_color_override("font_color", Color(1.0, 0.7, 0.35))
-	layer.add_child(_kill_lbl)
+	# wave status (top center)
+	_wave_lbl = Label.new()
+	_wave_lbl.text = "준비"
+	_wave_lbl.add_theme_font_size_override("font_size", 34)
+	_wave_lbl.add_theme_color_override("font_color", Color(1.0, 0.72, 0.38))
+	_wave_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_wave_lbl.anchor_left = 0.0; _wave_lbl.anchor_right = 1.0
+	_wave_lbl.offset_top = 22
+	_wave_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(_wave_lbl)
 
-	# HP bar
+	# points (top right)
+	_pts_lbl = _mk_label("◆ 0", 32, Vector2.ZERO)
+	_pts_lbl.add_theme_color_override("font_color", Color(1.0, 0.8, 0.35))
+	_pts_lbl.anchor_left = 1.0; _pts_lbl.anchor_right = 1.0
+	_pts_lbl.offset_left = -240; _pts_lbl.offset_top = 22
+	_pts_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	layer.add_child(_pts_lbl)
+
+	# HP bar (top left)
+	layer.add_child(_mk_label("체력", 22, Vector2(28, 18)))
 	var hp_bg := ColorRect.new()
 	hp_bg.color = Color(0, 0, 0, 0.55)
-	hp_bg.position = Vector2(28, 104); hp_bg.size = Vector2(HP_W, 26)
+	hp_bg.position = Vector2(28, 52); hp_bg.size = Vector2(HP_W, 26)
 	hp_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(hp_bg)
 	_hp_fill = ColorRect.new()
 	_hp_fill.color = Color(0.88, 0.30, 0.25)
-	_hp_fill.position = Vector2(28, 104); _hp_fill.size = Vector2(HP_W, 26)
+	_hp_fill.position = Vector2(28, 52); _hp_fill.size = Vector2(HP_W, 26)
 	_hp_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(_hp_fill)
 
@@ -145,4 +156,5 @@ func _mk_label(txt: String, size: int, pos: Vector2) -> Label:
 	l.text = txt
 	l.add_theme_font_size_override("font_size", size)
 	l.position = pos
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return l
