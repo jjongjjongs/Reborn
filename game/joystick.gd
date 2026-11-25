@@ -24,6 +24,17 @@ var _look := {}           # finger index -> last position (look-driving fingers)
 func _ready() -> void:
 	_font = ThemeDB.fallback_font
 
+func _process(_dt: float) -> void:
+	# While the shop is open input is ignored; a finger released during that time
+	# would leave stale state. Keep everything cleared so it's fresh on close.
+	if Controls.shop_open and (_m_idx != -1 or not _touch.is_empty() or not _look.is_empty()):
+		_m_idx = -1
+		_touch.clear()
+		_look.clear()
+		Controls.move = Vector2.ZERO
+		Controls.fire_held = false
+		queue_redraw()
+
 func _centers() -> Dictionary:
 	var s := get_viewport().get_visible_rect().size
 	return {
