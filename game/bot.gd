@@ -25,6 +25,7 @@ const INVULN := 2.0
 var hp := MAX_HP
 var alive := true
 var invuln_t := 0.0
+var team := -1   # -1 = FFA; 0/1 = teams
 var kills := 0
 var bot_name := "BOT"
 var tint := Color(0.80, 0.32, 0.30)
@@ -73,6 +74,8 @@ func _ready() -> void:
 func hit(dmg: int, _is_head: bool = false, attacker = null) -> void:
 	if not alive or invuln_t > 0.0:
 		return
+	if attacker != null and team != -1 and "team" in attacker and attacker.team == team:
+		return   # no friendly fire
 	hp -= dmg
 	_flash = 1.0
 	if hp <= 0.0:
@@ -161,6 +164,8 @@ func _find_nearest() -> Node3D:
 	for c in get_tree().get_nodes_in_group("combatant"):
 		if c == self or not _alive_of(c):
 			continue
+		if team != -1 and "team" in c and c.team == team:
+			continue   # skip teammates
 		var d := global_position.distance_to((c as Node3D).global_position)
 		if d < bd:
 			bd = d; best = c

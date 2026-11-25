@@ -26,8 +26,9 @@ func _ready() -> void:
 	sub.offset_left = -400; sub.offset_right = 400; sub.offset_top = 72
 	add_child(sub)
 
-	_mode_button("PvE 웨이브 서바이벌", 0.5, "res://Main.tscn")
-	_mode_button("데스매치 (봇)", 0.62, "res://Deathmatch.tscn")
+	_mode_button("PvE 웨이브 서바이벌", 0.48, "res://Main.tscn")
+	_mode_button("데스매치 (봇)", 0.60, "res://Deathmatch.tscn")
+	_mode_button("팀 데스매치 (봇)", 0.72, "res://TeamDeathmatch.tscn")
 
 func _mode_button(txt: String, anchor_y: float, scene: String) -> void:
 	var b := Button.new()

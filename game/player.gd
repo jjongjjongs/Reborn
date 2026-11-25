@@ -27,6 +27,7 @@ const INVULN := 2.0
 
 var alive := true
 var invuln_t := 0.0
+var team := -1   # -1 = FFA; 0/1 = teams
 var _spawn := Vector3.ZERO
 
 var aim_yaw := 0.0     # degrees
@@ -45,6 +46,8 @@ func _ready() -> void:
 func hit(dmg: int, _is_head: bool = false, attacker = null) -> void:
 	if not alive or invuln_t > 0.0:
 		return
+	if attacker != null and team != -1 and "team" in attacker and attacker.team == team:
+		return   # no friendly fire
 	Controls.hp = maxi(0, Controls.hp - dmg)
 	if Controls.hp <= 0:
 		alive = false
