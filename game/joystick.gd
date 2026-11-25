@@ -1,9 +1,12 @@
 class_name TouchInput
 extends Control
-## All touch input, drawn + hit-tested manually so every finger is independent
-## (true multi-touch): left = move stick, right open area = look/aim, plus three
-## on-screen action zones (fire=hold, jump, reload). GUI Buttons are NOT used
-## because Godot collapses multi-touch into one pointer for GUI picking.
+## Manual multi-touch (no GUI buttons so every finger is independent):
+##   left half            -> move stick
+##   right open area      -> look / aim
+##   fire zone (hold)     -> fires AND, while held, dragging that finger aims
+##                           (standard mobile-FPS "hold fire + slide to aim")
+##   jump / reload zones  -> one-shot actions
+## Any finger on the look area OR the fire button drives aiming (tracked in _look).
 
 const MOVE_RADIUS := 150.0
 const KNOB := 50.0
@@ -16,8 +19,7 @@ var _touch := {}          # finger index -> role string
 var _m_idx := -1
 var _m_origin := Vector2.ZERO
 var _m_knob := Vector2.ZERO
-var _l_idx := -1
-var _l_last := Vector2.ZERO
+var _look := {}           # finger index -> last position (look-driving fingers)
 
 func _ready() -> void:
 	_font = ThemeDB.fallback_font
@@ -59,12 +61,10 @@ func _input(event: InputEvent) -> void:
 				else:
 					_m_idx = t.index; _m_origin = t.position; _m_knob = t.position
 			elif role == "look":
-				if _l_idx != -1:
-					role = "none"
-				else:
-					_l_idx = t.index; _l_last = t.position
+				_look[t.index] = t.position
 			elif role == "fire":
 				Controls.fire_held = true
+				_look[t.index] = t.position   # fire finger also aims
 			elif role == "jump":
 				Controls.request_jump()
 			elif role == "reload":
@@ -75,10 +75,9 @@ func _input(event: InputEvent) -> void:
 			var role: String = _touch.get(t.index, "none")
 			if role == "move" and t.index == _m_idx:
 				_m_idx = -1; Controls.move = Vector2.ZERO
-			elif role == "look" and t.index == _l_idx:
-				_l_idx = -1
 			elif role == "fire":
 				Controls.fire_held = _has_other("fire", t.index)
+			_look.erase(t.index)
 			_touch.erase(t.index)
 			queue_redraw()
 	elif event is InputEventScreenDrag:
@@ -90,9 +89,9 @@ func _input(event: InputEvent) -> void:
 			_m_knob = _m_origin + off
 			Controls.move = off / MOVE_RADIUS
 			queue_redraw()
-		elif d.index == _l_idx:
-			Controls.look += (d.position - _l_last) * LOOK_SENS
-			_l_last = d.position
+		if _look.has(d.index):
+			Controls.look += (d.position - _look[d.index]) * LOOK_SENS
+			_look[d.index] = d.position
 
 func _active(role: String) -> bool:
 	return _touch.values().has(role)
