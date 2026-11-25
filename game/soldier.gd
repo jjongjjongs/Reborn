@@ -41,6 +41,8 @@ var _tgt_idx := PackedInt32Array()
 var _src_idx := PackedInt32Array()
 var _tgt_rest: Array[Quaternion] = []
 var _src_rest_inv: Array[Quaternion] = []
+var _m: Array[Quaternion] = []        # change-of-basis: source bone frame -> target bone frame
+var _m_inv: Array[Quaternion] = []
 var _loco := 0.0
 var _aiming := false
 var _dead := false
@@ -81,6 +83,12 @@ func _build_map() -> void:
 		_tgt_idx.append(ti); _src_idx.append(si)
 		_tgt_rest.append(_tgt.get_bone_rest(ti).basis.get_rotation_quaternion())
 		_src_rest_inv.append(_src.get_bone_rest(si).basis.get_rotation_quaternion().inverse())
+		# model-space orientation of each bone's rest, to transfer the local delta
+		# across rigs whose bone axes differ (otherwise limbs twist/flip)
+		var sg := _src.get_bone_global_rest(si).basis.get_rotation_quaternion()
+		var tg := _tgt.get_bone_global_rest(ti).basis.get_rotation_quaternion()
+		var m := tg.inverse() * sg
+		_m.append(m); _m_inv.append(m.inverse())
 
 func drive(loco_ratio: float, aiming: bool) -> void:
 	_loco = loco_ratio; _aiming = aiming
@@ -116,16 +124,30 @@ func _retarget() -> void:
 	if _tgt == null or _src == null: return
 	for i in _tgt_idx.size():
 		var cur := _src.get_bone_pose_rotation(_src_idx[i])
-		_tgt.set_bone_pose_rotation(_tgt_idx[i], _tgt_rest[i] * (_src_rest_inv[i] * cur))
+		var d := _src_rest_inv[i] * cur                 # source local delta from rest
+		var td := _m[i] * d * _m_inv[i]                 # express it in target bone frame
+		_tgt.set_bone_pose_rotation(_tgt_idx[i], _tgt_rest[i] * td)
 
 func _team_tint(mi: MeshInstance3D) -> void:
 	if mi.mesh == null: return
+	var grey := Vector3(GEAR_GREY.r, GEAR_GREY.g, GEAR_GREY.b)
+	var dark := Vector3(0.192, 0.180, 0.169)
 	for s in mi.mesh.get_surface_count():
 		var m: Material = mi.mesh.surface_get_material(s)
-		if m is StandardMaterial3D and (m as StandardMaterial3D).albedo_color.is_equal_approx(GEAR_GREY):
-			var nm := StandardMaterial3D.new()
-			nm.albedo_color = _team; nm.roughness = 0.8
-			mi.set_surface_override_material(s, nm)
+		if not (m is StandardMaterial3D):
+			continue
+		var c := (m as StandardMaterial3D).albedo_color
+		var cv := Vector3(c.r, c.g, c.b)
+		var col := Color.BLACK
+		if cv.distance_to(grey) < 0.14:        # plate carrier / gear -> full team color
+			col = _team
+		elif cv.distance_to(dark) < 0.12:      # dark fatigues -> team-tinted dark
+			col = _team.lerp(Color(0.12, 0.12, 0.13), 0.74)
+		else:
+			continue                            # skin / black straps: leave as-is
+		var nm := StandardMaterial3D.new()
+		nm.albedo_color = col; nm.roughness = 0.85
+		mi.set_surface_override_material(s, nm)
 
 func _build_gun() -> void:
 	_gun = Node3D.new(); add_child(_gun)
