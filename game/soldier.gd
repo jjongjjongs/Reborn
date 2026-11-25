@@ -29,6 +29,20 @@ const MAP := {
 	"Thumb2.R": "DEF-thumb.01.R", "Thumb3.R": "DEF-thumb.02.R",
 }
 const GEAR_GREY := Color(0.3098, 0.3255, 0.3529)
+# limbs whose rest pose differs (A-pose vs T-pose): align by joint->child direction
+const LIMB_CHILD := {
+	"Shoulder.L": "UpperArm.L", "UpperArm.L": "LowerArm.L", "LowerArm.L": "Hand.L",
+	"Shoulder.R": "UpperArm.R", "UpperArm.R": "LowerArm.R", "LowerArm.R": "Hand.R",
+	"UpperLeg.L": "LowerLeg.L", "LowerLeg.L": "Foot.L",
+	"UpperLeg.R": "LowerLeg.R", "LowerLeg.R": "Foot.R",
+	"Hand.L": "Middle2.L", "Hand.R": "Middle2.R",
+	"Index2.L": "Index3.L", "Index3.L": "Index4.L", "Middle2.L": "Middle3.L", "Middle3.L": "Middle4.L",
+	"Ring2.L": "Ring3.L", "Ring3.L": "Ring4.L", "Pinky2.L": "Pinky3.L", "Pinky3.L": "Pinky4.L",
+	"Thumb2.L": "Thumb3.L",
+	"Index2.R": "Index3.R", "Index3.R": "Index4.R", "Middle2.R": "Middle3.R", "Middle3.R": "Middle4.R",
+	"Ring2.R": "Ring3.R", "Ring3.R": "Ring4.R", "Pinky2.R": "Pinky3.R", "Pinky3.R": "Pinky4.R",
+	"Thumb2.R": "Thumb3.R",
+}
 
 @export var yaw_offset := PI
 
@@ -40,8 +54,11 @@ var _gun: Node3D
 var _tgt_idx := PackedInt32Array()
 var _src_idx := PackedInt32Array()
 var _tgt_par := PackedInt32Array()                 # target bone's parent index
-var _tgt_grest: Array[Quaternion] = []             # target bone global rest rotation
-var _src_grest_inv: Array[Quaternion] = []         # source bone global rest rotation, inverted
+var _tgt_grest: Array[Quaternion] = []             # target bone global rest rotation (soldier space)
+var _src_grest_inv: Array[Quaternion] = []         # source bone global rest rotation (soldier space), inverted
+var _align: Array[Quaternion] = []                 # rotates target rest bone dir onto source rest bone dir
+var _ks := Quaternion.IDENTITY                     # source skeleton rotation in soldier space
+var _kt := Quaternion.IDENTITY                     # target skeleton rotation in soldier space
 var _loco := 0.0
 var _aiming := false
 var _dead := false
@@ -68,6 +85,10 @@ func setup(team_color: Color, _gear: Color = Color.BLACK) -> void:
 		if n is AnimationPlayer: _ap = n
 		elif n is Skeleton3D: _src = n
 		elif n is MeshInstance3D: (n as MeshInstance3D).visible = false
+	# reference pose = source standing Idle (not its bind rest, whose orientation
+	# differs from the animated clips); SWAT's own rest is also a standing pose
+	if _ap:
+		_ap.play("Idle"); _ap.seek(0.0, true)
 	_build_map()
 	_build_gun()
 	if _tgt: _hand_idx = _tgt.find_bone("Hand.R")
@@ -80,13 +101,53 @@ func _build_map() -> void:
 		var ti := _tgt.find_bone(swat_bone)
 		var si := _src.find_bone(MAP[swat_bone])
 		if ti < 0 or si < 0: continue
-		entries.append({"ti": ti, "si": si, "depth": _depth(ti)})
+		entries.append({"ti": ti, "si": si, "depth": _depth(ti), "name": swat_bone})
 	entries.sort_custom(func(a, b): return a["depth"] < b["depth"])   # parents before children
+	# both skeletons expressed in this node's space (they may carry different
+	# import rotations, e.g. Blender's Z-up fix, and a 100x scale)
+	var rs := _rel(_src)
+	var rt := _rel(_tgt)
+	_ks = rs.basis.get_rotation_quaternion()
+	_kt = rt.basis.get_rotation_quaternion()
 	for e in entries:
-		_tgt_idx.append(e["ti"]); _src_idx.append(e["si"])
-		_tgt_par.append(_tgt.get_bone_parent(e["ti"]))
-		_tgt_grest.append(_tgt.get_bone_global_rest(e["ti"]).basis.get_rotation_quaternion())
-		_src_grest_inv.append(_src.get_bone_global_rest(e["si"]).basis.get_rotation_quaternion().inverse())
+		var ti: int = e["ti"]
+		var si: int = e["si"]
+		_tgt_idx.append(ti); _src_idx.append(si)
+		_tgt_par.append(_tgt.get_bone_parent(ti))
+		var tr: Quaternion = _kt * _tgt.get_bone_global_rest(ti).basis.get_rotation_quaternion()
+		var sr: Quaternion = _ks * _src.get_bone_global_pose(si).basis.get_rotation_quaternion()
+		_tgt_grest.append(tr)
+		_src_grest_inv.append(sr.inverse())
+		# limbs: re-aim the target's rest limb along the source's rest limb (A vs T pose)
+		var al := Quaternion.IDENTITY
+		var nm: String = e["name"]
+		if LIMB_CHILD.has(nm):
+			var tc := _tgt.find_bone(LIMB_CHILD[nm])
+			var sc := _src.find_bone(MAP[LIMB_CHILD[nm]])
+			if tc >= 0 and sc >= 0:
+				var dt := (rt * _tgt.get_bone_global_rest(tc).origin) - (rt * _tgt.get_bone_global_rest(ti).origin)
+				var ds := (rs * _src.get_bone_global_pose(sc).origin) - (rs * _src.get_bone_global_pose(si).origin)
+				if dt.length() > 0.0001 and ds.length() > 0.0001:
+					al = _arc(dt.normalized(), ds.normalized())
+		_align.append(al)
+
+func _arc(a: Vector3, b: Vector3) -> Quaternion:
+	var c := a.cross(b)
+	var d := a.dot(b)
+	if d < -0.9999:
+		var axis := a.cross(Vector3.RIGHT)
+		if axis.length() < 0.01: axis = a.cross(Vector3.FORWARD)
+		return Quaternion(axis.normalized(), PI)
+	return Quaternion(c.x, c.y, c.z, 1.0 + d).normalized()
+
+func _rel(n: Node3D) -> Transform3D:
+	# transform of n relative to this Soldier (works before entering the tree)
+	var t := Transform3D.IDENTITY
+	var cur: Node = n
+	while cur != null and cur != self:
+		if cur is Node3D: t = (cur as Node3D).transform * t
+		cur = cur.get_parent()
+	return t
 
 func _depth(idx: int) -> int:
 	var d := 0
@@ -130,14 +191,18 @@ func _retarget() -> void:
 	# model-space (global) retarget: take the source bone's rotation relative to its
 	# own global rest, apply it onto the target's global rest, then convert back to a
 	# local pose using the (already-updated) parent. Handles A-pose vs T-pose rigs.
+	var kt_inv := _kt.inverse()
 	for i in _tgt_idx.size():
-		var srg := _src.get_bone_global_pose(_src_idx[i]).basis.get_rotation_quaternion()
-		var desired := (srg * _src_grest_inv[i]) * _tgt_grest[i]
+		var sc: Quaternion = _ks * _src.get_bone_global_pose(_src_idx[i]).basis.get_rotation_quaternion()
+		# source motion from its rest, applied to the target rest re-aimed along the
+		# source's rest bone direction -> target limb points where the source limb points
+		var desired: Quaternion = sc * _src_grest_inv[i] * _align[i] * _tgt_grest[i]
+		var d_skel: Quaternion = kt_inv * desired
 		var par := _tgt_par[i]
 		var pg := Quaternion.IDENTITY
 		if par >= 0:
 			pg = _tgt.get_bone_global_pose(par).basis.get_rotation_quaternion()
-		_tgt.set_bone_pose_rotation(_tgt_idx[i], pg.inverse() * desired)
+		_tgt.set_bone_pose_rotation(_tgt_idx[i], pg.inverse() * d_skel)
 
 func _team_tint(mi: MeshInstance3D) -> void:
 	if mi.mesh == null: return
