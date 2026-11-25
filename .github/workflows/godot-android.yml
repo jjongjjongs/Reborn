@@ -71,6 +71,15 @@ jobs:
           echo "APK=$APK" >> "$GITHUB_ENV"
           echo "VER=$VER" >> "$GITHUB_ENV"
           echo "CODE=$CODE" >> "$GITHUB_ENV"
+          # install Android build template (custom gradle build for in-app updater)
+          TPLDIR="$HOME/.local/share/godot/export_templates/4.3.stable"
+          echo "templates:"; ls -la "$TPLDIR" 2>/dev/null | grep -i android || echo "  (no android template found)"
+          rm -rf android
+          mkdir -p android/build
+          unzip -q -o "$TPLDIR/android_source.zip" -d android/build
+          touch android/.gdignore
+          echo "--- android/build installed: $(find android/build -maxdepth 1 | wc -l) top entries ---"
+          java -version 2>&1 | head -1
           godot --headless --import || true
           godot --headless --verbose --export-debug "Android" "build/$APK"
           echo "--- build dir ---"

@@ -4,8 +4,8 @@ config_version=5
 [application]
 
 config/name="스페셜솔져 리본"
-config/version="2.7"
-config/build_code=28
+config/version="2.8"
+config/build_code=29
 run/main_scene="res://Menu.tscn"
 config/icon="res://icon.svg"
 config/features=PackedStringArray("4.3", "GL Compatibility")
