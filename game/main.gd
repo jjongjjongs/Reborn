@@ -130,7 +130,7 @@ func _build_hud() -> void:
 	_pts_lbl = _mk_label("◆ 0", 32, Vector2.ZERO)
 	_pts_lbl.add_theme_color_override("font_color", Color(1.0, 0.8, 0.35))
 	_pts_lbl.anchor_left = 1.0; _pts_lbl.anchor_right = 1.0
-	_pts_lbl.offset_left = -240; _pts_lbl.offset_top = 22
+	_pts_lbl.offset_left = -340; _pts_lbl.offset_right = -104; _pts_lbl.offset_top = 22   # left of pause
 	_pts_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	layer.add_child(_pts_lbl)
 

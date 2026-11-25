@@ -1,62 +1,152 @@
 class_name UpgradeShop
 extends Control
-## M4 in-run upgrade shop. Visible during prep; spend points on escalating
-## upgrades (PVENET2 model). Buttons are GUI (TouchInput is suppressed while the
-## shop is open via Controls.shop_open). Laid out from the viewport size so it
-## stays centered regardless of device resolution.
+## In-run upgrade shop shown during the prep phase between waves. Card layout:
+## header (title + points pill), prep timer bar, and one card per upgrade with
+## an icon, level pips, effect text and a buy button (dimmed when unaffordable,
+## "최대" when maxed). TouchInput is suppressed while open (Controls.shop_open).
 
 const UPG := [
-	{"id": "atk", "name": "공격력 ↑", "effect": "데미지 +10%/레벨", "base": 60, "mul": 1.5, "max": 10},
-	{"id": "spd", "name": "이동속도 ↑", "effect": "이동 +5%/레벨", "base": 50, "mul": 1.5, "max": 6},
-	{"id": "hp", "name": "최대체력 ↑", "effect": "HP +25/레벨", "base": 70, "mul": 1.5, "max": 8},
-	{"id": "wp", "name": "무기레벨 ↑", "effect": "탄창+2·재장전-5%", "base": 80, "mul": 1.6, "max": 5},
+	{"id": "atk", "name": "공격력", "effect": "데미지 +10% / 레벨", "base": 60, "mul": 1.5, "max": 10},
+	{"id": "spd", "name": "이동속도", "effect": "이동 +5% / 레벨", "base": 50, "mul": 1.5, "max": 6},
+	{"id": "hp", "name": "최대체력", "effect": "HP +25 / 레벨", "base": 70, "mul": 1.5, "max": 8},
+	{"id": "wp", "name": "무기레벨", "effect": "탄창 +2 · 재장전 -5%", "base": 80, "mul": 1.6, "max": 5},
 	{"id": "heal", "name": "긴급 치료", "effect": "HP 즉시 +50%", "base": 100, "mul": 1.0, "max": -1},
 ]
-const PANEL_W := 640.0
-const PANEL_H := 560.0
+const PANEL_W := 760.0
+const PANEL_H := 572.0
+const PREP_MAX := 9.0
 
-var _panel: ColorRect
-var _vb: VBoxContainer
-var _title: Label
+const C_ACCENT := Color(1.0, 0.48, 0.10)
+const C_OK := Color(0.21, 0.83, 0.61)
+const C_PANEL := Color(0.08, 0.11, 0.14, 0.97)
+const C_CARD := Color(0.11, 0.14, 0.17)
+const C_LINE := Color(0.18, 0.22, 0.26)
+const C_FG := Color(0.92, 0.95, 0.97)
+const C_DIM := Color(0.50, 0.57, 0.63)
+
+var _panel: PanelContainer
+var _pts: Label
+var _timer_bar: ProgressBar
+var _timer_lbl: Label
 var _rows: Array = []
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_panel = ColorRect.new()
-	_panel.color = Color(0.05, 0.07, 0.09, 0.95)
+	_panel = PanelContainer.new()
+	_panel.add_theme_stylebox_override("panel", _sb(C_PANEL, C_LINE, 1, 18, 18))
+	_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(_panel)
+	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 9)
+	_panel.add_child(v)
 
-	_vb = VBoxContainer.new()
-	_vb.add_theme_constant_override("separation", 10)
-	add_child(_vb)
+	# header: title + points pill
+	var head := HBoxContainer.new()
+	var t := Label.new(); t.text = "강화 상점"
+	t.add_theme_font_size_override("font_size", 34)
+	t.add_theme_color_override("font_color", C_FG)
+	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(t)
+	var pill := PanelContainer.new()
+	pill.add_theme_stylebox_override("panel", _sb(Color(0.05, 0.07, 0.09), C_LINE, 1, 22, 10))
+	_pts = Label.new(); _pts.add_theme_font_size_override("font_size", 26)
+	_pts.add_theme_color_override("font_color", Color(1.0, 0.8, 0.35))
+	pill.add_child(_pts)
+	head.add_child(pill)
+	v.add_child(head)
 
-	_title = Label.new()
-	_title.text = "강화 상점"
-	_title.add_theme_font_size_override("font_size", 34)
-	_title.add_theme_color_override("font_color", Color(1.0, 0.72, 0.38))
-	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_vb.add_child(_title)
+	# prep timer
+	var tr := HBoxContainer.new(); tr.add_theme_constant_override("separation", 12)
+	var tl := Label.new(); tl.text = "다음 웨이브까지"
+	tl.add_theme_font_size_override("font_size", 20); tl.add_theme_color_override("font_color", C_DIM)
+	tr.add_child(tl)
+	_timer_bar = ProgressBar.new()
+	_timer_bar.min_value = 0.0; _timer_bar.max_value = PREP_MAX; _timer_bar.show_percentage = false
+	_timer_bar.custom_minimum_size = Vector2(0, 10)
+	_timer_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_timer_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_timer_bar.add_theme_stylebox_override("background", _sb(Color(0.04, 0.06, 0.08), C_LINE, 1, 5, 0))
+	_timer_bar.add_theme_stylebox_override("fill", _sb(C_ACCENT, C_ACCENT, 0, 5, 0))
+	tr.add_child(_timer_bar)
+	_timer_lbl = Label.new(); _timer_lbl.add_theme_font_size_override("font_size", 22)
+	_timer_lbl.add_theme_color_override("font_color", C_FG)
+	tr.add_child(_timer_lbl)
+	v.add_child(tr)
 
 	for upg in UPG:
-		var b := Button.new()
-		b.add_theme_font_size_override("font_size", 25)
-		b.custom_minimum_size = Vector2(0, 74)
-		b.pressed.connect(_buy.bind(upg))
-		_vb.add_child(b)
-		_rows.append({"btn": b, "upg": upg})
+		v.add_child(_card(upg))
 
 	visible = false
 	_relayout()
 	get_viewport().size_changed.connect(_relayout)
 
+func _card(upg: Dictionary) -> Control:
+	var heal: bool = upg["id"] == "heal"
+	var card := PanelContainer.new()
+	card.add_theme_stylebox_override("panel", _sb(C_CARD, C_LINE, 1, 12, 8))
+	var h := HBoxContainer.new(); h.add_theme_constant_override("separation", 14)
+	card.add_child(h)
+
+	var ib := PanelContainer.new()
+	ib.add_theme_stylebox_override("panel", _sb(Color(0.05, 0.07, 0.09), C_LINE, 1, 9, 0))
+	ib.custom_minimum_size = Vector2(52, 52)
+	var icon := ModeIcon.new(); icon.kind = upg["id"]
+	icon.col = C_OK if heal else C_ACCENT
+	icon.custom_minimum_size = Vector2(52, 52)
+	ib.add_child(icon)
+	h.add_child(ib)
+
+	var mid := VBoxContainer.new(); mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mid.add_theme_constant_override("separation", 2)
+	var top := HBoxContainer.new(); top.add_theme_constant_override("separation", 10)
+	var nm := Label.new(); nm.text = upg["name"]
+	nm.add_theme_font_size_override("font_size", 24); nm.add_theme_color_override("font_color", C_FG)
+	top.add_child(nm)
+	var pips: Array = []
+	if not heal:
+		var ph := HBoxContainer.new(); ph.add_theme_constant_override("separation", 3)
+		ph.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		for i in int(upg["max"]):
+			var pip := ColorRect.new(); pip.custom_minimum_size = Vector2(14, 6)
+			pip.color = C_LINE
+			ph.add_child(pip); pips.append(pip)
+		top.add_child(ph)
+	mid.add_child(top)
+	var ef := Label.new(); ef.text = upg["effect"]
+	ef.add_theme_font_size_override("font_size", 18); ef.add_theme_color_override("font_color", C_DIM)
+	mid.add_child(ef)
+	h.add_child(mid)
+
+	var b := Button.new(); b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = Vector2(150, 54)
+	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	b.add_theme_font_size_override("font_size", 24)
+	var bc := C_OK if heal else C_ACCENT
+	b.add_theme_stylebox_override("normal", _sb(bc, bc, 0, 10, 8))
+	b.add_theme_stylebox_override("hover", _sb(bc.lightened(0.1), bc, 0, 10, 8))
+	b.add_theme_stylebox_override("pressed", _sb(bc.darkened(0.15), bc, 0, 10, 8))
+	b.add_theme_stylebox_override("disabled", _sb(Color(0.14, 0.17, 0.20), C_LINE, 1, 10, 8))
+	b.add_theme_color_override("font_color", Color(0.08, 0.05, 0.02))
+	b.add_theme_color_override("font_hover_color", Color(0.08, 0.05, 0.02))
+	b.add_theme_color_override("font_pressed_color", Color(0.08, 0.05, 0.02))
+	b.add_theme_color_override("font_disabled_color", C_DIM)
+	b.pressed.connect(_buy.bind(upg))
+	h.add_child(b)
+	_rows.append({"btn": b, "upg": upg, "pips": pips})
+	return card
+
+func _sb(bg: Color, border: Color, bw: int, rad: int, margin: int) -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = bg; s.border_color = border; s.set_border_width_all(bw)
+	s.set_corner_radius_all(rad); s.set_content_margin_all(margin)
+	return s
+
 func _relayout() -> void:
 	var vp := get_viewport().get_visible_rect().size
-	var x := (vp.x - PANEL_W) * 0.5
-	var y := (vp.y - PANEL_H) * 0.5
-	_panel.position = Vector2(x, y)
-	_panel.size = Vector2(PANEL_W, PANEL_H)
-	_vb.position = Vector2(x + 22, y + 20)
-	_vb.size = Vector2(PANEL_W - 44, PANEL_H - 40)
+	# start below the HUD's top row (wave label / HP bar) so nothing peeks behind it
+	var top := 96.0
+	var h := minf(PANEL_H, vp.y - top - 12.0)
+	_panel.position = Vector2((vp.x - PANEL_W) * 0.5, top)
+	_panel.size = Vector2(PANEL_W, h)
 
 func _lv(id: String) -> int:
 	match id:
@@ -82,6 +172,7 @@ func _buy(upg: Dictionary) -> void:
 	if Controls.points < c:
 		return
 	Controls.points -= c
+	Sfx.play("ui")
 	match upg["id"]:
 		"atk": Controls.atk_lv += 1; Controls.dmg_mult += 0.10
 		"spd": Controls.spd_lv += 1; Controls.speed_mult += 0.05
@@ -99,16 +190,20 @@ func _process(_dt: float) -> void:
 			Controls.fire_held = false
 	if not visible:
 		return
-	_title.text = "강화 상점 · ◆ %d · 준비 %d" % [Controls.points, ceili(Controls.prep_left)]
+	_pts.text = "◆ %d" % Controls.points
+	_timer_bar.value = clampf(Controls.prep_left, 0.0, PREP_MAX)
+	_timer_lbl.text = "%d초" % ceili(Controls.prep_left)
 	for r in _rows:
 		var upg: Dictionary = r["upg"]
 		var b: Button = r["btn"]
 		var lv := _lv(upg["id"])
-		var lvtxt := ("" if upg["id"] == "heal" else "  Lv %d" % lv)
+		var pips: Array = r["pips"]
+		for i in pips.size():
+			(pips[i] as ColorRect).color = C_OK if i < lv else C_LINE
 		if _maxed(upg):
-			b.text = "%s%s   —   최대" % [upg["name"], lvtxt]
+			b.text = "최대"
 			b.disabled = true
 		else:
 			var c := _cost(upg)
-			b.text = "%s%s    %s    ◆%d" % [upg["name"], lvtxt, upg["effect"], c]
+			b.text = "◆ %d" % c
 			b.disabled = Controls.points < c

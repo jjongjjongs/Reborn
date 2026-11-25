@@ -24,6 +24,11 @@ func _draw() -> void:
 		"survival": _shield()
 		"dm": _reticle()
 		"team": _team()
+		"atk": _atk()
+		"spd": _spd()
+		"hp": _heart()
+		"wp": _ammo()
+		"heal": _plus()
 
 func _shield() -> void:
 	var pts := PackedVector2Array([
@@ -45,3 +50,28 @@ func _team() -> void:
 		draw_arc(_p(cx, 8), minf(size.x, size.y) * 0.11, 0.0, TAU, 24, col, _w(), true)
 		draw_polyline(PackedVector2Array([
 			_p(cx - 4, 20), _p(cx - 4, 16), _p(cx, 13), _p(cx + 4, 16), _p(cx + 4, 20)]), col, _w(), true)
+
+func _atk() -> void:   # sword: blade, guard, grip
+	draw_line(_p(8, 16), _p(20, 4), col, _w() * 1.2, true)
+	draw_line(_p(5, 12), _p(12, 19), col, _w(), true)
+	draw_line(_p(8, 16), _p(3, 21), col, _w() * 1.2, true)
+
+func _spd() -> void:   # lightning bolt
+	draw_polyline(PackedVector2Array([_p(14, 2), _p(5, 13), _p(12, 13), _p(10, 22), _p(19, 10), _p(12, 10), _p(14, 2)]), col, _w(), true)
+
+func _heart() -> void:
+	var pts := PackedVector2Array()
+	for i in 41:
+		var t := TAU * float(i) / 40.0
+		var x := 16.0 * pow(sin(t), 3)
+		var y := 13.0 * cos(t) - 5.0 * cos(2 * t) - 2.0 * cos(3 * t) - cos(4 * t)
+		pts.append(_p(12 + x * 0.55, 11 - y * 0.55))
+	draw_polyline(pts, col, _w(), true)
+
+func _ammo() -> void:  # bullet
+	draw_polyline(PackedVector2Array([_p(9, 21), _p(9, 9), _p(12, 3), _p(15, 9), _p(15, 21), _p(9, 21)]), col, _w(), true)
+	draw_line(_p(9, 17), _p(15, 17), col, _w(), true)
+
+func _plus() -> void:
+	draw_line(_p(12, 4), _p(12, 20), col, _w() * 1.3, true)
+	draw_line(_p(4, 12), _p(20, 12), col, _w() * 1.3, true)
