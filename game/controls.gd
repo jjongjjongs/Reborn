@@ -50,6 +50,16 @@ var best_wave: int = 0
 var best_kills: int = 0
 var best_time: float = 0.0
 
+# --- settings (persisted) ---
+var sfx_on: bool = true
+var vibrate_on: bool = true
+var look_sens: float = 1.0      # 0.4 .. 2.0 multiplier
+var left_handed: bool = false
+
+func vibrate(ms: int = 40) -> void:
+	if vibrate_on:
+		Input.vibrate_handheld(ms)
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_load_best()
@@ -111,6 +121,13 @@ func _load_best() -> void:
 		best_wave = int(data.get("best_wave", 0))
 		best_kills = int(data.get("best_kills", 0))
 		best_time = float(data.get("best_time", 0.0))
+		sfx_on = bool(data.get("sfx_on", true))
+		vibrate_on = bool(data.get("vibrate_on", true))
+		look_sens = clampf(float(data.get("look_sens", 1.0)), 0.4, 2.0)
+		left_handed = bool(data.get("left_handed", false))
+
+func save_settings() -> void:
+	_save_best()
 
 func _save_best() -> void:
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -118,5 +135,7 @@ func _save_best() -> void:
 		return
 	f.store_string(JSON.stringify({
 		"best_wave": best_wave, "best_kills": best_kills, "best_time": best_time,
+		"sfx_on": sfx_on, "vibrate_on": vibrate_on,
+		"look_sens": look_sens, "left_handed": left_handed,
 	}))
 	f.close()

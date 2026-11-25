@@ -57,11 +57,11 @@ func _logo() -> void:
 
 # ---- mode stack (right) ----
 func _mode_stack() -> void:
-	_mode("웨이브 서바이벌", "PvE · 좀비 방어", "res://Main.tscn", 232, true)
-	_mode("데스매치", "개인전 · 봇", "res://Deathmatch.tscn", 332, false)
-	_mode("팀 데스매치", "3 vs 3 · 봇", "res://TeamDeathmatch.tscn", 432, false)
+	_mode("웨이브 서바이벌", "PvE · 좀비 방어", "res://Main.tscn", 232, true, "survival")
+	_mode("데스매치", "개인전 · 봇", "res://Deathmatch.tscn", 332, false, "dm")
+	_mode("팀 데스매치", "3 vs 3 · 봇", "res://TeamDeathmatch.tscn", 432, false, "team")
 
-func _mode(title: String, subtitle: String, scene: String, y: float, primary: bool) -> void:
+func _mode(title: String, subtitle: String, scene: String, y: float, primary: bool, kind: String) -> void:
 	var p := Control.new()
 	p.anchor_left = 1.0; p.anchor_right = 1.0
 	p.offset_left = -600; p.offset_right = -40
@@ -73,6 +73,11 @@ func _mode(title: String, subtitle: String, scene: String, y: float, primary: bo
 	p.add_child(bgp)
 	var ic := _panel(Vector2(16, 17), Vector2(52, 52), Color(0.07, 0.09, 0.11), ACCENT if primary else LINE, 1, 9)
 	p.add_child(ic)
+	var icon := ModeIcon.new()
+	icon.kind = kind
+	icon.col = ACCENT if primary else Color(0.85, 0.90, 0.95)
+	icon.set_anchors_preset(Control.PRESET_FULL_RECT)
+	ic.add_child(icon)
 	var t := _label(title, 30, FG, false); t.position = Vector2(86, 16); p.add_child(t)
 	var s := _label(subtitle, 19, DIM, false); s.position = Vector2(88, 52); p.add_child(s)
 	var arr := _label("›", 34, ACCENT, true)
@@ -97,12 +102,16 @@ func _bottom_nav() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	add_child(bar)
 	for i in ["출격", "상점", "장비", "기록", "설정"]:
-		var l := Label.new(); l.text = i
-		l.add_theme_font_size_override("font_size", 22)
-		l.add_theme_color_override("font_color", FG if i == "출격" else DIM)
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		bar.add_child(l)
+		var b := Button.new(); b.text = i; b.flat = true; b.focus_mode = Control.FOCUS_NONE
+		b.add_theme_font_size_override("font_size", 22)
+		b.add_theme_color_override("font_color", FG if i == "출격" else DIM)
+		b.add_theme_color_override("font_hover_color", FG)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if i == "설정":
+			b.pressed.connect(func() -> void: Sfx.play("ui"); Settings.open())
+		else:
+			b.pressed.connect(func() -> void: Sfx.play("ui"))
+		bar.add_child(b)
 
 # ---- helpers ----
 func _label(txt: String, size: int, col: Color, bold: bool) -> Label:

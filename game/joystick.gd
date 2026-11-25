@@ -37,10 +37,13 @@ func _process(_dt: float) -> void:
 
 func _centers() -> Dictionary:
 	var s := get_viewport().get_visible_rect().size
+	var lh := Controls.left_handed
+	var fx := 150.0 if lh else s.x - 150.0        # fire / jump column
+	var rx := 370.0 if lh else s.x - 370.0        # reload (toward center)
 	return {
-		"fire": Vector2(s.x - 150.0, s.y - 160.0),
-		"jump": Vector2(s.x - 150.0, s.y - 380.0),
-		"reload": Vector2(s.x - 370.0, s.y - 160.0),
+		"fire": Vector2(fx, s.y - 160.0),
+		"jump": Vector2(fx, s.y - 380.0),
+		"reload": Vector2(rx, s.y - 160.0),
 	}
 
 func _role_at(pos: Vector2) -> String:
@@ -51,7 +54,9 @@ func _role_at(pos: Vector2) -> String:
 		return "jump"
 	if pos.distance_to(c["reload"]) <= R_SMALL:
 		return "reload"
-	if pos.x < get_viewport().get_visible_rect().size.x * 0.5:
+	var on_left := pos.x < get_viewport().get_visible_rect().size.x * 0.5
+	# move stick lives on the opposite side from the action buttons
+	if on_left == (not Controls.left_handed):
 		return "move"
 	return "look"
 
@@ -103,7 +108,7 @@ func _input(event: InputEvent) -> void:
 			Controls.move = off / MOVE_RADIUS
 			queue_redraw()
 		if _look.has(d.index):
-			Controls.look += (d.position - _look[d.index]) * LOOK_SENS
+			Controls.look += (d.position - _look[d.index]) * LOOK_SENS * Controls.look_sens
 			_look[d.index] = d.position
 
 func _active(role: String) -> bool:

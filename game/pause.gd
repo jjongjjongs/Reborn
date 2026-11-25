@@ -52,6 +52,7 @@ func _build() -> void:
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(t)
 	v.add_child(_menu_btn("계속하기", 34, _resume))
+	v.add_child(_menu_btn("설정", 28, func() -> void: Sfx.play("ui"); Settings.open()))
 	v.add_child(_menu_btn("메뉴로", 28, _to_menu))
 	add_child(_overlay)
 

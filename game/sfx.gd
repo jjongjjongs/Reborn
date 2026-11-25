@@ -23,14 +23,14 @@ func _ready() -> void:
 
 # ---- playback -------------------------------------------------------------
 func play(name: String, vol_db: float = 0.0) -> void:
-	if not _bank.has(name):
+	if not Controls.sfx_on or not _bank.has(name):
 		return
 	var p: AudioStreamPlayer = _pool[_pi]
 	_pi = (_pi + 1) % _pool.size()
 	p.stream = _bank[name]; p.volume_db = vol_db; p.play()
 
 func play_at(name: String, pos: Vector3, vol_db: float = 0.0) -> void:
-	if not _bank.has(name):
+	if not Controls.sfx_on or not _bank.has(name):
 		return
 	var tree := get_tree()
 	if tree == null or tree.current_scene == null:
