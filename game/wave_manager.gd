@@ -43,6 +43,7 @@ func _start_wave() -> void:
 		_state = "done"
 		Controls.cleared = true
 		Controls.prep_left = -1.0
+		Controls.end_run(true)
 		return
 	Controls.wave = _wave + 1
 	Controls.prep_left = -1.0

@@ -101,6 +101,7 @@ func _die() -> void:
 	Controls.points += 10
 	if _last_head:
 		Controls.points += 5
+		Controls.headshots += 1
 	died.emit()
 	# fall over + fade out
 	var t := create_tween()

@@ -36,14 +36,11 @@ func _ready() -> void:
 	Controls.hp = Controls.hp_max
 
 func take_damage(dmg: int) -> void:
+	if Controls.game_over:
+		return
 	Controls.hp = maxi(0, Controls.hp - dmg)
 	if Controls.hp <= 0:
-		_respawn()
-
-func _respawn() -> void:
-	Controls.hp = Controls.hp_max
-	global_position = _spawn
-	velocity = Vector3.ZERO
+		Controls.end_run(false)
 
 func _build() -> void:
 	var body := MeshInstance3D.new()

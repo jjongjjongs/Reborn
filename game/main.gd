@@ -153,6 +153,8 @@ func _build_hud() -> void:
 
 	# in-run upgrade shop (shows itself during prep)
 	layer.add_child(UpgradeShop.new())
+	# run-end result overlay (shows itself on game over)
+	layer.add_child(ResultScreen.new())
 
 func _mk_label(txt: String, size: int, pos: Vector2) -> Label:
 	var l := Label.new()
