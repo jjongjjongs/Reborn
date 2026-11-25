@@ -66,21 +66,21 @@ jobs:
           cd game
           mkdir -p build
           godot --headless --import || true
-          godot --headless --verbose --export-debug "Android" build/reborn-m0.apk
+          godot --headless --verbose --export-debug "Android" build/reborn.apk
           echo "--- build dir ---"
           ls -la build
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: reborn-m0-apk
-          path: game/build/reborn-m0.apk
+          name: reborn-apk
+          path: game/build/reborn.apk
 
       - name: Attach to release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: game-m0
-          name: "리본 게임 M0 · 이동/점프"
-          body: "Godot 4.3 · PvE 서바이벌 MVP의 M0(이동·2단 점프). 폰에 설치해 조이스틱 이동 + 점프 버튼 확인."
-          files: game/build/reborn-m0.apk
+          tag_name: game-latest
+          name: "리본 게임 · 최신 빌드"
+          body: "Godot 4.3 · 오프라인 PvE 서바이벌. 폰에 reborn.apk 설치(덮어쓰기). 좌: 이동 / 우측 드래그: 조준 / 사격·장전·점프 버튼."
+          files: game/build/reborn.apk
           fail_on_unmatched_files: true
