@@ -1,8 +1,9 @@
 class_name UpgradeShop
 extends Control
 ## M4 in-run upgrade shop. Visible during prep; spend points on escalating
-## upgrades (PVENET2 model). Buttons are GUI (TouchInput is suppressed while
-## the shop is open via Controls.shop_open), so taps are clean.
+## upgrades (PVENET2 model). Buttons are GUI (TouchInput is suppressed while the
+## shop is open via Controls.shop_open). Laid out from the viewport size so it
+## stays centered regardless of device resolution.
 
 const UPG := [
 	{"id": "atk", "name": "공격력 ↑", "effect": "데미지 +10%/레벨", "base": 60, "mul": 1.5, "max": 10},
@@ -11,41 +12,51 @@ const UPG := [
 	{"id": "wp", "name": "무기레벨 ↑", "effect": "탄창+2·재장전-5%", "base": 80, "mul": 1.6, "max": 5},
 	{"id": "heal", "name": "긴급 치료", "effect": "HP 즉시 +50%", "base": 100, "mul": 1.0, "max": -1},
 ]
+const PANEL_W := 640.0
+const PANEL_H := 560.0
 
-var _rows: Array = []   # [{btn, upg}]
+var _panel: ColorRect
+var _vb: VBoxContainer
 var _title: Label
+var _rows: Array = []
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var panel := ColorRect.new()
-	panel.color = Color(0.05, 0.07, 0.09, 0.92)
-	panel.anchor_left = 0.5; panel.anchor_right = 0.5; panel.anchor_top = 0.5; panel.anchor_bottom = 0.5
-	panel.offset_left = -300; panel.offset_right = 300; panel.offset_top = -260; panel.offset_bottom = 260
-	add_child(panel)
+	_panel = ColorRect.new()
+	_panel.color = Color(0.05, 0.07, 0.09, 0.95)
+	add_child(_panel)
 
-	var vb := VBoxContainer.new()
-	vb.anchor_left = 0.5; vb.anchor_right = 0.5; vb.anchor_top = 0.5; vb.anchor_bottom = 0.5
-	vb.offset_left = -290; vb.offset_right = 290; vb.offset_top = -250; vb.offset_bottom = 250
-	vb.add_theme_constant_override("separation", 10)
-	add_child(vb)
+	_vb = VBoxContainer.new()
+	_vb.add_theme_constant_override("separation", 10)
+	add_child(_vb)
 
 	_title = Label.new()
 	_title.text = "강화 상점"
 	_title.add_theme_font_size_override("font_size", 34)
 	_title.add_theme_color_override("font_color", Color(1.0, 0.72, 0.38))
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vb.add_child(_title)
+	_vb.add_child(_title)
 
 	for upg in UPG:
 		var b := Button.new()
-		b.add_theme_font_size_override("font_size", 26)
+		b.add_theme_font_size_override("font_size", 25)
 		b.custom_minimum_size = Vector2(0, 74)
 		b.pressed.connect(_buy.bind(upg))
-		vb.add_child(b)
+		_vb.add_child(b)
 		_rows.append({"btn": b, "upg": upg})
 
 	visible = false
+	_relayout()
+	get_viewport().size_changed.connect(_relayout)
+
+func _relayout() -> void:
+	var vp := get_viewport().get_visible_rect().size
+	var x := (vp.x - PANEL_W) * 0.5
+	var y := (vp.y - PANEL_H) * 0.5
+	_panel.position = Vector2(x, y)
+	_panel.size = Vector2(PANEL_W, PANEL_H)
+	_vb.position = Vector2(x + 22, y + 20)
+	_vb.size = Vector2(PANEL_W - 44, PANEL_H - 40)
 
 func _lv(id: String) -> int:
 	match id:
