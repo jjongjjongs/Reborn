@@ -118,8 +118,7 @@ func _mode(title: String, subtitle: String, scene: String, y: float, primary: bo
 	btn.set_anchors_preset(Control.PRESET_FULL_RECT)
 	btn.pressed.connect(func() -> void:
 		Sfx.play("ui")
-		Controls.reset()
-		get_tree().change_scene_to_file(scene))
+		add_child(SortieScreen.new().setup(title, subtitle, scene, kind)))
 	p.add_child(btn)
 
 # ---- bottom nav ----

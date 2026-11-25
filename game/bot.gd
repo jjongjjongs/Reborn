@@ -10,10 +10,8 @@ const SPEED := 3.6
 const GRAVITY := 20.0
 const COMBAT_DIST := 18.0   # start shooting within this
 const MIN_DIST := 6.0       # back off if closer
-const REACTION := 0.3       # retarget / react cadence (difficulty)
-const BOT_DMG := 0.45       # bots deal this share of the weapon's damage (difficulty)
-const BOT_KNIFE := 0.6      # knife: 30 front / 60 behind
-const SPREAD := 4.5         # aim inaccuracy (deg)
+# reaction / aim spread / damage share / tactics come from Difficulty (출격 준비)
+const HEAD_AIM := 0.25      # elite: share of shots aimed at the head
 const BURST_MIN := 3
 const BURST_MAX := 6
 const BURST_COOL := 0.9
@@ -63,7 +61,7 @@ func _ready() -> void:
 	add_child(_soldier)
 	_soldier.setup(tint)
 	loadout = [Weapons.ORDER_PRIMARY.pick_random(), Weapons.ORDER_SECONDARY.pick_random(), "knife"]
-	rusher = randf() < (0.6 if loadout[0] in ["shotgun", "mp5"] else 0.25)
+	rusher = randf() < (0.6 if loadout[0] in ["shotgun", "mp5"] else 0.25) * Difficulty.v("tactics")
 	_refill()
 	_equip(loadout[0])
 	_muzzle = Node3D.new(); _muzzle.position = Vector3(0.22, 1.3, -0.5)
@@ -127,7 +125,7 @@ func _physics_process(delta: float) -> void:
 
 	_retarget_cd -= delta
 	if _retarget_cd <= 0.0:
-		_retarget_cd = REACTION
+		_retarget_cd = Difficulty.v("react")
 		_target = _find_nearest()
 
 	if _target != null and _alive_of(_target):
@@ -145,7 +143,7 @@ func _physics_process(delta: float) -> void:
 				_throw_nade()
 		elif _warmup <= 0.0 and nades > 0 and _nade_cd <= 0.0 and dist >= NADE_MIN and dist <= NADE_MAX_D:
 			_nade_cd = randf_range(12.0, 20.0)
-			var chance := 0.6 if not _has_los() else 0.2
+			var chance := (0.6 if not _has_los() else 0.2) * Difficulty.v("tactics")
 			if randf() < chance:
 				_nade_to = _target.global_position + Vector3(randf_range(-NADE_SPREAD, NADE_SPREAD), 0, randf_range(-NADE_SPREAD, NADE_SPREAD))
 				_windup_t = 0.45
@@ -299,7 +297,7 @@ func _try_stab(delta: float, dist: float) -> void:
 	if _soldier: _soldier.shoot()
 	Sfx.play_at("throw", global_position, -4.0)
 	if _target and _target.has_method("hit"):
-		_target.hit(int(Weapons.knife_damage(self, _target) * BOT_KNIFE), false, self)
+		_target.hit(int(Weapons.knife_damage(self, _target) * Difficulty.v("dmg") * 1.33), false, self)
 
 func _fire_one(w: Dictionary) -> void:
 	if _target == null:
@@ -308,9 +306,10 @@ func _fire_one(w: Dictionary) -> void:
 	var from := _muzzle.global_position
 	Sfx.play_at("shot", from, -4.0)
 	if _soldier: _soldier.shoot()
-	var aim := (_target.global_position + Vector3(0, _aim_h(_target), 0)) - from
+	var head_aim := Controls.bot_diff == "elite" and randf() < HEAD_AIM
+	var aim := (_target.global_position + Vector3(0, _aim_h(_target) + (0.45 if head_aim else 0.0), 0)) - from
 	var base := aim.normalized()
-	var acc := SPREAD * (0.45 if wid == "sniper" else 1.0) + (float(w["spread"][0]) if w.has("pellets") else 0.0)
+	var acc := Difficulty.v("spread") * (0.45 if wid == "sniper" else 1.0) + (float(w["spread"][0]) if w.has("pellets") else 0.0)
 	var s := deg_to_rad(acc)
 	for p in int(w.get("pellets", 1)):
 		var dir := base.rotated(Vector3.UP, randf_range(-s, s))
@@ -324,7 +323,9 @@ func _fire_one(w: Dictionary) -> void:
 			end = hit.position
 			var col = hit.collider
 			if col and col.has_method("hit"):
-				col.hit(maxi(1, int(randi_range(int(w["dmg"][0]), int(w["dmg"][1])) * BOT_DMG)), false, self)
+				var is_head: bool = hit.position.y > ((col as Node3D).global_position.y + 1.55)
+				var dmg := randi_range(int(w["dmg"][0]), int(w["dmg"][1])) * Difficulty.v("dmg") * (1.6 if is_head else 1.0)
+				col.hit(maxi(1, int(dmg)), is_head, self)
 		if p == 0 or randf() < 0.3:
 			_tracer(from, end)
 

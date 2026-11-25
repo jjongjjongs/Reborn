@@ -25,7 +25,7 @@ var player: Node3D
 
 func _ready() -> void:
 	add_to_group("zombie")
-	hp = MAX_HP * hp_scale
+	hp = MAX_HP * hp_scale * Difficulty.v("z_hp")
 	var body := MeshInstance3D.new()
 	var cap := CapsuleMesh.new(); cap.radius = 0.4; cap.height = 1.8
 	body.mesh = cap
@@ -66,7 +66,7 @@ func _physics_process(delta: float) -> void:
 		if _atk_cd <= 0.0:
 			_atk_cd = ATTACK_COOL
 			if player.has_method("take_damage"):
-				player.take_damage(ATTACK_DMG)
+				player.take_damage(int(ATTACK_DMG * Difficulty.v("z_dmg")))
 		velocity.x = 0.0; velocity.z = 0.0
 	elif _warmup <= 0.0:
 		_agent.target_position = player.global_position
@@ -78,8 +78,8 @@ func _physics_process(delta: float) -> void:
 			dir = to_player
 		if dir.length() > 0.05:
 			dir = dir.normalized()
-			velocity.x = dir.x * SPEED * spd_scale
-			velocity.z = dir.z * SPEED * spd_scale
+			velocity.x = dir.x * SPEED * spd_scale * Difficulty.v("z_spd")
+			velocity.z = dir.z * SPEED * spd_scale * Difficulty.v("z_spd")
 			look_at(global_position + Vector3(dir.x, 0, dir.z), Vector3.UP)
 	else:
 		velocity.x = 0.0; velocity.z = 0.0

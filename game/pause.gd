@@ -107,6 +107,14 @@ func _on_back() -> void:
 	var scene := get_tree().current_scene
 	var path := scene.scene_file_path if scene else ""
 	if path.ends_with("Menu.tscn"):
+		# menu sub-screens (출격 준비, 장비): close the topmost one
+		var top: Control = null
+		for c in scene.get_children():
+			if c is SortieScreen or c is LoadoutScreen: top = c
+		if top != null:
+			for c in top.get_children():
+				if c is LoadoutScreen: top = c
+			top.queue_free(); return
 		_quit_box.visible = true; return
 	if path.ends_with("HudEditor.tscn"):
 		if scene.has_method("_on_done"): scene._on_done()
