@@ -49,7 +49,6 @@ const LIMB_CHILD := {
 var _ap: AnimationPlayer
 var _src: Skeleton3D
 var _tgt: Skeleton3D
-var _hand_idx := -1
 var _gun: Node3D
 var _tgt_idx := PackedInt32Array()
 var _src_idx := PackedInt32Array()
@@ -83,11 +82,9 @@ var _dead := false
 var _oneshot := 0.0
 var _base := "?"
 var _team := Color(0.8, 0.4, 0.3)
-var _gun_mat := StandardMaterial3D.new()
 
 func setup(team_color: Color, _gear: Color = Color.BLACK) -> void:
 	_team = team_color
-	_gun_mat.albedo_color = Color(0.07, 0.07, 0.09)
 	# visible SWAT
 	var swat := SWAT.instantiate()
 	_swat = swat
@@ -124,7 +121,6 @@ func setup(team_color: Color, _gear: Color = Color.BLACK) -> void:
 		_ref_toe_y = _min_toe_y()       # standing reference (SWAT rest)
 	_snapshot_ready_arms()
 	_build_gun()
-	if _tgt: _hand_idx = _tgt.find_bone("Hand.R")
 	if _ap: _ap.play("Idle"); _base = "Idle"
 
 func _build_map() -> void:
@@ -208,7 +204,7 @@ func throw() -> void:
 
 func shoot() -> void:
 	if _dead or _ap == null: return
-	_ap.play("Pistol_Shoot", 0.03); _oneshot = 0.16; _base = "?"
+	_kick = 1.0
 
 func set_dead(d: bool) -> void:
 	if d == _dead: return
@@ -307,35 +303,219 @@ func _team_tint(mi: MeshInstance3D) -> void:
 		nm.albedo_color = col; nm.roughness = 0.85
 		mi.set_surface_override_material(s, nm)
 
-func _build_gun() -> void:
-	_gun = Node3D.new(); add_child(_gun)
-	_mesh(_gun, Vector3(0.05, 0.10, 0.34), Vector3(0, 0, -0.12))
-	_mesh(_gun, Vector3(0.03, 0.03, 0.30), Vector3(0, 0.01, -0.40))
-	_mesh(_gun, Vector3(0.045, 0.09, 0.14), Vector3(0, -0.01, 0.12))
-	_mesh(_gun, Vector3(0.04, 0.13, 0.05), Vector3(0, -0.09, -0.06))
-	_mesh(_gun, Vector3(0.018, 0.05, 0.03), Vector3(0, 0.08, -0.18))
+# ---- weapons & grip -------------------------------------------------------
+# Real-world holds (see grip review): long guns -> butt in the right shoulder
+# pocket, strong hand on the pistol grip / stock wrist, support hand under the
+# handguard (shotgun: on the pump). Not aiming = low ready (muzzle ~35 deg down,
+# stock still in the shoulder); aiming = shouldered, barrel level.
+# Pistols -> two hands, compressed ready at the chest / isosceles when aiming.
+# Knife -> hammer grip, blade forward at chest height, free hand up as a guard.
+# Anchors are measured on the model side views: [fraction from the butt, height
+# as a fraction of length above the model's centre].
+const WEAPONS := {
+	"ak":       {"len": 0.88, "kind": "long",   "butt": [0.01, 0.03],  "grip": [0.29, 0.0],   "fore": [0.66, 0.07]},
+	"m4":       {"len": 0.84, "kind": "long",   "butt": [0.01, 0.05],  "grip": [0.31, -0.01], "fore": [0.66, 0.09]},
+	"mp5":      {"len": 0.66, "kind": "long",   "butt": [0.01, 0.06],  "grip": [0.42, -0.01], "fore": [0.76, 0.09]},
+	"shotgun":  {"len": 1.00, "kind": "long",   "butt": [0.01, -0.03], "grip": [0.27, 0.01],  "fore": [0.70, 0.02]},
+	"sniper":   {"len": 1.15, "kind": "long",   "butt": [0.01, -0.03], "grip": [0.26, -0.01], "fore": [0.48, 0.01]},
+	"rpk":      {"len": 1.04, "kind": "long",   "butt": [0.01, 0.01],  "grip": [0.31, -0.02], "fore": [0.64, 0.08]},
+	"pistol":   {"len": 0.20, "kind": "pistol", "grip": [0.17, -0.07]},
+	"revolver": {"len": 0.26, "kind": "pistol", "grip": [0.13, -0.09]},
+	"knife":    {"len": 0.30, "kind": "knife",  "grip": [0.17, 0.0]},
+}
+const READY_PITCH := 35.0      # low ready: muzzle down (deg)
+# the SWAT mesh is stylised (shoulder->wrist 0.42 m vs ~0.58 m on a real adult), so
+# long guns are drawn at 78% to keep the support hand on the handguard
+const LONG_SCALE := 0.78
+const TWIST := -22.0           # rifle stance: torso turned so the support shoulder leads
+var weapon := ""
+var _wdef := {}
+var _wmodel: Node3D
+var _aim_b := 0.0              # 0 = ready, 1 = aiming (blended)
+var _kick := 0.0               # recoil 1 -> 0
+var _arm := {}                 # bone indices
+var _gun_s := Transform3D.IDENTITY   # gun transform in soldier space (this frame)
 
-func _mesh(parent: Node3D, size: Vector3, pos: Vector3) -> void:
-	var m := MeshInstance3D.new()
-	var b := BoxMesh.new(); b.size = size; m.mesh = b
-	m.material_override = _gun_mat; m.position = pos
-	parent.add_child(m)
+func _build_gun() -> void:
+	_gun = Node3D.new(); add_child(_gun); _gun.top_level = true
+	for b in ["UpperArm.R", "LowerArm.R", "Hand.R", "UpperArm.L", "LowerArm.L", "Hand.L", "Middle2.R", "Middle2.L", "Torso", "Neck"]:
+		_arm[b] = _tgt.find_bone(b) if _tgt else -1
+	set_weapon("m4")
+
+func set_weapon(id: String) -> void:
+	if id == weapon or not WEAPONS.has(id): return
+	weapon = id
+	_wdef = WEAPONS[id]
+	if _wmodel: _wmodel.queue_free()
+	var m: Node3D = (load("res://assets/guns/%s.glb" % id) as PackedScene).instantiate()
+	var a := _model_aabb(m)
+	var L: float = _len()
+	var sc: float = L / maxf(a.size.x, 0.001)
+	m.rotation.y = PI * 0.5            # model muzzle +X -> holder -Z (forward)
+	m.scale = Vector3.ONE * sc
+	m.position = -(Basis(Vector3.UP, PI * 0.5) * (a.get_center() * sc))
+	_gun.add_child(m)
+	_wmodel = m
+
+# anchor [from-butt fraction, height fraction] -> holder space (barrel -Z, butt +Z)
+func _anchor(key: String) -> Vector3:
+	var v: Array = _wdef[key]
+	var L: float = _len()
+	return Vector3(0.0, float(v[1]) * L, (0.5 - float(v[0])) * L)
+
+func _len() -> float:
+	return float(_wdef["len"]) * (LONG_SCALE if _wdef["kind"] == "long" else 1.0)
+
+func _model_aabb(root: Node3D) -> AABB:
+	var out := AABB(); var first := true
+	for c in _all(root):
+		if c is MeshInstance3D:
+			var t := Transform3D.IDENTITY
+			var cur: Node = c
+			while cur != root and cur != null:
+				t = (cur as Node3D).transform * t; cur = cur.get_parent()
+			var bb: AABB = t * (c as MeshInstance3D).get_aabb()
+			out = bb if first else out.merge(bb); first = false
+	return out
+
+func _bone_s(idx: int) -> Vector3:
+	return _rel(_tgt) * _tgt.get_bone_global_pose(idx).origin
 
 func _update_gun() -> void:
-	if _gun == null or _tgt == null or _hand_idx < 0: return
-	var body := get_parent()
-	var basis: Basis = global_transform.basis
-	if body is Node3D:
-		basis = (body as Node3D).global_transform.basis
-	var hw: Vector3 = (_tgt.global_transform * _tgt.get_bone_global_pose(_hand_idx)).origin
-	_gun.global_transform = Transform3D(basis, hw + basis * Vector3(0.0, 0.02, -0.05))
+	if _gun == null or _tgt == null or _wdef.is_empty(): return
+	var dt := get_process_delta_time()
+	_aim_b = move_toward(_aim_b, 1.0 if _aiming else 0.0, dt * 6.0)
+	_kick = move_toward(_kick, 0.0, dt * 9.0)
 	var throwing := _windup or _throw_t > 0.0
-	_gun.visible = visible and not _dead and not throwing   # gun lowered while throwing
+	var show := not _dead and not throwing
+	_gun.visible = visible and show
+	if show:
+		_pose_weapon()
+		_gun.global_transform = global_transform * _gun_s
+	var hw: Vector3 = global_transform * _bone_s(_arm["Hand.R"])
 	if _nade == null:
 		_nade = Grenade.mesh(); add_child(_nade); _nade.top_level = true
 	_nade.visible = visible and _windup and not _dead
 	if _nade.visible:
-		_nade.global_position = hw + basis * Vector3(0.0, 0.05, 0.0)
+		_nade.global_position = hw + global_transform.basis * Vector3(0.0, 0.05, 0.0)
+
+func _pose_weapon() -> void:
+	var kind: String = _wdef["kind"]
+	if kind == "long":
+		# bladed stance: turn the torso, keep the head facing the target
+		_turn_bone(_arm["Torso"], TWIST)
+		_turn_bone(_arm["Neck"], -TWIST * 0.8)
+	var sh_r := _bone_s(_arm["UpperArm.R"])
+	var sh_l := _bone_s(_arm["UpperArm.L"])
+	var reach := sh_r.distance_to(_bone_s(_arm["LowerArm.R"])) + _bone_s(_arm["LowerArm.R"]).distance_to(_bone_s(_arm["Hand.R"]))
+	var k := ease(_aim_b, -1.8)
+	if kind == "long":
+		var pitch := deg_to_rad(lerpf(-READY_PITCH, 0.0, k) + 4.0 * _kick)
+		var basis := Basis(Vector3.RIGHT, pitch)
+		var pocket := sh_r + Vector3(-0.06, lerpf(-0.05, -0.01, k), -0.04) + Vector3(0, 0, 0.04 * _kick)
+		_gun_s = Transform3D(basis, pocket - basis * _anchor("butt"))
+		# strong hand wraps the pistol grip (palm on its right side, knuckles forward-down);
+		# support hand cradles the handguard from below, palm up
+		_hand("R", _anchor("grip"), Vector3(-0.45, -0.35, -0.82), Vector3(-1, 0, 0), 0.03, 62.0, Vector3(0.6, -1.0, 0.3))
+		_hand("L", _anchor("fore"), Vector3(0.45, 0.25, -0.85), Vector3(0.2, 1, 0), 0.035, 48.0, Vector3(-0.5, -1.0, 0.1))
+	elif kind == "pistol":
+		var mid := (sh_r + sh_l) * 0.5
+		var ready_p := mid + Vector3(0.0, -0.17, -0.26)      # compressed ready
+		var aim_p := mid + Vector3(0.0, 0.08, -reach - 0.04)   # isosceles: arms extended
+		var gp := ready_p.lerp(aim_p, k)
+		var basis := Basis(Vector3.RIGHT, deg_to_rad(9.0 * _kick))
+		_gun_s = Transform3D(basis, gp - basis * _anchor("grip") + Vector3(0, 0, 0.03 * _kick))
+		# strong hand high on the grip; support hand wraps over its fingers from the left
+		_hand("R", _anchor("grip"), Vector3(-0.3, -0.5, -0.8), Vector3(-1, 0, 0), 0.02, 66.0, Vector3(0.8, -1.0, 0.2))
+		_hand("L", _anchor("grip"), Vector3(0.3, -0.5, -0.8), Vector3(1, 0, 0), 0.05, 60.0, Vector3(-0.8, -1.0, 0.2))
+	else:   # knife: hammer grip, blade forward, guard hand up
+		var gp := sh_r + Vector3(-0.08, -0.17, -0.30 - 0.32 * _kick)
+		var basis := Basis(Vector3.RIGHT, deg_to_rad(12.0))
+		_gun_s = Transform3D(basis, gp - basis * _anchor("grip"))
+		_hand("R", _anchor("grip"), Vector3(-0.1, -0.75, -0.65), Vector3(-1, 0, 0.2), 0.02, 72.0, Vector3(0.7, -1.0, 0.4))
+		# guard hand: open, palm toward the target, in front of the chest
+		_hand("L", _gun_s.affine_inverse() * (sh_l + Vector3(0.14, -0.10, -0.30)), Vector3(0.1, 1.0, -0.2), Vector3(0.3, 0, -1), 0.0, 12.0, Vector3(-0.6, -1.0, 0.0))
+
+# place one hand on the weapon. contact/f/n are in gun space: f = wrist->knuckles
+# direction, n = palm normal (toward the part being held), pad = palm thickness
+func _hand(side: String, contact: Vector3, f_g: Vector3, n_g: Vector3, pad: float, curl: float, pole: Vector3) -> void:
+	var gb := _gun_s.basis
+	var f := (gb * f_g).normalized()
+	var n := gb * n_g
+	n = (n - f * n.dot(f)).normalized()
+	var c := _gun_s * contact
+	var wrist := c - n * pad - f * 0.08
+	_ik_hand(side, wrist, pole)
+	var h: int = _arm["Hand." + side]
+	var mi := _tgt.find_bone("Middle2." + side)
+	var ii := _tgt.find_bone("Index2." + side)
+	var pi := _tgt.find_bone("Pinky2." + side)
+	if h < 0 or mi < 0 or ii < 0 or pi < 0: return
+	var hp := _bone_s(h)
+	var fc := (_bone_s(mi) - hp).normalized()
+	var sc := _bone_s(ii) - _bone_s(pi)
+	sc = (sc - fc * sc.dot(fc)).normalized()
+	var sd := f.cross(n) if side == "R" else n.cross(f)    # index-side direction
+	var q := (Basis(f, sd, f.cross(sd)) * Basis(fc, sc, fc.cross(sc)).inverse()).get_rotation_quaternion()
+	_rot_bone_s(h, q)
+	# curl the fingers toward the palm (each joint adds to its parent's bend)
+	var axis := f.cross(n).normalized()
+	for fn in ["Index", "Middle", "Ring", "Pinky"]:
+		for seg in [2, 3, 4]:
+			_rot_bone_s(_tgt.find_bone("%s%d.%s" % [fn, seg, side]), Quaternion(axis, deg_to_rad(curl)))
+	for seg in [2, 3]:
+		_rot_bone_s(_tgt.find_bone("Thumb%d.%s" % [seg, side]), Quaternion(axis, deg_to_rad(curl * 0.35)))
+
+# rotate a bone by q (soldier space) about its own origin
+func _rot_bone_s(b: int, q: Quaternion) -> void:
+	if b < 0: return
+	var g := _tgt.get_bone_global_pose(b).basis.get_rotation_quaternion()
+	var new_g: Quaternion = _kt.inverse() * q * _kt * g
+	var p := _tgt.get_bone_parent(b)
+	var pg := Quaternion.IDENTITY
+	if p >= 0: pg = _tgt.get_bone_global_pose(p).basis.get_rotation_quaternion()
+	_tgt.set_bone_pose_rotation(b, pg.inverse() * new_g)
+
+# two-bone IK in soldier space: put the wrist at `target`, elbow toward `pole`
+func _ik_hand(side: String, target: Vector3, pole: Vector3) -> void:
+	var u: int = _arm["UpperArm." + side]
+	var l: int = _arm["LowerArm." + side]
+	var h: int = _arm["Hand." + side]
+	if u < 0 or l < 0 or h < 0: return
+	var s := _bone_s(u)
+	var a := s.distance_to(_bone_s(l))
+	var b := _bone_s(l).distance_to(_bone_s(h))
+	var to := target - s
+	var d := clampf(to.length(), absf(a - b) + 0.01, a + b - 0.005)
+	var n := to.normalized()
+	var x := (a * a - b * b + d * d) / (2.0 * d)
+	var hh := sqrt(maxf(a * a - x * x, 0.0))
+	var p := pole - n * pole.dot(n)
+	if p.length() < 0.001: p = Vector3.DOWN
+	var elbow := s + n * x + p.normalized() * hh
+	_point_bone(u, l, elbow - s)
+	_point_bone(l, h, (s + n * d) - elbow)
+
+func _turn_bone(b: int, deg: float) -> void:
+	if b < 0: return
+	var g := _tgt.get_bone_global_pose(b).basis.get_rotation_quaternion()
+	var q := Quaternion(Vector3.UP, deg_to_rad(deg))
+	var new_g: Quaternion = _kt.inverse() * q * _kt * g
+	var p := _tgt.get_bone_parent(b)
+	var pg := Quaternion.IDENTITY
+	if p >= 0: pg = _tgt.get_bone_global_pose(p).basis.get_rotation_quaternion()
+	_tgt.set_bone_pose_rotation(b, pg.inverse() * new_g)
+
+func _point_bone(b: int, c: int, dir_s: Vector3) -> void:
+	var rt := _rel(_tgt)
+	var gb := _tgt.get_bone_global_pose(b)
+	var cur := ((rt * _tgt.get_bone_global_pose(c).origin) - (rt * gb.origin)).normalized()
+	var q := _arc(cur, dir_s.normalized())
+	var new_g: Quaternion = _kt.inverse() * q * _kt * gb.basis.get_rotation_quaternion()
+	var p := _tgt.get_bone_parent(b)
+	var pg := Quaternion.IDENTITY
+	if p >= 0: pg = _tgt.get_bone_global_pose(p).basis.get_rotation_quaternion()
+	_tgt.set_bone_pose_rotation(b, pg.inverse() * new_g)
 
 # windup pose: no throw clip in the library, so aim the right arm's bones (in this
 # node's space, +Z = behind) after retargeting: elbow up/back, hand behind the head
