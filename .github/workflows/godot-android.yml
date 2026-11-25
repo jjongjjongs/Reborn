@@ -84,6 +84,8 @@ jobs:
           mkdir -p android/build/src/com/reborn/updater
           cp android_plugin/RebornUpdater.java android/build/src/com/reborn/updater/
           sed -i 's#</application>#    <meta-data android:name="org.godotengine.plugin.v2.RebornUpdater" android:value="com.reborn.updater.RebornUpdater" />\n    </application>#' android/build/AndroidManifest.xml
+          # Godot ignores permissions/request_install_packages -> declare it in the manifest directly
+          sed -i 's#<application#<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n\n    <application#' android/build/AndroidManifest.xml
           echo "--- manifest patch ---"; grep -n "reborn" android/build/AndroidManifest.xml
           echo "--- android/build installed: $(find android/build -maxdepth 1 | wc -l) top entries ---"
           java -version 2>&1 | head -1
@@ -93,7 +95,7 @@ jobs:
           ls -la build
           echo "--- merged manifest has updater? ---"
           M=$(find android/build/build -name AndroidManifest.xml -path "*merged_manifest*" 2>/dev/null | head -1)
-          [ -n "$M" ] && grep -cE "fileprovider|RebornUpdater|REQUEST_INSTALL_PACKAGES" "$M" || echo "(merged manifest not found)"
+          [ -n "$M" ] && grep -E "fileprovider|RebornUpdater|REQUEST_INSTALL_PACKAGES" "$M" || echo "(merged manifest not found)"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
