@@ -47,9 +47,8 @@ jobs:
           export/android/debug_keystore_pass = "android"
           EOF
           cp /root/.config/godot/editor_settings-4.tres /root/.config/godot/editor_settings-4.3.tres
-          echo "--- export templates under /root ---"
-          ls -la /root/.local/share/godot/export_templates/ || true
-          ls -d /root/.local/share/godot/export_templates/*/ 2>/dev/null || true
+          echo "--- export template files (4.3.stable) ---"
+          ls -la /root/.local/share/godot/export_templates/4.3.stable/ || true
 
       - name: Import + export APK
         env:
@@ -59,7 +58,7 @@ jobs:
           cd game
           mkdir -p build
           godot --headless --import || true
-          godot --headless --export-debug "Android" build/reborn-m0.apk
+          godot --headless --verbose --export-debug "Android" build/reborn-m0.apk
           echo "--- build dir ---"
           ls -la build
 
