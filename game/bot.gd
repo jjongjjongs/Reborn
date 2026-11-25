@@ -168,8 +168,9 @@ func _physics_process(delta: float) -> void:
 				var dr := to.normalized()           # charge in, firing, then knife
 				velocity.x = dr.x * _speed(); velocity.z = dr.z * _speed()
 				_try_fire(delta)
-			elif dist > _combat():
-				_move_to(_target.global_position, to)
+			elif dist > _combat() or not _los_cached():
+				_move_to(_target.global_position, to)      # out of range or blocked by walls: path in
+				_try_fire(delta)
 			elif dist < _min_d():
 				var away := -to.normalized()
 				velocity.x = away.x * _speed(); velocity.z = away.z * _speed()
@@ -216,7 +217,7 @@ func _move_to(dest: Vector3, to_flat: Vector3) -> void:
 	var next := _agent.get_next_path_position()
 	var dir := next - global_position
 	dir.y = 0.0
-	if dir.length() < 0.15 or global_position.y > 0.6:
+	if dir.length() < 0.15:
 		dir = to_flat
 	if dir.length() > 0.05:
 		dir = dir.normalized()
@@ -251,6 +252,15 @@ func _throw_nade() -> void:
 
 func _aim_h(n: Node) -> float:
 	return float(n.aim_h) if "aim_h" in n else 1.1
+
+var _los_t := 0.0
+var _los_v := false
+func _los_cached() -> bool:
+	# LOS checked a few times a second (path-in decision), not every frame
+	var now := Time.get_ticks_msec() / 1000.0
+	if now - _los_t > 0.25:
+		_los_t = now; _los_v = _has_los()
+	return _los_v
 
 func _has_los() -> bool:
 	if _target == null:

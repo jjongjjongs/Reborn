@@ -126,25 +126,9 @@ func _end_match(winner_team: int) -> void:
 		_score[RED], _score[BLUE], Controls.kills, TEAM_TARGET]
 
 func _build_world() -> void:
-	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-55, -40, 0); sun.light_energy = 1.1; sun.shadow_enabled = true
-	add_child(sun)
-	var we := WorldEnvironment.new()
-	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR; env.background_color = Color(0.06, 0.08, 0.10)
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.45, 0.5, 0.55); env.ambient_light_energy = 0.7
-	env.fog_enabled = true; env.fog_light_color = Color(0.07, 0.1, 0.12); env.fog_density = 0.01
-	we.environment = env; add_child(we)
-	var nav := NavigationRegion3D.new(); add_child(nav)
-	_add_box(nav, Vector3(70, 1, 70), Vector3(0, -0.5, 0), Color(0.12, 0.14, 0.13))
-	for p in [Vector3(8, 1.5, 4), Vector3(-9, 1.5, -3), Vector3(4, 1.5, -10), Vector3(-6, 1.5, 9),
-			Vector3(11, 1.5, -6), Vector3(-11, 1.5, 7), Vector3(0, 1.5, 0)]:
-		_add_box(nav, Vector3(3, 3, 3), p, Color(0.2, 0.22, 0.25))
-	var nm := NavigationMesh.new()
-	nm.cell_size = 0.25; nm.cell_height = 0.25; nm.agent_radius = 0.5; nm.agent_height = 1.8; nm.agent_max_climb = 0.4
-	nav.navigation_mesh = nm
-	nav.bake_navigation_mesh(false)
+	var info := MapBuilder.build(Controls.sel_map, self)
+	_red_spawns = info["red"]
+	_blue_spawns = info["blue"]
 
 func _add_box(parent: Node, size: Vector3, pos: Vector3, c: Color) -> void:
 	var sb := StaticBody3D.new()

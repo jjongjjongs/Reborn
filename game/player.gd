@@ -53,6 +53,7 @@ func _ready() -> void:
 	add_to_group("combatant")
 	_build()
 	_spawn = global_position
+	face(Vector3.ZERO)
 	Controls.hp = Controls.hp_max
 	for i in 3:
 		var id: String = Controls.loadout[i]
@@ -103,11 +104,20 @@ func hit(dmg: int, _is_head: bool = false, attacker = null) -> void:
 func take_damage(dmg: int) -> void:   # melee convenience (zombies)
 	hit(dmg, false, null)
 
+# turn the view toward a point (spawns face the middle of the map, not a wall)
+func face(target: Vector3) -> void:
+	var d := target - global_position
+	if Vector2(d.x, d.z).length() < 0.5: return
+	aim_yaw = rad_to_deg(atan2(-d.x, -d.z))
+	aim_pitch = 0.0
+	rotation.y = deg_to_rad(aim_yaw)
+
 func respawn_at(pos: Vector3) -> void:
 	alive = true
 	invuln_t = INVULN
 	Controls.hp = Controls.hp_max
 	global_position = pos
+	face(Vector3.ZERO)
 	velocity = Vector3.ZERO
 	visible = true
 	Controls.grenades = Controls.NADE_MAX

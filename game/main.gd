@@ -2,6 +2,7 @@ extends Node3D
 ## M3 world: NavMesh arena + wave manager + player HP + wave/points HUD.
 
 var player: PlayerBody
+var _map := {}
 var cam: Camera3D
 var _wave_lbl: Label
 var _pts_lbl: Label
@@ -17,41 +18,12 @@ func _ready() -> void:
 	var wm := WaveManager.new()
 	wm.arena = self
 	wm.player = player
+	if _map.has("zombie"):
+		wm.spawn_points = _map["zombie"]
 	add_child(wm)
 
 func _build_world() -> void:
-	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-55, -40, 0)
-	sun.light_energy = 1.1
-	sun.shadow_enabled = true
-	add_child(sun)
-
-	var we := WorldEnvironment.new()
-	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.06, 0.08, 0.10)
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.45, 0.5, 0.55)
-	env.ambient_light_energy = 0.7
-	env.fog_enabled = true
-	env.fog_light_color = Color(0.07, 0.1, 0.12)
-	env.fog_density = 0.01
-	we.environment = env
-	add_child(we)
-
-	var nav := NavigationRegion3D.new()
-	add_child(nav)
-	_add_box(nav, Vector3(70, 1, 70), Vector3(0, -0.5, 0), Color(0.12, 0.14, 0.13))
-	for p in [Vector3(8, 1, 4), Vector3(-9, 1, -3), Vector3(4, 1, -10), Vector3(-6, 1, 9)]:
-		_add_box(nav, Vector3(2, 2, 2), p, Color(0.2, 0.22, 0.25))
-	var nm := NavigationMesh.new()
-	nm.cell_size = 0.25
-	nm.cell_height = 0.25
-	nm.agent_radius = 0.5
-	nm.agent_height = 1.8
-	nm.agent_max_climb = 0.4
-	nav.navigation_mesh = nm
-	nav.bake_navigation_mesh(false)
+	_map = MapBuilder.build(Controls.sel_map, self)
 
 func _add_box(parent: Node, size: Vector3, pos: Vector3, c: Color) -> void:
 	var sb := StaticBody3D.new()
@@ -67,7 +39,7 @@ func _add_box(parent: Node, size: Vector3, pos: Vector3, c: Color) -> void:
 
 func _build_player() -> void:
 	player = PlayerBody.new()
-	player.position = Vector3(0, 1.5, 0)
+	player.position = _map.get("player", Vector3(0, 1.5, 0))
 	player.died.connect(func(_a): Controls.end_run(false))
 	add_child(player)
 
