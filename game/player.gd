@@ -42,6 +42,12 @@ var _aim: GrenadeAim
 const CROUCH_SPEED := 0.5
 const CROUCH_SPREAD := 0.6
 const THROW_UP_DEG := 14.0
+# grenade aiming: vertical drag changes the throw angle (= range), not the camera
+const NADE_PITCH_MIN := -15.0
+const NADE_PITCH_MAX := 45.0      # 45 deg = farthest throw
+const NADE_PITCH_SENS := 0.6
+var nade_pitch := 0.0
+var _nade_was := false
 
 func _ready() -> void:
 	add_to_group("combatant")
@@ -140,7 +146,7 @@ func _cancel_nade() -> void:
 	if _soldier: _soldier.windup(false)
 
 func _throw_origin_vel() -> Array:
-	var b := Basis.from_euler(Vector3(deg_to_rad(aim_pitch + THROW_UP_DEG), deg_to_rad(aim_yaw), 0))
+	var b := Basis.from_euler(Vector3(deg_to_rad(nade_pitch), deg_to_rad(aim_yaw), 0))
 	var dir := -b.z
 	var origin := global_position + Vector3(0, 1.55 if not crouched else 1.05, 0) \
 		+ global_transform.basis.x * 0.25 + dir * 0.35
@@ -157,7 +163,14 @@ func _physics_process(delta: float) -> void:
 	# look
 	var l := Controls.consume_look()
 	aim_yaw -= l.x
-	aim_pitch = clampf(aim_pitch - l.y, -45.0, 45.0)
+	var nade_now := Controls.nade_aiming and Controls.grenades > 0
+	if nade_now and not _nade_was:
+		nade_pitch = clampf(aim_pitch + THROW_UP_DEG, NADE_PITCH_MIN, NADE_PITCH_MAX)
+	_nade_was = nade_now
+	if nade_now:
+		nade_pitch = clampf(nade_pitch - l.y * NADE_PITCH_SENS, NADE_PITCH_MIN, NADE_PITCH_MAX)
+	else:
+		aim_pitch = clampf(aim_pitch - l.y, -45.0, 45.0)
 	rotation.y = deg_to_rad(aim_yaw)
 
 	# move (aim-relative)
