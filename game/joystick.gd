@@ -1,3 +1,4 @@
+class_name VJoystick
 extends Control
 ## Dynamic left-side virtual joystick. Appears where you touch in the left
 ## half of the screen; writes a -1..1 vector to Controls.move.
@@ -15,25 +16,28 @@ var _idx := -1
 func _input(event: InputEvent) -> void:
 	var vw := get_viewport().get_visible_rect().size
 	if event is InputEventScreenTouch:
-		if event.pressed:
-			if not _active and event.position.x < vw.x * 0.5:
+		var t := event as InputEventScreenTouch
+		if t.pressed:
+			if not _active and t.position.x < vw.x * 0.5:
 				_active = true
-				_idx = event.index
-				_origin = event.position
-				_knob = event.position
+				_idx = t.index
+				_origin = t.position
+				_knob = t.position
 				queue_redraw()
-		elif event.index == _idx:
+		elif t.index == _idx:
 			_active = false
 			_idx = -1
 			Controls.move = Vector2.ZERO
 			queue_redraw()
-	elif event is InputEventScreenDrag and _active and event.index == _idx:
-		var off := event.position - _origin
-		if off.length() > RADIUS:
-			off = off.normalized() * RADIUS
-		_knob = _origin + off
-		Controls.move = off / RADIUS
-		queue_redraw()
+	elif event is InputEventScreenDrag:
+		var d := event as InputEventScreenDrag
+		if _active and d.index == _idx:
+			var off: Vector2 = d.position - _origin
+			if off.length() > RADIUS:
+				off = off.normalized() * RADIUS
+			_knob = _origin + off
+			Controls.move = off / RADIUS
+			queue_redraw()
 
 func _draw() -> void:
 	if not _active:

@@ -2,7 +2,7 @@ extends Node3D
 ## M0 world builder: floor + obstacles + light + player + follow camera + touch HUD.
 ## Everything built in code to keep scene files trivial for hand-authoring/CI.
 
-var player: CharacterBody3D
+var player: PlayerBody
 var cam: Camera3D
 
 func _ready() -> void:
@@ -32,7 +32,8 @@ func _build_world() -> void:
 	add_child(we)
 
 	_add_box(Vector3(60, 1, 60), Vector3(0, -0.5, 0), Color(0.12, 0.14, 0.13))
-	for p in [Vector3(7, 1, 4), Vector3(-8, 1, -3), Vector3(3, 1, -9), Vector3(-5, 1, 8)]:
+	var spots: Array[Vector3] = [Vector3(7, 1, 4), Vector3(-8, 1, -3), Vector3(3, 1, -9), Vector3(-5, 1, 8)]
+	for p in spots:
 		_add_box(Vector3(2, 2, 2), p, Color(0.2, 0.22, 0.25))
 
 func _add_box(size: Vector3, pos: Vector3, c: Color) -> void:
@@ -54,7 +55,7 @@ func _add_box(size: Vector3, pos: Vector3, c: Color) -> void:
 	add_child(sb)
 
 func _build_player() -> void:
-	player = (preload("res://player.gd") as GDScript).new()
+	player = PlayerBody.new()
 	player.position = Vector3(0, 1.5, 0)
 	add_child(player)
 
@@ -76,7 +77,7 @@ func _build_hud() -> void:
 	var layer := CanvasLayer.new()
 	add_child(layer)
 
-	var joy := (preload("res://joystick.gd") as GDScript).new()
+	var joy := VJoystick.new()
 	joy.set_anchors_preset(Control.PRESET_FULL_RECT)
 	joy.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(joy)

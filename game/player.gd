@@ -1,3 +1,4 @@
+class_name PlayerBody
 extends CharacterBody3D
 ## M0 player: joystick-driven movement + jump on a CharacterBody3D.
 ## Built fully in code so the scene file stays trivial (safe to hand-author / CI).
@@ -43,14 +44,14 @@ func _build() -> void:
 	add_child(col)
 
 func _physics_process(delta: float) -> void:
-	var inp: Vector2 = Controls.move
+	var inp := Controls.move as Vector2
 	var dir := Vector3(inp.x, 0.0, inp.y)
 	if dir.length() > 1.0:
 		dir = dir.normalized()
 	velocity.x = dir.x * SPEED
 	velocity.z = dir.z * SPEED
 	if is_on_floor():
-		if Controls.consume_jump():
+		if bool(Controls.consume_jump()):
 			velocity.y = JUMP_VELOCITY
 	else:
 		velocity.y -= GRAVITY * delta

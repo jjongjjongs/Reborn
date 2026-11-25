@@ -21,10 +21,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configure signing + SDK (debug)
+        env:
+          HOME: /root
         run: |
           set -e
-          echo "ANDROID_HOME=${ANDROID_HOME:-<unset>}"
-          SDK="${ANDROID_HOME:-/root/.android-sdk}"
+          echo "ANDROID_HOME=${ANDROID_HOME:-<unset>}  JAVA_HOME=${JAVA_HOME:-<unset>}"
+          SDK="${ANDROID_HOME:-/usr/lib/android-sdk}"
+          JAVA="${JAVA_HOME:-$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")}"
+          echo "using SDK=$SDK  JAVA=$JAVA"
           mkdir -p /root/.config/godot
           if [ ! -f /root/debug.keystore ]; then
             keytool -keyalg RSA -genkeypair -alias androiddebugkey \
@@ -37,14 +41,19 @@ jobs:
           [gd_resource type="EditorSettings" format=3]
           [resource]
           export/android/android_sdk_path = "$SDK"
+          export/android/java_sdk_path = "$JAVA"
           export/android/debug_keystore = "/root/debug.keystore"
           export/android/debug_keystore_user = "androiddebugkey"
           export/android/debug_keystore_pass = "android"
           EOF
-          echo "--- installed export templates ---"
+          cp /root/.config/godot/editor_settings-4.tres /root/.config/godot/editor_settings-4.3.tres
+          echo "--- export templates under /root ---"
           ls -la /root/.local/share/godot/export_templates/ || true
+          ls -d /root/.local/share/godot/export_templates/*/ 2>/dev/null || true
 
       - name: Import + export APK
+        env:
+          HOME: /root
         run: |
           set -e
           cd game
