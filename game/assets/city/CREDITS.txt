@@ -1,0 +1,3 @@
+City pieces, cars and street props: Quaternius "Modular Downtown", "Street" and "Cars" packs
+(CC0 1.0, public domain) — https://quaternius.com
+Textures were deduplicated into tex/ and normal/ORM maps dropped to keep the APK small.
