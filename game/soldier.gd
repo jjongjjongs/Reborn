@@ -72,6 +72,11 @@ var _rs := Transform3D.IDENTITY
 var _ref_hips_y := 0.0
 var _hip_ratio := 1.0
 var _toes := PackedInt32Array()
+# 'ready' upper body: arms keep the weapon-up pose (from Pistol_Idle) while the legs
+# play walk/run/crouch, so the gun is never left floating at the hip
+@export var hold_ready := true
+var _arm_idx := PackedInt32Array()
+var _arm_rot: Array[Quaternion] = []
 var _ref_toe_y := 0.0
 var _aiming := false
 var _dead := false
@@ -117,6 +122,7 @@ func setup(team_color: Color, _gear: Color = Color.BLACK) -> void:
 			var ti := _tgt.find_bone(t)
 			if ti >= 0: _toes.append(ti)
 		_ref_toe_y = _min_toe_y()       # standing reference (SWAT rest)
+	_snapshot_ready_arms()
 	_build_gun()
 	if _tgt: _hand_idx = _tgt.find_bone("Hand.R")
 	if _ap: _ap.play("Idle"); _base = "Idle"
@@ -236,6 +242,10 @@ func _retarget() -> void:
 	# model-space (global) retarget: take the source bone's rotation relative to its
 	# own global rest, apply it onto the target's global rest, then convert back to a
 	# local pose using the (already-updated) parent. Handles A-pose vs T-pose rigs.
+	# arms in the weapon-ready pose unless a one-shot (shoot/throw/stab) or death owns them
+	if hold_ready and not _dead and _oneshot <= 0.0:
+		for k in _arm_idx.size():
+			_src.set_bone_pose_rotation(_arm_idx[k], _arm_rot[k])
 	var kt_inv := _kt.inverse()
 	for i in _tgt_idx.size():
 		var sc: Quaternion = _ks * _src.get_bone_global_pose(_src_idx[i]).basis.get_rotation_quaternion()
@@ -257,6 +267,17 @@ func _retarget() -> void:
 			var lift := _min_toe_y() - _ref_toe_y
 			if lift > 0.0:
 				_swat.position.y -= minf(lift, 0.2)
+
+func _snapshot_ready_arms() -> void:
+	if _ap == null or _src == null: return
+	_ap.play("Pistol_Idle"); _ap.seek(0.4, true)
+	for i in _src.get_bone_count():
+		var n := _src.get_bone_name(i)
+		if n.contains("shoulder") or n.contains("upper_arm") or n.contains("forearm") or n.contains("hand") \
+				or n.contains("f_") or n.contains("thumb"):
+			_arm_idx.append(i)
+			_arm_rot.append(_src.get_bone_pose_rotation(i))
+	_ap.play("Idle"); _ap.seek(0.0, true)
 
 func _min_toe_y() -> float:
 	var rt := _rel(_tgt)
