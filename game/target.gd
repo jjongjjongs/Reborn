@@ -18,7 +18,7 @@ func _ready() -> void:
 	col.shape = bs; col.position = Vector3(0, 0.8, 0)
 	add_child(col)
 
-func hit(_dmg: int, _is_head: bool) -> void:
+func hit(_dmg: int, _is_head: bool = false, _attacker = null) -> void:
 	Controls.hits += 1
 	_flash = 1.0
 

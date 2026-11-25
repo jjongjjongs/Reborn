@@ -86,7 +86,7 @@ func _physics_process(delta: float) -> void:
 		velocity.y -= GRAVITY * delta
 	move_and_slide()
 
-func hit(dmg: int, is_head: bool) -> void:
+func hit(dmg: int, is_head: bool = false, _attacker = null) -> void:
 	if _dead:
 		return
 	_last_head = is_head

@@ -68,6 +68,7 @@ func _add_box(parent: Node, size: Vector3, pos: Vector3, c: Color) -> void:
 func _build_player() -> void:
 	player = PlayerBody.new()
 	player.position = Vector3(0, 1.5, 0)
+	player.died.connect(func(_a): Controls.end_run(false))
 	add_child(player)
 
 func _build_camera() -> void:

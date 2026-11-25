@@ -11,6 +11,7 @@ var _title: Label
 var _stats: Label
 var _best: Label
 var _btn: Button
+var _menu_btn: Button
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -31,6 +32,14 @@ func _ready() -> void:
 	_btn.process_mode = Node.PROCESS_MODE_ALWAYS
 	_btn.pressed.connect(_restart)
 	add_child(_btn)
+
+	_menu_btn = Button.new()
+	_menu_btn.text = "메뉴"
+	_menu_btn.add_theme_font_size_override("font_size", 26)
+	_menu_btn.process_mode = Node.PROCESS_MODE_ALWAYS
+	_menu_btn.pressed.connect(func() -> void:
+		Controls.reset(); get_tree().paused = false; get_tree().change_scene_to_file("res://Menu.tscn"))
+	add_child(_menu_btn)
 
 	visible = false
 	_relayout()
@@ -53,8 +62,10 @@ func _relayout() -> void:
 	_title.position = Vector2(x, y + 36); _title.size = Vector2(PANEL_W, 60)
 	_stats.position = Vector2(x, y + 140); _stats.size = Vector2(PANEL_W, 200)
 	_best.position = Vector2(x, y + 350); _best.size = Vector2(PANEL_W, 80)
-	_btn.position = Vector2(x + PANEL_W * 0.5 - 150, y + PANEL_H - 96)
-	_btn.size = Vector2(300, 72)
+	_btn.position = Vector2(x + PANEL_W * 0.5 - 150, y + PANEL_H - 150)
+	_btn.size = Vector2(300, 66)
+	_menu_btn.position = Vector2(x + PANEL_W * 0.5 - 120, y + PANEL_H - 72)
+	_menu_btn.size = Vector2(240, 54)
 
 func _fmt_time(t: float) -> String:
 	var s := int(t)

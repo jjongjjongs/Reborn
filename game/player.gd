@@ -21,6 +21,9 @@ const HEAD_MULT := 2.5
 const CRIT_CHANCE := 0.08
 const CRIT_MULT := 1.8
 
+signal died(attacker)
+
+var alive := true
 var _spawn := Vector3.ZERO
 
 var aim_yaw := 0.0     # degrees
@@ -31,16 +34,27 @@ var _reload_t := 0.0
 var _muzzle: Node3D
 
 func _ready() -> void:
+	add_to_group("combatant")
 	_build()
 	_spawn = global_position
 	Controls.hp = Controls.hp_max
 
-func take_damage(dmg: int) -> void:
-	if Controls.game_over:
+func hit(dmg: int, _is_head: bool = false, attacker = null) -> void:
+	if not alive:
 		return
 	Controls.hp = maxi(0, Controls.hp - dmg)
 	if Controls.hp <= 0:
-		Controls.end_run(false)
+		alive = false
+		died.emit(attacker)
+
+func take_damage(dmg: int) -> void:   # melee convenience (zombies)
+	hit(dmg, false, null)
+
+func respawn_at(pos: Vector3) -> void:
+	alive = true
+	Controls.hp = Controls.hp_max
+	global_position = pos
+	velocity = Vector3.ZERO
 
 func _build() -> void:
 	var body := MeshInstance3D.new()
@@ -64,6 +78,8 @@ func _build() -> void:
 	add_child(col)
 
 func _physics_process(delta: float) -> void:
+	if not alive:
+		return
 	# look
 	var l := Controls.consume_look()
 	aim_yaw -= l.x
@@ -144,7 +160,7 @@ func _shoot() -> void:
 			if randf() < CRIT_CHANCE:
 				dmg = int(dmg * CRIT_MULT)
 			dmg = int(dmg * Controls.dmg_mult)
-			col.hit(dmg, is_head)
+			col.hit(dmg, is_head, self)
 	_tracer(_muzzle.global_position, end)
 	_muzzle_flash()
 
