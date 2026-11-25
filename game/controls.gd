@@ -13,6 +13,9 @@ var ammo: int = 30
 var ammo_max: int = 30
 var reloading: bool = false
 var hits: int = 0
+var kills: int = 0
+var hp: int = 100
+var hp_max: int = 100
 
 func request_jump() -> void:
 	_jump = true

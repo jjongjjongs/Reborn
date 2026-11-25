@@ -1,16 +1,22 @@
 extends Node3D
-## M1 world: floor + cover + targets + player + aim-follow camera + touch HUD.
+## M2 world: NavMesh-baked arena, zombies (chase + attack), player HP, HUD.
 
 var player: PlayerBody
 var cam: Camera3D
 var _ammo_lbl: Label
-var _hit_lbl: Label
+var _kill_lbl: Label
+var _hp_fill: ColorRect
+const HP_W := 360.0
 
 func _ready() -> void:
 	_build_world()
 	_build_player()
 	_build_camera()
 	_build_hud()
+	# let the NavigationServer sync the freshly-baked map before agents query it
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	_spawn_zombies()
 
 func _build_world() -> void:
 	var sun := DirectionalLight3D.new()
@@ -32,16 +38,25 @@ func _build_world() -> void:
 	we.environment = env
 	add_child(we)
 
-	_add_box(Vector3(70, 1, 70), Vector3(0, -0.5, 0), Color(0.12, 0.14, 0.13))
+	# nav region holds the walkable geometry so it bakes into the navmesh
+	var nav := NavigationRegion3D.new()
+	add_child(nav)
+	_add_box(nav, Vector3(70, 1, 70), Vector3(0, -0.5, 0), Color(0.12, 0.14, 0.13))
 	for p in [Vector3(8, 1, 4), Vector3(-9, 1, -3), Vector3(4, 1, -10), Vector3(-6, 1, 9)]:
-		_add_box(Vector3(2, 2, 2), p, Color(0.2, 0.22, 0.25))
-	# targets
-	for p in [Vector3(6, 0, -12), Vector3(-4, 0, -14), Vector3(0, 0, -18), Vector3(11, 0, -16)]:
-		var t := Target.new()
-		t.position = p
-		add_child(t)
+		_add_box(nav, Vector3(2, 2, 2), p, Color(0.2, 0.22, 0.25))
+	var nm := NavigationMesh.new()
+	nm.cell_size = 0.25
+	nm.cell_height = 0.25
+	nm.agent_radius = 0.5
+	nm.agent_height = 1.8
+	nm.agent_max_climb = 0.4
+	nav.navigation_mesh = nm
+	nav.bake_navigation_mesh(false)
 
-func _add_box(size: Vector3, pos: Vector3, c: Color) -> void:
+	for p in [Vector3(6, 0, -13), Vector3(-5, 0, -15)]:
+		var t := Target.new(); t.position = p; add_child(t)
+
+func _add_box(parent: Node, size: Vector3, pos: Vector3, c: Color) -> void:
 	var sb := StaticBody3D.new()
 	var m := MeshInstance3D.new()
 	var bm := BoxMesh.new(); bm.size = size; m.mesh = bm
@@ -51,7 +66,7 @@ func _add_box(size: Vector3, pos: Vector3, c: Color) -> void:
 	var bs := BoxShape3D.new(); bs.size = size; col.shape = bs
 	sb.add_child(col)
 	sb.position = pos
-	add_child(sb)
+	parent.add_child(sb)
 
 func _build_player() -> void:
 	player = PlayerBody.new()
@@ -65,6 +80,14 @@ func _build_camera() -> void:
 	cam.position = Vector3(0, 2, 5)
 	add_child(cam)
 
+func _spawn_zombies() -> void:
+	for p in [Vector3(10, 0.1, -8), Vector3(-10, 0.1, -6), Vector3(14, 0.1, 2),
+			Vector3(-12, 0.1, 6), Vector3(0, 0.1, -20), Vector3(8, 0.1, -18)]:
+		var z := Zombie.new()
+		z.position = p
+		z.player = player
+		add_child(z)
+
 func _process(_dt: float) -> void:
 	if player:
 		var b := Basis.from_euler(Vector3(deg_to_rad(player.aim_pitch), deg_to_rad(player.aim_yaw), 0))
@@ -75,8 +98,10 @@ func _process(_dt: float) -> void:
 		cam.look_at(pivot + fwd * 12.0, Vector3.UP)
 	if _ammo_lbl:
 		_ammo_lbl.text = ("재장전…" if Controls.reloading else "%d / %d" % [Controls.ammo, Controls.ammo_max])
-	if _hit_lbl:
-		_hit_lbl.text = "명중 %d" % Controls.hits
+	if _kill_lbl:
+		_kill_lbl.text = "처치 %d" % Controls.kills
+	if _hp_fill:
+		_hp_fill.size.x = HP_W * float(Controls.hp) / float(Controls.hp_max)
 
 func _build_hud() -> void:
 	var layer := CanvasLayer.new()
@@ -92,13 +117,23 @@ func _build_hud() -> void:
 	cross.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(cross)
 
-	layer.add_child(_mk_label("리본 · M1 — 사격 테스트", 30, Vector2(28, 22)))
-	_hit_lbl = _mk_label("명중 0", 34, Vector2(28, 64))
-	_hit_lbl.add_theme_color_override("font_color", Color(1.0, 0.7, 0.35))
-	layer.add_child(_hit_lbl)
+	layer.add_child(_mk_label("리본 · M2 — 좀비", 28, Vector2(28, 20)))
+	_kill_lbl = _mk_label("처치 0", 34, Vector2(28, 58))
+	_kill_lbl.add_theme_color_override("font_color", Color(1.0, 0.7, 0.35))
+	layer.add_child(_kill_lbl)
 
-	# (fire / jump / reload are drawn + handled by TouchInput for true multi-touch)
-	# ammo label (above-left of fire)
+	# HP bar
+	var hp_bg := ColorRect.new()
+	hp_bg.color = Color(0, 0, 0, 0.55)
+	hp_bg.position = Vector2(28, 104); hp_bg.size = Vector2(HP_W, 26)
+	hp_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(hp_bg)
+	_hp_fill = ColorRect.new()
+	_hp_fill.color = Color(0.88, 0.30, 0.25)
+	_hp_fill.position = Vector2(28, 104); _hp_fill.size = Vector2(HP_W, 26)
+	_hp_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(_hp_fill)
+
 	_ammo_lbl = _mk_label("30 / 30", 36, Vector2.ZERO)
 	_ammo_lbl.anchor_left = 1.0; _ammo_lbl.anchor_right = 1.0
 	_ammo_lbl.offset_left = -470; _ammo_lbl.offset_top = -330; _ammo_lbl.offset_right = -270

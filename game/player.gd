@@ -15,6 +15,13 @@ const SPREAD_MIN := 0.8
 const SPREAD_MAX := 7.0
 const BLOOM_PER_SHOT := 0.55
 const BLOOM_RECOVER := 7.0   # deg/sec
+const DMG_MIN := 18
+const DMG_MAX := 26
+const HEAD_MULT := 2.5
+const CRIT_CHANCE := 0.08
+const CRIT_MULT := 1.8
+
+var _spawn := Vector3.ZERO
 
 var aim_yaw := 0.0     # degrees
 var aim_pitch := 0.0   # degrees (camera only)
@@ -25,6 +32,18 @@ var _muzzle: Node3D
 
 func _ready() -> void:
 	_build()
+	_spawn = global_position
+	Controls.hp = Controls.hp_max
+
+func take_damage(dmg: int) -> void:
+	Controls.hp = maxi(0, Controls.hp - dmg)
+	if Controls.hp <= 0:
+		_respawn()
+
+func _respawn() -> void:
+	Controls.hp = Controls.hp_max
+	global_position = _spawn
+	velocity = Vector3.ZERO
 
 func _build() -> void:
 	var body := MeshInstance3D.new()
@@ -120,8 +139,14 @@ func _shoot() -> void:
 		end = hit.position
 		_impact(hit.position)
 		var col = hit.collider
-		if col and col.has_method("on_hit"):
-			col.on_hit()
+		if col and col.has_method("hit"):
+			var is_head: bool = hit.position.y > (col.global_position.y + 1.3)
+			var dmg := randi_range(DMG_MIN, DMG_MAX)
+			if is_head:
+				dmg = int(dmg * HEAD_MULT)
+			if randf() < CRIT_CHANCE:
+				dmg = int(dmg * CRIT_MULT)
+			col.hit(dmg, is_head)
 	_tracer(_muzzle.global_position, end)
 	_muzzle_flash()
 
