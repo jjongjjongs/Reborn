@@ -251,11 +251,41 @@ static void send_raw(int fd, const char *body) {
     write(fd, body, n);
 }
 
-// M_CONFIG_DATA as a bare JSON object with every top-level field present, so
-// M_CONFIG_DATA.Deserialize's dict["KEY"] lookups don't throw KeyNotFound (an
-// empty {} throws, which the game's catch block mis-reports as "update
-// required" -> the download-page popup).
-#define REBORN_CONFIG_JSON "{}"
+// M_CONFIG_DATA (field-name reflection deserialize). Empty {} deserializes but
+// leaves MARKET_URL/SERVER_STATUS_1 null, so Manager.<Initialize>m__1's version/
+// maintenance gate rejects it -> "update" popup (not a throw). We supply the
+// fields that gate actually dereferences:
+//   MARKET_URL[KEY==0 (KG)].VER=347  -> IsClientUpdate(347): 347>347 == false
+//   MARKET_URL[KEY==0].BLOCKVER=0    -> IsReadyForUpdate: 0==347 == false
+//   SERVER_STATUS_1.SERVER_STATUS=0  -> IsServerMaintenance: 0==1 == false
+// Nested sub-configs (SD_CONFIG, CLASS_GAME_CONFIG, ...) are omitted so they
+// stay null (reflection skips absent keys; it never throws on a missing key).
+// Server endpoints point at our localhost; realtime TCP (chat/battle) is a
+// later milestone, login->lobby is HTTP via this server.
+#define REBORN_CONFIG_JSON \
+    "{" \
+      "\"TIME\":1700000000," \
+      "\"SERVER_STATUS_1\":{\"SERVER_STATUS\":0,\"SERVER_STATUS_TEXT\":\"\",\"SERVER_STATUS_URL\":\"\"}," \
+      "\"SERVER_STATUS\":[]," \
+      "\"MARKET_URL\":[{\"KEY\":0,\"ADR\":\"\",\"VER\":347,\"TVER\":347,\"CS\":0,\"TXT\":\"\",\"BLOCKVER\":0,\"PASSVER\":0,\"PASSSERVER\":\"\"}]," \
+      "\"GAME_SERVER\":\"127.0.0.1\"," \
+      "\"CHAT_SERVER\":[\"127.0.0.1\",\"20000\"]," \
+      "\"BATTLE_SERVER\":[[\"0\",\"127.0.0.1\",\"20001\"]]," \
+      "\"SERVER_ENDPOINT\":{\"CHAT\":[{\"host\":\"127.0.0.1\",\"port\":\"20000\"}],\"BATTLE\":[{\"host\":\"127.0.0.1\",\"port\":\"20001\"}],\"B2\":[]}," \
+      "\"HELP_URL\":\"\"," \
+      "\"MD5_SEED\":\"\"," \
+      "\"NEWBIE_EXP\":0," \
+      "\"ROOT_CHECK\":false," \
+      "\"ROOT_APP\":false," \
+      "\"INVENTORY_MAXSIZE\":500," \
+      "\"FRIEND_MAXSIZE\":100," \
+      "\"MBOX_LIST_MAXSIZE\":100," \
+      "\"CLAN_BOARD_MAXSIZE\":100," \
+      "\"CLAN_LOG_MAXSIZE\":100," \
+      "\"PENALTY_TIME\":0," \
+      "\"REFRESH_ROOM\":5.0," \
+      "\"PARTY_SYSTEM\":0" \
+    "}"
 
 // Route one protocol to its response. Returns via send_envelope.
 static void handle(int fd, const char *proto, const char *env) {
