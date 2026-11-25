@@ -32,8 +32,7 @@ var tint := Color(0.80, 0.32, 0.30)
 
 var _agent: NavigationAgent3D
 var _muzzle: Node3D
-var _mat: StandardMaterial3D
-var _flash := 0.0
+var _soldier: Soldier
 var _warmup := 0.6
 var _target: Node3D
 var _retarget_cd := 0.0
@@ -43,9 +42,11 @@ var _burst_cd := 0.0
 
 func _ready() -> void:
 	add_to_group("combatant")
-	var rig := ActorBuild.soldier(self, tint, tint.lightened(0.25))
-	_mat = rig["mat"]
-	_muzzle = rig["muzzle"]
+	_soldier = Soldier.new()
+	add_child(_soldier)
+	_soldier.setup(tint)
+	_muzzle = Node3D.new(); _muzzle.position = Vector3(0.22, 1.3, -0.5)
+	add_child(_muzzle)
 	var col := CollisionShape3D.new()
 	var cs := CapsuleShape3D.new(); cs.radius = 0.4; cs.height = 2.0
 	col.shape = cs; col.position = Vector3(0, 1.0, 0)
@@ -61,9 +62,9 @@ func hit(dmg: int, _is_head: bool = false, attacker = null) -> void:
 	if attacker != null and team != -1 and "team" in attacker and attacker.team == team:
 		return   # no friendly fire
 	hp -= dmg
-	_flash = 1.0
 	if hp <= 0.0:
 		alive = false
+		if _soldier: _soldier.set_dead(true)
 		for c in get_children():
 			if c is CollisionShape3D:
 				c.set_deferred("disabled", true)
@@ -75,6 +76,7 @@ func respawn_at(pos: Vector3) -> void:
 	alive = true
 	invuln_t = INVULN
 	hp = MAX_HP
+	if _soldier: _soldier.set_dead(false)
 	global_position = pos
 	velocity = Vector3.ZERO
 	visible = true
@@ -94,9 +96,6 @@ func _physics_process(delta: float) -> void:
 		if invuln_t <= 0.0:
 			visible = true
 	_warmup = maxf(0.0, _warmup - delta)
-	if _flash > 0.0:
-		_flash = maxf(0.0, _flash - delta * 5.0)
-		_mat.albedo_color = tint.lerp(Color(1, 0.9, 0.5), _flash)
 
 	_retarget_cd -= delta
 	if _retarget_cd <= 0.0:
@@ -127,6 +126,10 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y -= GRAVITY * delta
 	move_and_slide()
+
+	if _soldier:
+		var hs := Vector2(velocity.x, velocity.z).length()
+		_soldier.drive(hs / SPEED, _target != null and _alive_of(_target))
 
 func _move_to(dest: Vector3, to_flat: Vector3) -> void:
 	_agent.target_position = dest
@@ -185,6 +188,7 @@ func _fire_one() -> void:
 		return
 	var from := _muzzle.global_position
 	Sfx.play_at("shot", from, -4.0)
+	if _soldier: _soldier.shoot()
 	var aim := (_target.global_position + Vector3(0, 1.1, 0)) - from
 	var dir := aim.normalized()
 	var s := deg_to_rad(SPREAD)

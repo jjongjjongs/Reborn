@@ -36,6 +36,7 @@ var _bloom := 0.0
 var _fire_cd := 0.0
 var _reload_t := 0.0
 var _muzzle: Node3D
+var _soldier: Soldier
 
 func _ready() -> void:
 	add_to_group("combatant")
@@ -53,6 +54,7 @@ func hit(dmg: int, _is_head: bool = false, attacker = null) -> void:
 	Sfx.play("hurt")
 	if Controls.hp <= 0:
 		alive = false
+		if _soldier: _soldier.set_dead(true)
 		Sfx.play("die")
 		died.emit(attacker)
 
@@ -66,10 +68,14 @@ func respawn_at(pos: Vector3) -> void:
 	global_position = pos
 	velocity = Vector3.ZERO
 	visible = true
+	if _soldier: _soldier.set_dead(false)
 
 func _build() -> void:
-	var rig := ActorBuild.soldier(self, Color(0.95, 0.62, 0.24), Color(0.20, 0.85, 1.0))
-	_muzzle = rig["muzzle"]
+	_soldier = Soldier.new()
+	add_child(_soldier)
+	_soldier.setup(Color(0.95, 0.62, 0.24))
+	_muzzle = Node3D.new(); _muzzle.position = Vector3(0.22, 1.3, -0.5)
+	add_child(_muzzle)
 	var col := CollisionShape3D.new()
 	var shape := CapsuleShape3D.new(); shape.radius = 0.4; shape.height = 1.8
 	col.shape = shape; col.position = Vector3(0, 0.9, 0)
@@ -129,6 +135,12 @@ func _physics_process(delta: float) -> void:
 	_bloom = maxf(0.0, _bloom - BLOOM_RECOVER * delta)
 	Controls.spread_deg = clampf(SPREAD_MIN + (2.0 if moving else 0.0) + _bloom, SPREAD_MIN, SPREAD_MAX)
 
+	# animation
+	if _soldier:
+		var hspeed := Vector2(velocity.x, velocity.z).length()
+		var ratio := hspeed / (SPEED * maxf(0.1, Controls.speed_mult))
+		_soldier.drive(ratio, Controls.fire_held or _reload_t > 0.0)
+
 func _start_reload() -> void:
 	_reload_t = RELOAD_TIME * Controls.reload_mult
 	Controls.reloading = true
@@ -137,6 +149,7 @@ func _start_reload() -> void:
 func _shoot() -> void:
 	Controls.ammo -= 1
 	Sfx.play("shot", -3.0)
+	if _soldier: _soldier.shoot()
 	_bloom = minf(_bloom + BLOOM_PER_SHOT, SPREAD_MAX)
 	var cam := get_viewport().get_camera_3d()
 	if cam == null:
