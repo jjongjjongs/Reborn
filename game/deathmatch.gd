@@ -124,9 +124,10 @@ func _process(dt: float) -> void:
 	if player:
 		var bb := Basis.from_euler(Vector3(deg_to_rad(player.aim_pitch), deg_to_rad(player.aim_yaw), 0))
 		var fwd := -bb.z
-		var pivot := player.global_position + Vector3(0, 1.4, 0)
+		var pivot := player.global_position + Vector3(0, player.eye_h, 0)
 		cam.global_position = cam.global_position.lerp(pivot - fwd * 4.0 + bb.x * 0.7 + Vector3(0, 0.3, 0), 0.35)
 		cam.look_at(pivot + fwd * 12.0, Vector3.UP)
+		cam.global_position += Controls.shake_offset()
 	# respawn countdown overlay
 	if _respawn_lbl:
 		var dead: bool = player != null and not player.alive and not _over
@@ -173,7 +174,7 @@ func _build_hud() -> void:
 	_score_lbl.text = "나 0"; _score_lbl.add_theme_font_size_override("font_size", 32)
 	_score_lbl.add_theme_color_override("font_color", Color(1.0, 0.8, 0.35))
 	_score_lbl.anchor_left = 1.0; _score_lbl.anchor_right = 1.0
-	_score_lbl.offset_left = -240; _score_lbl.offset_top = 22
+	_score_lbl.offset_left = -340; _score_lbl.offset_right = -104; _score_lbl.offset_top = 22   # left of pause
 	_score_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	layer.add_child(_score_lbl)
 

@@ -37,6 +37,15 @@ var _fire_cd := 0.0
 var _reload_t := 0.0
 var _muzzle: Node3D
 var _soldier: Soldier
+var _col: CollisionShape3D
+var _shape: CapsuleShape3D
+var crouched := false
+var eye_h := 1.4          # camera pivot height (modes read this)
+var aim_h := 1.1          # where bots aim (chest)
+var _aim: GrenadeAim
+const CROUCH_SPEED := 0.5
+const CROUCH_SPREAD := 0.6
+const THROW_UP_DEG := 14.0
 
 func _ready() -> void:
 	add_to_group("combatant")
@@ -55,6 +64,7 @@ func hit(dmg: int, _is_head: bool = false, attacker = null) -> void:
 	Controls.vibrate(120)
 	if Controls.hp <= 0:
 		alive = false
+		_cancel_nade()
 		if _soldier: _soldier.set_dead(true)
 		Sfx.play("die")
 		died.emit(attacker)
@@ -69,6 +79,8 @@ func respawn_at(pos: Vector3) -> void:
 	global_position = pos
 	velocity = Vector3.ZERO
 	visible = true
+	Controls.grenades = Controls.NADE_MAX
+	_set_crouch(false)
 	if _soldier: _soldier.set_dead(false)
 
 func _build() -> void:
@@ -77,10 +89,34 @@ func _build() -> void:
 	_soldier.setup(Color(0.95, 0.62, 0.24))
 	_muzzle = Node3D.new(); _muzzle.position = Vector3(0.22, 1.3, -0.5)
 	add_child(_muzzle)
-	var col := CollisionShape3D.new()
-	var shape := CapsuleShape3D.new(); shape.radius = 0.4; shape.height = 1.8
-	col.shape = shape; col.position = Vector3(0, 0.9, 0)
-	add_child(col)
+	_col = CollisionShape3D.new()
+	_shape = CapsuleShape3D.new(); _shape.radius = 0.4; _shape.height = 1.8
+	_col.shape = _shape; _col.position = Vector3(0, 0.9, 0)
+	add_child(_col)
+	_aim = GrenadeAim.new()
+	add_child(_aim)
+
+func _set_crouch(c: bool) -> void:
+	crouched = c
+	Controls.crouched = c
+	# lower hitbox while crouched (cover actually hides you)
+	_shape.height = 1.2 if c else 1.8
+	_col.position = Vector3(0, 0.6 if c else 0.9, 0)
+	aim_h = 0.75 if c else 1.1
+	if _soldier: _soldier.set_crouch(c)
+
+func _cancel_nade() -> void:
+	Controls.nade_aiming = false
+	Controls.consume_throw()
+	if _aim: _aim.visible = false
+	if _soldier: _soldier.windup(false)
+
+func _throw_origin_vel() -> Array:
+	var b := Basis.from_euler(Vector3(deg_to_rad(aim_pitch + THROW_UP_DEG), deg_to_rad(aim_yaw), 0))
+	var dir := -b.z
+	var origin := global_position + Vector3(0, 1.55 if not crouched else 1.05, 0) \
+		+ global_transform.basis.x * 0.25 + dir * 0.35
+	return [origin, dir * Grenade.SPEED]
 
 func _physics_process(delta: float) -> void:
 	if not alive:
@@ -104,11 +140,15 @@ func _physics_process(delta: float) -> void:
 	dir.y = 0.0
 	if dir.length() > 1.0:
 		dir = dir.normalized()
-	velocity.x = dir.x * SPEED * Controls.speed_mult
-	velocity.z = dir.z * SPEED * Controls.speed_mult
+	var spd := SPEED * Controls.speed_mult * (CROUCH_SPEED if crouched else 1.0)
+	velocity.x = dir.x * spd
+	velocity.z = dir.z * spd
+	if Controls.consume_crouch():
+		_set_crouch(not crouched)
 	if is_on_floor():
 		if Controls.consume_jump():
-			velocity.y = JUMP_VELOCITY
+			if crouched: _set_crouch(false)     # jump while crouched = stand up
+			else: velocity.y = JUMP_VELOCITY
 	else:
 		velocity.y -= GRAVITY * delta
 	move_and_slide()
@@ -122,9 +162,29 @@ func _physics_process(delta: float) -> void:
 	elif Controls.consume_reload() and Controls.ammo < Controls.ammo_max:
 		_start_reload()
 
-	# fire
+	# grenade: hold = aim + trajectory preview, release = throw
+	eye_h = lerpf(eye_h, 1.0 if crouched else 1.4, minf(1.0, delta * 10.0))
+	var nade_aim := Controls.nade_aiming and Controls.grenades > 0
+	if nade_aim:
+		var ov: Array = _throw_origin_vel()
+		var sim := Grenade.simulate(get_world_3d().direct_space_state, ov[0], ov[1], [get_rid()])
+		_aim.show_path(sim["points"], sim["hit"], sim["landed"], Controls.nade_over_cancel)
+		_soldier.windup(true)
+	else:
+		_aim.visible = false
+		_soldier.windup(false)
+	if Controls.consume_throw() and Controls.grenades > 0:
+		var ov2: Array = _throw_origin_vel()
+		Grenade.spawn(get_tree().current_scene, ov2[0], ov2[1], self)
+		Controls.grenades -= 1
+		Controls.nade_aiming = false
+		_aim.visible = false
+		_soldier.throw()
+		Sfx.play("throw")
+
+	# fire (not while holding a grenade)
 	_fire_cd = maxf(0.0, _fire_cd - delta)
-	if Controls.fire_held and _fire_cd <= 0.0 and _reload_t <= 0.0:
+	if Controls.fire_held and not nade_aim and _fire_cd <= 0.0 and _reload_t <= 0.0:
 		if Controls.ammo > 0:
 			_shoot()
 			_fire_cd = FIRE_INTERVAL
@@ -134,12 +194,14 @@ func _physics_process(delta: float) -> void:
 	# dynamic spread
 	var moving := inp.length() > 0.1
 	_bloom = maxf(0.0, _bloom - BLOOM_RECOVER * delta)
-	Controls.spread_deg = clampf(SPREAD_MIN + (2.0 if moving else 0.0) + _bloom, SPREAD_MIN, SPREAD_MAX)
+	var sp := SPREAD_MIN + (2.0 if moving else 0.0) + _bloom
+	if crouched: sp *= CROUCH_SPREAD
+	Controls.spread_deg = clampf(sp, SPREAD_MIN * (CROUCH_SPREAD if crouched else 1.0), SPREAD_MAX)
 
 	# animation
 	if _soldier:
 		var hspeed := Vector2(velocity.x, velocity.z).length()
-		var ratio := hspeed / (SPEED * maxf(0.1, Controls.speed_mult))
+		var ratio := hspeed / (SPEED * maxf(0.1, Controls.speed_mult) * (CROUCH_SPEED if crouched else 1.0))
 		_soldier.drive(ratio, Controls.fire_held or _reload_t > 0.0)
 
 func _start_reload() -> void:

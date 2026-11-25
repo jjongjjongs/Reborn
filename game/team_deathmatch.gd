@@ -98,9 +98,10 @@ func _process(dt: float) -> void:
 	if player:
 		var bb := Basis.from_euler(Vector3(deg_to_rad(player.aim_pitch), deg_to_rad(player.aim_yaw), 0))
 		var fwd := -bb.z
-		var pivot := player.global_position + Vector3(0, 1.4, 0)
+		var pivot := player.global_position + Vector3(0, player.eye_h, 0)
 		cam.global_position = cam.global_position.lerp(pivot - fwd * 4.0 + bb.x * 0.7 + Vector3(0, 0.3, 0), 0.35)
 		cam.look_at(pivot + fwd * 12.0, Vector3.UP)
+		cam.global_position += Controls.shake_offset()
 	if _hp_fill:
 		_hp_fill.size.x = 360.0 * float(Controls.hp) / float(Controls.hp_max)
 	if _top_lbl and not _over:

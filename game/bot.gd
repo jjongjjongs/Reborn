@@ -39,6 +39,14 @@ var _retarget_cd := 0.0
 var _burst := 0
 var _shot_cd := 0.0
 var _burst_cd := 0.0
+# grenades: lob one at a mid-range target (more likely when it's behind cover)
+const NADE_MIN := 7.0
+const NADE_MAX_D := 22.0
+const NADE_SPREAD := 1.4      # landing error (m)
+var nades := 2
+var _nade_cd := randf_range(8.0, 14.0)
+var _windup_t := -1.0
+var _nade_to := Vector3.ZERO
 
 func _ready() -> void:
 	add_to_group("combatant")
@@ -64,7 +72,8 @@ func hit(dmg: int, _is_head: bool = false, attacker = null) -> void:
 	hp -= dmg
 	if hp <= 0.0:
 		alive = false
-		if _soldier: _soldier.set_dead(true)
+		_windup_t = -1.0
+		if _soldier: _soldier.windup(false); _soldier.set_dead(true)
 		for c in get_children():
 			if c is CollisionShape3D:
 				c.set_deferred("disabled", true)
@@ -83,6 +92,10 @@ func respawn_at(pos: Vector3) -> void:
 	_target = null
 	_burst = 0
 	_warmup = 0.4
+	nades = 2
+	_nade_cd = randf_range(8.0, 14.0)
+	_windup_t = -1.0
+	if _soldier: _soldier.windup(false)
 	for c in get_children():
 		if c is CollisionShape3D:
 			c.set_deferred("disabled", false)
@@ -108,7 +121,23 @@ func _physics_process(delta: float) -> void:
 		var dist := to.length()
 		if to.length() > 0.1:
 			look_at(global_position + Vector3(to.x, 0, to.z), Vector3.UP)
-		if _warmup <= 0.0:
+		_nade_cd -= delta
+		if _windup_t >= 0.0:
+			# arm cocked back: hold still briefly, then release
+			velocity.x = 0.0; velocity.z = 0.0
+			_windup_t -= delta
+			if _windup_t < 0.0:
+				_throw_nade()
+		elif _warmup <= 0.0 and nades > 0 and _nade_cd <= 0.0 and dist >= NADE_MIN and dist <= NADE_MAX_D:
+			_nade_cd = randf_range(12.0, 20.0)
+			var chance := 0.6 if not _has_los() else 0.2
+			if randf() < chance:
+				_nade_to = _target.global_position + Vector3(randf_range(-NADE_SPREAD, NADE_SPREAD), 0, randf_range(-NADE_SPREAD, NADE_SPREAD))
+				_windup_t = 0.45
+				if _soldier: _soldier.windup(true)
+		if _windup_t >= 0.0:
+			pass
+		elif _warmup <= 0.0:
 			if dist > COMBAT_DIST:
 				_move_to(_target.global_position, to)
 			elif dist < MIN_DIST:
@@ -159,11 +188,24 @@ func _find_nearest() -> Node3D:
 			bd = d; best = c
 	return best
 
+func _throw_nade() -> void:
+	if not alive or nades <= 0:
+		if _soldier: _soldier.windup(false)
+		return
+	var origin := global_position + Vector3(0, 1.55, 0) + global_transform.basis.x * 0.25
+	Grenade.spawn(get_tree().current_scene, origin, Grenade.lob_velocity(origin, _nade_to), self)
+	nades -= 1
+	if _soldier: _soldier.throw()
+	Sfx.play_at("throw", origin)
+
+func _aim_h(n: Node) -> float:
+	return float(n.aim_h) if "aim_h" in n else 1.1
+
 func _has_los() -> bool:
 	if _target == null:
 		return false
 	var from := global_position + Vector3(0, 1.4, 0)
-	var to := _target.global_position + Vector3(0, 1.3, 0)
+	var to := _target.global_position + Vector3(0, _aim_h(_target) + 0.2, 0)
 	var q := PhysicsRayQueryParameters3D.create(from, to)
 	q.exclude = [self]
 	var hit := get_world_3d().direct_space_state.intersect_ray(q)
@@ -189,7 +231,7 @@ func _fire_one() -> void:
 	var from := _muzzle.global_position
 	Sfx.play_at("shot", from, -4.0)
 	if _soldier: _soldier.shoot()
-	var aim := (_target.global_position + Vector3(0, 1.1, 0)) - from
+	var aim := (_target.global_position + Vector3(0, _aim_h(_target), 0)) - from
 	var dir := aim.normalized()
 	var s := deg_to_rad(SPREAD)
 	dir = dir.rotated(Vector3.UP, randf_range(-s, s))

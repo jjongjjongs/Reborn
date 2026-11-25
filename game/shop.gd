@@ -10,10 +10,12 @@ const UPG := [
 	{"id": "spd", "name": "이동속도", "effect": "이동 +5% / 레벨", "base": 50, "mul": 1.5, "max": 6},
 	{"id": "hp", "name": "최대체력", "effect": "HP +25 / 레벨", "base": 70, "mul": 1.5, "max": 8},
 	{"id": "wp", "name": "무기레벨", "effect": "탄창 +2 · 재장전 -5%", "base": 80, "mul": 1.6, "max": 5},
+	{"id": "nade", "name": "수류탄", "effect": "수류탄 +1 (최대 5개)", "base": 40, "mul": 1.0, "max": -1},
 	{"id": "heal", "name": "긴급 치료", "effect": "HP 즉시 +50%", "base": 100, "mul": 1.0, "max": -1},
 ]
+const NADE_CAP := 5
 const PANEL_W := 760.0
-const PANEL_H := 572.0
+const PANEL_H := 604.0
 const PREP_MAX := 9.0
 
 const C_ACCENT := Color(1.0, 0.48, 0.10)
@@ -36,7 +38,7 @@ func _ready() -> void:
 	_panel.add_theme_stylebox_override("panel", _sb(C_PANEL, C_LINE, 1, 18, 18))
 	_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(_panel)
-	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 9)
+	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 7)
 	_panel.add_child(v)
 
 	# header: title + points pill
@@ -82,16 +84,16 @@ func _ready() -> void:
 func _card(upg: Dictionary) -> Control:
 	var heal: bool = upg["id"] == "heal"
 	var card := PanelContainer.new()
-	card.add_theme_stylebox_override("panel", _sb(C_CARD, C_LINE, 1, 12, 8))
+	card.add_theme_stylebox_override("panel", _sb(C_CARD, C_LINE, 1, 12, 6))
 	var h := HBoxContainer.new(); h.add_theme_constant_override("separation", 14)
 	card.add_child(h)
 
 	var ib := PanelContainer.new()
 	ib.add_theme_stylebox_override("panel", _sb(Color(0.05, 0.07, 0.09), C_LINE, 1, 9, 0))
-	ib.custom_minimum_size = Vector2(52, 52)
+	ib.custom_minimum_size = Vector2(44, 44)
 	var icon := ModeIcon.new(); icon.kind = upg["id"]
 	icon.col = C_OK if heal else C_ACCENT
-	icon.custom_minimum_size = Vector2(52, 52)
+	icon.custom_minimum_size = Vector2(44, 44)
 	ib.add_child(icon)
 	h.add_child(ib)
 
@@ -99,7 +101,7 @@ func _card(upg: Dictionary) -> Control:
 	mid.add_theme_constant_override("separation", 2)
 	var top := HBoxContainer.new(); top.add_theme_constant_override("separation", 10)
 	var nm := Label.new(); nm.text = upg["name"]
-	nm.add_theme_font_size_override("font_size", 24); nm.add_theme_color_override("font_color", C_FG)
+	nm.add_theme_font_size_override("font_size", 22); nm.add_theme_color_override("font_color", C_FG)
 	top.add_child(nm)
 	var pips: Array = []
 	if not heal:
@@ -112,12 +114,12 @@ func _card(upg: Dictionary) -> Control:
 		top.add_child(ph)
 	mid.add_child(top)
 	var ef := Label.new(); ef.text = upg["effect"]
-	ef.add_theme_font_size_override("font_size", 18); ef.add_theme_color_override("font_color", C_DIM)
+	ef.add_theme_font_size_override("font_size", 16); ef.add_theme_color_override("font_color", C_DIM)
 	mid.add_child(ef)
 	h.add_child(mid)
 
 	var b := Button.new(); b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(150, 54)
+	b.custom_minimum_size = Vector2(150, 46)
 	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	b.add_theme_font_size_override("font_size", 24)
 	var bc := C_OK if heal else C_ACCENT
@@ -131,7 +133,7 @@ func _card(upg: Dictionary) -> Control:
 	b.add_theme_color_override("font_disabled_color", C_DIM)
 	b.pressed.connect(_buy.bind(upg))
 	h.add_child(b)
-	_rows.append({"btn": b, "upg": upg, "pips": pips})
+	_rows.append({"btn": b, "upg": upg, "pips": pips, "name": nm})
 	return card
 
 func _sb(bg: Color, border: Color, bw: int, rad: int, margin: int) -> StyleBoxFlat:
@@ -157,11 +159,13 @@ func _lv(id: String) -> int:
 	return 0
 
 func _cost(upg: Dictionary) -> int:
-	if upg["id"] == "heal":
+	if upg["id"] == "heal" or upg["id"] == "nade":
 		return int(upg["base"])
 	return int(float(upg["base"]) * pow(float(upg["mul"]), _lv(upg["id"])))
 
 func _maxed(upg: Dictionary) -> bool:
+	if upg["id"] == "nade":
+		return Controls.grenades >= NADE_CAP
 	var mx := int(upg["max"])
 	return mx >= 0 and _lv(upg["id"]) >= mx
 
@@ -178,6 +182,7 @@ func _buy(upg: Dictionary) -> void:
 		"spd": Controls.spd_lv += 1; Controls.speed_mult += 0.05
 		"hp": Controls.hp_lv += 1; Controls.hp_max += 25; Controls.hp += 25
 		"wp": Controls.wp_lv += 1; Controls.ammo_max += 2; Controls.reload_mult *= 0.95
+		"nade": Controls.grenades += 1
 		"heal": Controls.hp = mini(Controls.hp_max, Controls.hp + int(Controls.hp_max * 0.5))
 
 func _process(_dt: float) -> void:
@@ -200,6 +205,8 @@ func _process(_dt: float) -> void:
 		var pips: Array = r["pips"]
 		for i in pips.size():
 			(pips[i] as ColorRect).color = C_OK if i < lv else C_LINE
+		if upg["id"] == "nade":
+			r["name"].text = "수류탄  ×%d" % Controls.grenades
 		if _maxed(upg):
 			b.text = "최대"
 			b.disabled = true

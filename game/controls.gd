@@ -10,6 +10,15 @@ var fire_held: bool = false
 var _jump: bool = false
 var _reload: bool = false
 var spread_deg: float = 1.0
+var _crouch: bool = false
+var crouched: bool = false        # mirrors the player's stance (HUD label)
+# grenade: hold button = aiming, release = throw (or cancel over the ✕ zone)
+const NADE_MAX := 2
+var grenades: int = NADE_MAX
+var nade_aiming: bool = false
+var nade_over_cancel: bool = false
+var _nade_throw: bool = false
+var shake: float = 0.0            # camera shake amount (decays)
 
 # --- weapon / player ---
 var ammo: int = 30
@@ -72,11 +81,29 @@ func _ready() -> void:
 func _process(dt: float) -> void:
 	if not game_over:
 		run_time += dt
+	shake = maxf(0.0, shake - dt * 2.5)
 
 func request_jump() -> void: _jump = true
 func consume_jump() -> bool:
 	if _jump: _jump = false; return true
 	return false
+
+func request_crouch() -> void: _crouch = true
+func consume_crouch() -> bool:
+	if _crouch: _crouch = false; return true
+	return false
+
+func request_throw() -> void: _nade_throw = true
+func consume_throw() -> bool:
+	if _nade_throw: _nade_throw = false; return true
+	return false
+
+func add_shake(a: float) -> void:
+	shake = minf(1.0, shake + a)
+
+func shake_offset() -> Vector3:
+	if shake <= 0.001: return Vector3.ZERO
+	return Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * shake * 0.25
 
 func request_reload() -> void: _reload = true
 func consume_reload() -> bool:
@@ -106,6 +133,8 @@ func end_run(win: bool) -> void:
 func reset() -> void:
 	move = Vector2.ZERO; look = Vector2.ZERO; fire_held = false
 	_jump = false; _reload = false; spread_deg = 1.0
+	_crouch = false; crouched = false; grenades = NADE_MAX; nade_aiming = false
+	nade_over_cancel = false; _nade_throw = false; shake = 0.0
 	ammo = 30; ammo_max = 30; reloading = false
 	hp = 100; hp_max = 100
 	hits = 0; kills = 0; headshots = 0; points = 0; run_time = 0.0

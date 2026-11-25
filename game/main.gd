@@ -83,10 +83,11 @@ func _process(_dt: float) -> void:
 	if player:
 		var b := Basis.from_euler(Vector3(deg_to_rad(player.aim_pitch), deg_to_rad(player.aim_yaw), 0))
 		var fwd := -b.z
-		var pivot := player.global_position + Vector3(0, 1.4, 0)
+		var pivot := player.global_position + Vector3(0, player.eye_h, 0)
 		var want := pivot - fwd * 4.0 + b.x * 0.7 + Vector3(0, 0.3, 0)
 		cam.global_position = cam.global_position.lerp(want, 0.35)
 		cam.look_at(pivot + fwd * 12.0, Vector3.UP)
+		cam.global_position += Controls.shake_offset()
 	if _ammo_lbl:
 		_ammo_lbl.text = ("재장전…" if Controls.reloading else "%d / %d" % [Controls.ammo, Controls.ammo_max])
 	if _pts_lbl:

@@ -3,8 +3,9 @@ extends Control
 ## Edits fire/jump/reload (move stick stays dynamic). Saves fractions to
 ## Controls.hud_layout. Launched from Settings; returns to the menu.
 
-const BASE := {"fire": 100.0, "jump": 66.0, "reload": 66.0}
-const LABELS := {"fire": "사격", "jump": "점프", "reload": "장전"}
+const BASE := {"fire": 100.0, "jump": 66.0, "reload": 66.0, "crouch": 58.0, "nade": 58.0}
+const LABELS := {"fire": "사격", "jump": "점프", "reload": "장전", "crouch": "앉기", "nade": "수류탄"}
+const KEYS := ["fire", "jump", "reload", "crouch", "nade"]
 
 var _layout := {}          # key -> {x,y (frac 0..1), s (scale)}
 var _sel := "fire"
@@ -22,7 +23,7 @@ func _ready() -> void:
 
 func _init_layout() -> void:
 	var s := size
-	for key in ["fire", "jump", "reload"]:
+	for key in KEYS:
 		if Controls.hud_layout.has(key):
 			var d: Dictionary = Controls.hud_layout[key]
 			_layout[key] = {"x": float(d.get("x", 0.5)), "y": float(d.get("y", 0.5)), "s": float(d.get("s", 1.0))}
@@ -38,6 +39,8 @@ func _default_center(key: String, s: Vector2) -> Vector2:
 		"fire": return Vector2(fx, s.y - 160.0)
 		"jump": return Vector2(fx, s.y - 380.0)
 		"reload": return Vector2(rx, s.y - 160.0)
+		"crouch": return Vector2(330.0 if lh else s.x - 330.0, s.y - 330.0)
+		"nade": return Vector2(560.0 if lh else s.x - 560.0, s.y - 150.0)
 	return s * 0.5
 
 func _center(key: String) -> Vector2:
@@ -47,7 +50,7 @@ func _radius(key: String) -> float:
 	return BASE[key] * float(_layout[key]["s"])
 
 func _hit(pos: Vector2) -> String:
-	for key in ["fire", "jump", "reload"]:
+	for key in KEYS:
 		if pos.distance_to(_center(key)) <= _radius(key):
 			return key
 	return ""
@@ -108,7 +111,7 @@ func _draw() -> void:
 		draw_line(Vector2(0, y), Vector2(size.x, y), gc, 1.0)
 		y += step
 	# buttons
-	for key in ["reload", "jump", "fire"]:
+	for key in ["nade", "crouch", "reload", "jump", "fire"]:
 		var c := _center(key)
 		var r := _radius(key)
 		var tint := Color(1.0, 0.36, 0.22) if key == "fire" else Color(0.8, 0.85, 0.9)
@@ -116,7 +119,7 @@ func _draw() -> void:
 		draw_arc(c, r, 0.0, TAU, 48, tint, 3.0, true)
 		if key == _sel:
 			draw_arc(c, r + 7.0, 0.0, TAU, 48, Color(1.0, 0.61, 0.24), 2.5, true)
-		var fs := 30
+		var fs := 30 if BASE[key] > 60.0 else 24
 		var sz := _font.get_string_size(LABELS[key], HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
 		draw_string(_font, c - Vector2(sz.x * 0.5, -fs * 0.35), LABELS[key],
 			HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.95))

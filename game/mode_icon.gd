@@ -29,6 +29,7 @@ func _draw() -> void:
 		"hp": _heart()
 		"wp": _ammo()
 		"heal": _plus()
+		"nade": _nade()
 
 func _shield() -> void:
 	var pts := PackedVector2Array([
@@ -75,3 +76,9 @@ func _ammo() -> void:  # bullet
 func _plus() -> void:
 	draw_line(_p(12, 4), _p(12, 20), col, _w() * 1.3, true)
 	draw_line(_p(4, 12), _p(20, 12), col, _w() * 1.3, true)
+
+func _nade() -> void:  # grenade: round body, cap, lever, pin ring
+	draw_arc(_p(11, 15), minf(size.x, size.y) * 0.27, 0.0, TAU, 32, col, _w(), true)
+	draw_line(_p(9, 7), _p(14, 7), col, _w() * 1.2, true)
+	draw_polyline(PackedVector2Array([_p(14, 7), _p(19, 9), _p(19, 14)]), col, _w(), true)
+	draw_arc(_p(7, 5), minf(size.x, size.y) * 0.08, 0.0, TAU, 16, col, _w() * 0.8, true)

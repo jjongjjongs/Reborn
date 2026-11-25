@@ -60,6 +60,10 @@ var _align: Array[Quaternion] = []                 # rotates target rest bone di
 var _ks := Quaternion.IDENTITY                     # source skeleton rotation in soldier space
 var _kt := Quaternion.IDENTITY                     # target skeleton rotation in soldier space
 var _loco := 0.0
+var _crouch := false
+var _windup := false
+var _throw_t := 0.0
+var _nade: Node3D
 var _aiming := false
 var _dead := false
 var _oneshot := 0.0
@@ -159,6 +163,20 @@ func _depth(idx: int) -> int:
 func drive(loco_ratio: float, aiming: bool) -> void:
 	_loco = loco_ratio; _aiming = aiming
 
+func set_crouch(c: bool) -> void:
+	if c != _crouch:
+		_crouch = c; _base = "?"
+
+# grenade: hold = arm cocked back with a grenade in hand; throw = release motion
+func windup(on: bool) -> void:
+	_windup = on and not _dead
+
+func throw() -> void:
+	_windup = false
+	if _dead or _ap == null: return
+	_ap.play("Spell_Simple_Shoot", 0.05); _ap.seek(0.08, true)
+	_oneshot = 0.42; _throw_t = 0.42; _base = "?"
+
 func shoot() -> void:
 	if _dead or _ap == null: return
 	_ap.play("Pistol_Shoot", 0.03); _oneshot = 0.16; _base = "?"
@@ -172,13 +190,17 @@ func set_dead(d: bool) -> void:
 
 func _process(dt: float) -> void:
 	_retarget()
+	if _windup:
+		_apply_windup()
+	_throw_t = maxf(0.0, _throw_t - dt)
 	_update_gun()
 	if _ap == null or _dead: return
 	if _oneshot > 0.0:
 		_oneshot -= dt
 		return
 	var want := "Idle"
-	if _loco > 0.85: want = "Sprint"
+	if _crouch: want = "Crouch_Fwd" if _loco > 0.12 else "Crouch_Idle"
+	elif _loco > 0.85: want = "Sprint"
 	elif _loco > 0.45: want = "Jog_Fwd"
 	elif _loco > 0.12: want = "Walk"
 	elif _aiming: want = "Pistol_Idle"
@@ -247,7 +269,34 @@ func _update_gun() -> void:
 		basis = (body as Node3D).global_transform.basis
 	var hw: Vector3 = (_tgt.global_transform * _tgt.get_bone_global_pose(_hand_idx)).origin
 	_gun.global_transform = Transform3D(basis, hw + basis * Vector3(0.0, 0.02, -0.05))
-	_gun.visible = visible and not _dead
+	var throwing := _windup or _throw_t > 0.0
+	_gun.visible = visible and not _dead and not throwing   # gun lowered while throwing
+	if _nade == null:
+		_nade = Grenade.mesh(); add_child(_nade); _nade.top_level = true
+	_nade.visible = visible and _windup and not _dead
+	if _nade.visible:
+		_nade.global_position = hw + basis * Vector3(0.0, 0.05, 0.0)
+
+# windup pose: no throw clip in the library, so aim the right arm's bones (in this
+# node's space, +Z = behind) after retargeting: elbow up/back, hand behind the head
+func _apply_windup() -> void:
+	_aim_bone("UpperArm.R", "LowerArm.R", Vector3(0.25, 0.25, 1.0))
+	_aim_bone("LowerArm.R", "Hand.R", Vector3(0.0, 1.0, 0.45))
+
+func _aim_bone(bone: String, child: String, dir_s: Vector3) -> void:
+	var b := _tgt.find_bone(bone)
+	var c := _tgt.find_bone(child)
+	if b < 0 or c < 0: return
+	var rt := _rel(_tgt)
+	var gb := _tgt.get_bone_global_pose(b)
+	var gc := _tgt.get_bone_global_pose(c)
+	var cur := ((rt * gc.origin) - (rt * gb.origin)).normalized()
+	var q := _arc(cur, dir_s.normalized())
+	var new_g: Quaternion = _kt.inverse() * q * _kt * gb.basis.get_rotation_quaternion()
+	var p := _tgt.get_bone_parent(b)
+	var pg := Quaternion.IDENTITY
+	if p >= 0: pg = _tgt.get_bone_global_pose(p).basis.get_rotation_quaternion()
+	_tgt.set_bone_pose_rotation(b, pg.inverse() * new_g)
 
 func _all(n: Node) -> Array:
 	var o: Array = [n]

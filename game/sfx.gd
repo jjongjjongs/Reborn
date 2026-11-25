@@ -16,6 +16,8 @@ func _ready() -> void:
 	_bank["reload"] = _make_reload()
 	_bank["die"] = _make_die()
 	_bank["ui"] = _make_ui()
+	_bank["boom"] = _make_boom()
+	_bank["throw"] = _make_throw()
 	for i in 8:
 		var p := AudioStreamPlayer.new()
 		p.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -124,4 +126,30 @@ func _make_ui() -> AudioStreamWAV:
 		var t := float(i) / RATE
 		var env := exp(-t * 30.0)
 		s[i] = sin(t * TAU * 880.0) * env * 0.5
+	return _wav(s)
+
+func _make_boom() -> AudioStreamWAV:
+	# low rumble + noise crack, long decay
+	var n := _n(1.1)
+	var s := PackedFloat32Array(); s.resize(n)
+	var lp := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		var noise := randf_range(-1.0, 1.0)
+		lp = lp + (noise - lp) * 0.08              # low-passed noise = rumble
+		var crack := noise * exp(-t * 30.0)
+		var thump := sin(t * TAU * (55.0 - t * 25.0)) * exp(-t * 4.0)
+		s[i] = clampf((lp * 2.2 + crack * 0.7 + thump * 0.9) * exp(-t * 2.6), -1.0, 1.0)
+	return _wav(s)
+
+func _make_throw() -> AudioStreamWAV:
+	# short airy whoosh
+	var n := _n(0.22)
+	var s := PackedFloat32Array(); s.resize(n)
+	var lp := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		lp = lp + (randf_range(-1.0, 1.0) - lp) * 0.25
+		var env := sin(PI * t / 0.22)
+		s[i] = lp * env * 0.9
 	return _wav(s)
