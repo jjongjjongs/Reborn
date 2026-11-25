@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- FileProvider roots for the in-app updater: Godot's user:// is the app files dir -->
-<paths>
-    <files-path name="reborn_updates" path="." />
-</paths>

@@ -76,7 +76,8 @@ public class RebornUpdater extends GodotPlugin {
             File f = new File(path);
             if (!f.exists() || f.length() == 0) return "file missing";
             if (!can_install()) return "permission";
-            Uri uri = FileProvider.getUriForFile(a, a.getPackageName() + ".reborn_updater", f);
+            // reuse the FileProvider godot-lib already declares (files-path "/")
+            Uri uri = FileProvider.getUriForFile(a, a.getPackageName() + ".fileprovider", f);
             Intent i = new Intent(Intent.ACTION_VIEW);
             i.setDataAndType(uri, "application/vnd.android.package-archive");
             i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);

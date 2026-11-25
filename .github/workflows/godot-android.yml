@@ -79,11 +79,11 @@ jobs:
           unzip -q -o "$TPLDIR/android_source.zip" -d android/build
           touch android/.gdignore
           echo -n "4.3.stable" > android/.build_version   # what the editor's installer writes
-          # in-app updater plugin: source + FileProvider paths + manifest registration
-          mkdir -p android/build/src/com/reborn/updater android/build/res/xml
+          # in-app updater plugin: source + manifest registration
+          # (FileProvider: godot-lib already declares ${applicationId}.fileprovider covering files dir)
+          mkdir -p android/build/src/com/reborn/updater
           cp android_plugin/RebornUpdater.java android/build/src/com/reborn/updater/
-          cp android_plugin/reborn_file_paths.xml android/build/res/xml/
-          sed -i 's#</application>#    <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.reborn_updater" android:exported="false" android:grantUriPermissions="true"><meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/reborn_file_paths" /></provider>\n        <meta-data android:name="org.godotengine.plugin.v2.RebornUpdater" android:value="com.reborn.updater.RebornUpdater" />\n    </application>#' android/build/AndroidManifest.xml
+          sed -i 's#</application>#    <meta-data android:name="org.godotengine.plugin.v2.RebornUpdater" android:value="com.reborn.updater.RebornUpdater" />\n    </application>#' android/build/AndroidManifest.xml
           echo "--- manifest patch ---"; grep -n "reborn" android/build/AndroidManifest.xml
           echo "--- android/build installed: $(find android/build -maxdepth 1 | wc -l) top entries ---"
           java -version 2>&1 | head -1
@@ -93,7 +93,7 @@ jobs:
           ls -la build
           echo "--- merged manifest has updater? ---"
           M=$(find android/build/build -name AndroidManifest.xml -path "*merged_manifest*" 2>/dev/null | head -1)
-          [ -n "$M" ] && grep -cE "reborn_updater|RebornUpdater|REQUEST_INSTALL_PACKAGES" "$M" || echo "(merged manifest not found)"
+          [ -n "$M" ] && grep -cE "fileprovider|RebornUpdater|REQUEST_INSTALL_PACKAGES" "$M" || echo "(merged manifest not found)"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
