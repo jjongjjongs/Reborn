@@ -126,3 +126,6 @@ func _sep() -> Control:
 
 func _app_version() -> String:
 	return str(ProjectSettings.get_setting("application/config/version", "1.9"))
+
+func is_open() -> bool:
+	return _sheet != null and _sheet.visible

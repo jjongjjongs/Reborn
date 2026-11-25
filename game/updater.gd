@@ -242,3 +242,9 @@ func _mk(txt: String, pri: bool, cb: Callable) -> Button:
 		b.add_theme_color_override("font_color", Color(1.0, 0.72, 0.38))
 	b.pressed.connect(cb)
 	return b
+
+func is_open() -> bool:
+	return _dialog != null and _dialog.visible
+
+func close_dialog() -> void:
+	if _dialog: _dialog.visible = false
