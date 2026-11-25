@@ -83,7 +83,7 @@ func end_run(win: bool) -> void:
 		best_wave = wave; new_best = true
 	if kills > best_kills:
 		best_kills = kills; new_best = true
-	if win and (best_time <= 0.0 or run_time < best_time):
+	if run_time > best_time:   # longest survival (win or lose)
 		best_time = run_time; new_best = true
 	_save_best()
 	get_tree().paused = true

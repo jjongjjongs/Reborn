@@ -48,7 +48,8 @@ func _relayout() -> void:
 	var vp := get_viewport().get_visible_rect().size
 	var x := (vp.x - PANEL_W) * 0.5
 	var y := (vp.y - PANEL_H) * 0.5
-	_panel.position = Vector2(x, y); _panel.size = Vector2(PANEL_W, PANEL_H)
+	# full-screen cover so the frozen HUD/game doesn't show through
+	_panel.position = Vector2.ZERO; _panel.size = vp
 	_title.position = Vector2(x, y + 36); _title.size = Vector2(PANEL_W, 60)
 	_stats.position = Vector2(x, y + 140); _stats.size = Vector2(PANEL_W, 200)
 	_best.position = Vector2(x, y + 350); _best.size = Vector2(PANEL_W, 80)

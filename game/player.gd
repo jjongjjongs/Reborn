@@ -137,7 +137,7 @@ func _shoot() -> void:
 		_impact(hit.position)
 		var col = hit.collider
 		if col and col.has_method("hit"):
-			var is_head: bool = hit.position.y > (col.global_position.y + 1.3)
+			var is_head: bool = hit.position.y > (col.global_position.y + 1.55)
 			var dmg := randi_range(DMG_MIN, DMG_MAX)
 			if is_head:
 				dmg = int(dmg * HEAD_MULT)
