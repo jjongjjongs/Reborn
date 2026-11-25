@@ -20,8 +20,11 @@ const SHOT_DELAY := 0.13
 const BURST_COOL := 0.9
 const MAX_HP := 100.0
 
+const INVULN := 2.0
+
 var hp := MAX_HP
 var alive := true
+var invuln_t := 0.0
 var kills := 0
 var bot_name := "BOT"
 var tint := Color(0.80, 0.32, 0.30)
@@ -68,7 +71,7 @@ func _ready() -> void:
 	add_child(_agent)
 
 func hit(dmg: int, _is_head: bool = false, attacker = null) -> void:
-	if not alive:
+	if not alive or invuln_t > 0.0:
 		return
 	hp -= dmg
 	_flash = 1.0
@@ -82,6 +85,7 @@ func hit(dmg: int, _is_head: bool = false, attacker = null) -> void:
 
 func respawn_at(pos: Vector3) -> void:
 	alive = true
+	invuln_t = INVULN
 	hp = MAX_HP
 	global_position = pos
 	velocity = Vector3.ZERO
@@ -96,6 +100,11 @@ func respawn_at(pos: Vector3) -> void:
 func _physics_process(delta: float) -> void:
 	if not alive:
 		return
+	if invuln_t > 0.0:
+		invuln_t -= delta
+		visible = fmod(invuln_t, 0.2) < 0.1
+		if invuln_t <= 0.0:
+			visible = true
 	_warmup = maxf(0.0, _warmup - delta)
 	if _flash > 0.0:
 		_flash = maxf(0.0, _flash - delta * 5.0)

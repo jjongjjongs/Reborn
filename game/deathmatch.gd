@@ -14,9 +14,11 @@ var _spawns: Array[Vector3] = [
 	Vector3(14, 1.3, -14), Vector3(-14, 1.3, 14), Vector3(14, 1.3, 14), Vector3(-14, 1.3, -14),
 ]
 var _bots: Array = []
+var _player_resp := 0.0
 var _hp_fill: ColorRect
 var _top_lbl: Label
 var _score_lbl: Label
+var _respawn_lbl: Label
 var _result: Control
 
 func _ready() -> void:
@@ -70,17 +72,29 @@ func _spawn_bots() -> void:
 		var b := BotPlayer.new()
 		b.bot_name = "봇 %d" % (i + 1)
 		b.tint = tints[i % tints.size()]
-		b.position = _spawns[(i + 1) % _spawns.size()]
+		b.position = _free_spawn()
 		b.died.connect(_on_died.bind(b))
 		add_child(b)
 		_bots.append(b)
 
-func _rand_spawn() -> Vector3:
-	return _spawns[randi() % _spawns.size()]
+func _free_spawn() -> Vector3:
+	# the spawn point farthest from any living combatant (avoid spawning on top)
+	var best := _spawns[0]
+	var best_clear := -1.0
+	for sp in _spawns:
+		var clear := 1e9
+		for c in get_tree().get_nodes_in_group("combatant"):
+			if c != null and "alive" in c and c.alive:
+				clear = minf(clear, sp.distance_to((c as Node3D).global_position))
+		if clear > best_clear:
+			best_clear = clear; best = sp
+	return best
 
 func _on_died(attacker, victim) -> void:
 	if _over:
 		return
+	if victim == player:
+		_player_resp = RESPAWN_DELAY
 	# credit the killer
 	var killer_kills := -1
 	if attacker == player:
@@ -92,11 +106,10 @@ func _on_died(attacker, victim) -> void:
 	if killer_kills >= KILL_TARGET:
 		_end_match(attacker)
 		return
-	# respawn the victim after a delay
-	var sp := _rand_spawn()
+	# respawn the victim after a delay (pick a clear spawn at that moment)
 	get_tree().create_timer(RESPAWN_DELAY).timeout.connect(func() -> void:
 		if not _over and is_instance_valid(victim):
-			victim.respawn_at(sp))
+			victim.respawn_at(_free_spawn()))
 
 func _leader() -> Array:   # [name, kills]
 	var best_name := "나"
@@ -106,13 +119,20 @@ func _leader() -> Array:   # [name, kills]
 			best = b.kills; best_name = b.bot_name
 	return [best_name, best]
 
-func _process(_dt: float) -> void:
+func _process(dt: float) -> void:
 	if player:
 		var bb := Basis.from_euler(Vector3(deg_to_rad(player.aim_pitch), deg_to_rad(player.aim_yaw), 0))
 		var fwd := -bb.z
 		var pivot := player.global_position + Vector3(0, 1.4, 0)
 		cam.global_position = cam.global_position.lerp(pivot - fwd * 4.0 + bb.x * 0.7 + Vector3(0, 0.3, 0), 0.35)
 		cam.look_at(pivot + fwd * 12.0, Vector3.UP)
+	# respawn countdown overlay
+	if _respawn_lbl:
+		var dead: bool = player != null and not player.alive and not _over
+		if dead:
+			_player_resp = maxf(0.0, _player_resp - dt)
+			_respawn_lbl.text = "부활까지 %d" % ceili(_player_resp)
+		_respawn_lbl.visible = dead
 	if _hp_fill:
 		_hp_fill.size.x = 360.0 * float(Controls.hp) / float(Controls.hp_max)
 	if _score_lbl:
@@ -161,6 +181,16 @@ func _build_hud() -> void:
 	_hp_fill = ColorRect.new(); _hp_fill.color = Color(0.88, 0.30, 0.25)
 	_hp_fill.position = Vector2(28, 52); _hp_fill.size = Vector2(360, 26)
 	_hp_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE; layer.add_child(_hp_fill)
+
+	_respawn_lbl = Label.new()
+	_respawn_lbl.add_theme_font_size_override("font_size", 52)
+	_respawn_lbl.add_theme_color_override("font_color", Color(1.0, 0.45, 0.35))
+	_respawn_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_respawn_lbl.anchor_left = 0.0; _respawn_lbl.anchor_right = 1.0
+	_respawn_lbl.anchor_top = 0.42
+	_respawn_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_respawn_lbl.visible = false
+	layer.add_child(_respawn_lbl)
 
 	_build_result(layer)
 

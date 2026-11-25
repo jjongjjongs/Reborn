@@ -23,7 +23,10 @@ const CRIT_MULT := 1.8
 
 signal died(attacker)
 
+const INVULN := 2.0
+
 var alive := true
+var invuln_t := 0.0
 var _spawn := Vector3.ZERO
 
 var aim_yaw := 0.0     # degrees
@@ -40,7 +43,7 @@ func _ready() -> void:
 	Controls.hp = Controls.hp_max
 
 func hit(dmg: int, _is_head: bool = false, attacker = null) -> void:
-	if not alive:
+	if not alive or invuln_t > 0.0:
 		return
 	Controls.hp = maxi(0, Controls.hp - dmg)
 	if Controls.hp <= 0:
@@ -52,9 +55,11 @@ func take_damage(dmg: int) -> void:   # melee convenience (zombies)
 
 func respawn_at(pos: Vector3) -> void:
 	alive = true
+	invuln_t = INVULN
 	Controls.hp = Controls.hp_max
 	global_position = pos
 	velocity = Vector3.ZERO
+	visible = true
 
 func _build() -> void:
 	var body := MeshInstance3D.new()
@@ -80,6 +85,11 @@ func _build() -> void:
 func _physics_process(delta: float) -> void:
 	if not alive:
 		return
+	if invuln_t > 0.0:
+		invuln_t -= delta
+		visible = fmod(invuln_t, 0.2) < 0.1
+		if invuln_t <= 0.0:
+			visible = true
 	# look
 	var l := Controls.consume_look()
 	aim_yaw -= l.x

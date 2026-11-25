@@ -80,7 +80,8 @@ func _spawn_one() -> void:
 	z.hp_scale = float(cur["hp_mul"])
 	z.spd_scale = float(cur["spd_mul"])
 	z.player = player
-	z.position = spawn_points[randi() % spawn_points.size()]
+	var base: Vector3 = spawn_points[randi() % spawn_points.size()]
+	z.position = base + Vector3(randf_range(-2.0, 2.0), 0.0, randf_range(-2.0, 2.0))
 	z.died.connect(_on_zombie_died)
 	arena.add_child(z)
 	_alive += 1
