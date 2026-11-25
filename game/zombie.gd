@@ -72,6 +72,9 @@ func _physics_process(delta: float) -> void:
 		var next := _agent.get_next_path_position()
 		var dir := next - global_position
 		dir.y = 0.0
+		# off-mesh / no path / shoved onto cover -> beeline so it walks off and drops
+		if dir.length() < 0.15 or global_position.y > 0.6:
+			dir = to_player
 		if dir.length() > 0.05:
 			dir = dir.normalized()
 			velocity.x = dir.x * SPEED * spd_scale
