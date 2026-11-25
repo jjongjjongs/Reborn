@@ -1,0 +1,67 @@
+name: Godot Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ccr-83ca7d7b-mbunos]
+    paths:
+      - 'game/**'
+      - '.github/workflows/godot-android.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.3.0
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure signing + SDK (debug)
+        run: |
+          set -e
+          echo "ANDROID_HOME=${ANDROID_HOME:-<unset>}"
+          SDK="${ANDROID_HOME:-/root/.android-sdk}"
+          mkdir -p /root/.config/godot
+          keytool -keyalg RSA -genkeypair -alias androiddebugkey \
+            -keypass android -keystore /root/debug.keystore -storepass android \
+            -dname "CN=Android Debug,O=Android,C=US" -validity 9999 \
+            -deststoretype pkcs12
+          cat > /root/.config/godot/editor_settings-4.tres <<EOF
+          [gd_resource type="EditorSettings" format=3]
+          [resource]
+          export/android/android_sdk_path = "$SDK"
+          export/android/debug_keystore = "/root/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          EOF
+          echo "--- installed export templates ---"
+          ls -la /root/.local/share/godot/export_templates/ || true
+
+      - name: Import + export APK
+        run: |
+          set -e
+          cd game
+          mkdir -p build
+          godot --headless --import || true
+          godot --headless --export-debug "Android" build/reborn-m0.apk
+          echo "--- build dir ---"
+          ls -la build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: reborn-m0-apk
+          path: game/build/reborn-m0.apk
+
+      - name: Attach to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: game-m0
+          name: "리본 게임 M0 · 이동/점프"
+          body: "Godot 4.3 · PvE 서바이벌 MVP의 M0(이동·2단 점프). 폰에 설치해 조이스틱 이동 + 점프 버튼 확인."
+          files: game/build/reborn-m0.apk
+          fail_on_unmatched_files: true
