@@ -49,6 +49,14 @@ jobs:
           cp /root/.config/godot/editor_settings-4.tres /root/.config/godot/editor_settings-4.3.tres
           echo "--- export template files (4.3.stable) ---"
           ls -la /root/.local/share/godot/export_templates/4.3.stable/ || true
+          echo "--- ensure Android platform/build-tools for target SDK 34 ---"
+          SDKMGR="$(command -v sdkmanager || true)"
+          [ -z "$SDKMGR" ] && SDKMGR="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          echo "sdkmanager=$SDKMGR"
+          yes | "$SDKMGR" --sdk_root="$SDK" --licenses >/dev/null 2>&1 || true
+          "$SDKMGR" --sdk_root="$SDK" "platform-tools" "platforms;android-34" "build-tools;34.0.0" 2>&1 | tail -4 || true
+          echo "platforms:"; ls "$SDK/platforms" 2>/dev/null || true
+          echo "build-tools:"; ls "$SDK/build-tools" 2>/dev/null || true
 
       - name: Import + export APK
         env:
