@@ -34,6 +34,7 @@ func _ready() -> void:
 	cam = Camera3D.new(); cam.fov = 65.0; cam.current = true; cam.position = Vector3(0, 2, 5)
 	add_child(cam)
 	_build_hud()
+	Pause.arm()
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	_spawn_bots()
@@ -113,6 +114,7 @@ func _process(dt: float) -> void:
 
 func _end_match(winner_team: int) -> void:
 	_over = true
+	Pause.disarm()
 	get_tree().paused = true
 	_result.visible = true
 	var v := _result.get_node("v")

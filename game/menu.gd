@@ -1,44 +1,125 @@
 extends Control
-## Title / mode select. Launches a mode scene with a clean run state.
+## Main menu — tactical HUD layout (시안 A). Player card + gold (상단),
+## 로고 (좌), 모드 스택 (우), 하단 탭. Launches a mode with a clean run state.
+
+const ACCENT := Color(1.0, 0.48, 0.10)
+const PANEL := Color(0.10, 0.13, 0.16)
+const PANEL2 := Color(0.12, 0.15, 0.18)
+const LINE := Color(0.17, 0.20, 0.24)
+const FG := Color(0.92, 0.95, 0.97)
+const MUTED := Color(0.55, 0.62, 0.69)
+const DIM := Color(0.38, 0.44, 0.50)
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	var bg := ColorRect.new()
-	bg.color = Color(0.06, 0.08, 0.10)
+	bg.color = Color(0.05, 0.06, 0.08)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 
-	var title := Label.new()
-	title.text = "스페셜솔져 리본"
-	title.add_theme_font_size_override("font_size", 56)
-	title.add_theme_color_override("font_color", Color(1.0, 0.62, 0.24))
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.anchor_left = 0.5; title.anchor_right = 0.5; title.anchor_top = 0.28
-	title.offset_left = -400; title.offset_right = 400; title.offset_top = 0
-	add_child(title)
+	_top_bar()
+	_logo()
+	_mode_stack()
+	_bottom_nav()
 
-	var sub := Label.new()
-	sub.text = "오프라인 · 모드 선택"
-	sub.add_theme_font_size_override("font_size", 24)
-	sub.add_theme_color_override("font_color", Color(0.65, 0.72, 0.78))
-	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sub.anchor_left = 0.5; sub.anchor_right = 0.5; sub.anchor_top = 0.28
-	sub.offset_left = -400; sub.offset_right = 400; sub.offset_top = 72
-	add_child(sub)
+# ---- top bar: avatar + name/level, gold ----
+func _top_bar() -> void:
+	var ava := _panel(Vector2(36, 26), Vector2(58, 58), PANEL2, ACCENT, 2, 10)
+	add_child(ava)
+	var ai := Label.new(); ai.text = "R"
+	ai.add_theme_font_size_override("font_size", 30)
+	ai.add_theme_color_override("font_color", ACCENT)
+	ai.set_anchors_preset(Control.PRESET_FULL_RECT)
+	ai.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ai.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	ava.add_child(ai)
 
-	_mode_button("PvE 웨이브 서바이벌", 0.48, "res://Main.tscn")
-	_mode_button("데스매치 (봇)", 0.60, "res://Deathmatch.tscn")
-	_mode_button("팀 데스매치 (봇)", 0.72, "res://TeamDeathmatch.tscn")
+	var nm := _label("SOLDIER_01", 26, FG, false); nm.position = Vector2(108, 26); add_child(nm)
+	var lv := _label("LV.1", 18, DIM, false); lv.position = Vector2(110, 58); add_child(lv)
 
-func _mode_button(txt: String, anchor_y: float, scene: String) -> void:
-	var b := Button.new()
-	b.text = txt
-	b.add_theme_font_size_override("font_size", 34)
-	b.custom_minimum_size = Vector2(0, 86)
-	b.anchor_left = 0.5; b.anchor_right = 0.5; b.anchor_top = anchor_y; b.anchor_bottom = anchor_y
-	b.offset_left = -300; b.offset_right = 300; b.offset_top = 0; b.offset_bottom = 86
-	b.pressed.connect(func() -> void:
+	# gold pill (상점 경제는 2단계 — 자리만)
+	var pill := _panel(Vector2(0, 30), Vector2(168, 48), Color(0.08, 0.10, 0.12), LINE, 1, 24)
+	pill.anchor_left = 1.0; pill.anchor_right = 1.0
+	pill.offset_left = -204; pill.offset_right = -36
+	add_child(pill)
+	var coin := _panel(Vector2(16, 12), Vector2(24, 24), Color(0.90, 0.68, 0.18), Color(0.66, 0.47, 0.10), 1, 12)
+	pill.add_child(coin)
+	var gv := _label("0", 22, FG, true); gv.position = Vector2(52, 10); pill.add_child(gv)
+
+# ---- logo (left) ----
+func _logo() -> void:
+	var k1 := _label("SPECIAL", 58, FG, true); k1.position = Vector2(72, 232); add_child(k1)
+	var k2 := _label("SOLDIER", 58, ACCENT, true); k2.position = Vector2(72, 296); add_child(k2)
+	var sub := _label("리본", 30, FG, true); sub.position = Vector2(76, 372); add_child(sub)
+	var dog := _label("OFFLINE · SOLO OPS", 18, DIM, true); dog.position = Vector2(78, 420); add_child(dog)
+	var rec := _label("최고 웨이브 %d · 처치 %d" % [Controls.best_wave, Controls.best_kills], 18, MUTED, false)
+	rec.position = Vector2(78, 452); add_child(rec)
+
+# ---- mode stack (right) ----
+func _mode_stack() -> void:
+	_mode("웨이브 서바이벌", "PvE · 좀비 방어", "res://Main.tscn", 232, true)
+	_mode("데스매치", "개인전 · 봇", "res://Deathmatch.tscn", 332, false)
+	_mode("팀 데스매치", "3 vs 3 · 봇", "res://TeamDeathmatch.tscn", 432, false)
+
+func _mode(title: String, subtitle: String, scene: String, y: float, primary: bool) -> void:
+	var p := Control.new()
+	p.anchor_left = 1.0; p.anchor_right = 1.0
+	p.offset_left = -600; p.offset_right = -40
+	p.offset_top = y; p.offset_bottom = y + 86
+	add_child(p)
+	var bgp := Panel.new()
+	bgp.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bgp.add_theme_stylebox_override("panel", _sb(PANEL if not primary else Color(0.16, 0.11, 0.05), ACCENT if primary else LINE, 2 if primary else 1, 12))
+	p.add_child(bgp)
+	var ic := _panel(Vector2(16, 17), Vector2(52, 52), Color(0.07, 0.09, 0.11), ACCENT if primary else LINE, 1, 9)
+	p.add_child(ic)
+	var t := _label(title, 30, FG, false); t.position = Vector2(86, 16); p.add_child(t)
+	var s := _label(subtitle, 19, DIM, false); s.position = Vector2(88, 52); p.add_child(s)
+	var arr := _label("›", 34, ACCENT, true)
+	arr.anchor_left = 1.0; arr.anchor_right = 1.0; arr.position = Vector2(0, 0)
+	arr.offset_left = -48; arr.offset_right = -18; arr.offset_top = 22
+	p.add_child(arr)
+	var btn := Button.new()
+	btn.flat = true; btn.focus_mode = Control.FOCUS_NONE
+	btn.set_anchors_preset(Control.PRESET_FULL_RECT)
+	btn.pressed.connect(func() -> void:
 		Sfx.play("ui")
 		Controls.reset()
 		get_tree().change_scene_to_file(scene))
-	add_child(b)
+	p.add_child(btn)
+
+# ---- bottom nav ----
+func _bottom_nav() -> void:
+	var bar := HBoxContainer.new()
+	bar.anchor_left = 0.0; bar.anchor_right = 1.0; bar.anchor_top = 1.0; bar.anchor_bottom = 1.0
+	bar.offset_left = 40; bar.offset_right = -40; bar.offset_top = -64; bar.offset_bottom = -12
+	bar.alignment = BoxContainer.ALIGNMENT_CENTER
+	bar.add_theme_constant_override("separation", 10)
+	add_child(bar)
+	for i in ["출격", "상점", "장비", "기록", "설정"]:
+		var l := Label.new(); l.text = i
+		l.add_theme_font_size_override("font_size", 22)
+		l.add_theme_color_override("font_color", FG if i == "출격" else DIM)
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		bar.add_child(l)
+
+# ---- helpers ----
+func _label(txt: String, size: int, col: Color, bold: bool) -> Label:
+	var l := Label.new(); l.text = txt
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", col)
+	return l
+
+func _panel(pos: Vector2, sz: Vector2, bg: Color, border: Color, bw: int, rad: int) -> Panel:
+	var p := Panel.new()
+	p.position = pos; p.size = sz
+	p.add_theme_stylebox_override("panel", _sb(bg, border, bw, rad))
+	return p
+
+func _sb(bg: Color, border: Color, bw: int, rad: int) -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = bg
+	s.set_border_width_all(bw); s.border_color = border
+	s.set_corner_radius_all(rad)
+	return s

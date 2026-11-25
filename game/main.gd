@@ -14,6 +14,7 @@ func _ready() -> void:
 	_build_player()
 	_build_camera()
 	_build_hud()
+	Pause.arm()
 	var wm := WaveManager.new()
 	wm.arena = self
 	wm.player = player

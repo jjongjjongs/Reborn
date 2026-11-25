@@ -10,6 +10,8 @@ const SRC: PackedScene = preload("res://assets/soldier/AnimationLibrary_Godot_St
 
 var _ap: AnimationPlayer
 var _sk: Skeleton3D
+var _gun: Node3D
+var _hand_idx := -1
 var _loco := 0.0
 var _aiming := false
 var _dead := false
@@ -27,7 +29,7 @@ func setup(team_color: Color, gear: Color = Color(0.11, 0.12, 0.14)) -> void:
 			_sk = n
 		elif n is MeshInstance3D:
 			_tint(n, team_color, gear)
-	_attach_rifle()
+	_build_gun()
 	if _ap:
 		_ap.play("Idle")
 		_base = "Idle"
@@ -55,6 +57,7 @@ func set_dead(d: bool) -> void:
 			_base = "Death01"
 
 func _process(dt: float) -> void:
+	_update_gun()
 	if _ap == null or _dead:
 		return
 	if _oneshot > 0.0:
@@ -82,22 +85,38 @@ func _tint(mi: MeshInstance3D, team: Color, gear: Color) -> void:
 		m1.albedo_color = gear
 		mi.set_surface_override_material(1, m1)
 
-func _attach_rifle() -> void:
-	if _sk == null:
+func _build_gun() -> void:
+	# A compact pistol that sits in the hand but always points along the body's
+	# forward (aim) direction, so it never depends on the hand bone's local axes.
+	if _sk != null:
+		_hand_idx = _sk.find_bone("DEF-hand.R")
+	_gun = Node3D.new()
+	add_child(_gun)
+	var dark := StandardMaterial3D.new(); dark.albedo_color = Color(0.07, 0.07, 0.09)
+	# slide/barrel (extends forward along -Z)
+	var barrel := MeshInstance3D.new()
+	var b := BoxMesh.new(); b.size = Vector3(0.05, 0.08, 0.24); barrel.mesh = b
+	barrel.material_override = dark; barrel.position = Vector3(0, 0, -0.1)
+	_gun.add_child(barrel)
+	# grip (down)
+	var grip := MeshInstance3D.new()
+	var g := BoxMesh.new(); g.size = Vector3(0.045, 0.12, 0.06); grip.mesh = g
+	grip.material_override = dark; grip.position = Vector3(0, -0.07, 0.02)
+	_gun.add_child(grip)
+
+func _update_gun() -> void:
+	if _gun == null or _sk == null or _hand_idx < 0:
 		return
-	var idx := _sk.find_bone("DEF-hand.R")
-	if idx < 0:
-		return
-	var ba := BoneAttachment3D.new()
-	ba.bone_name = "DEF-hand.R"
-	_sk.add_child(ba)
-	var gun := MeshInstance3D.new()
-	var bm := BoxMesh.new(); bm.size = Vector3(0.055, 0.11, 0.5)
-	gun.mesh = bm
-	var gmat := StandardMaterial3D.new(); gmat.albedo_color = Color(0.07, 0.07, 0.09)
-	gun.material_override = gmat
-	gun.position = Vector3(0.0, -0.02, -0.18)
-	ba.add_child(gun)
+	var hand_w: Vector3 = (_sk.global_transform * _sk.get_bone_global_pose(_hand_idx)).origin
+	_gun.global_position = hand_w
+	var body := get_parent()
+	var fwd: Vector3 = -global_transform.basis.z
+	if body is Node3D:
+		fwd = -(body as Node3D).global_transform.basis.z
+	var tgt := hand_w + fwd
+	if hand_w.distance_to(tgt) > 0.001:
+		_gun.look_at(tgt, Vector3.UP)
+	_gun.visible = visible and not _dead
 
 func _all(n: Node) -> Array:
 	var o: Array = [n]

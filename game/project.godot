@@ -13,6 +13,7 @@ config/features=PackedStringArray("4.3", "GL Compatibility")
 Controls="*res://controls.gd"
 Sfx="*res://sfx.gd"
 Fx="*res://fx.gd"
+Pause="*res://pause.gd"
 
 [display]
 

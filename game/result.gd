@@ -14,6 +14,7 @@ var _btn: Button
 var _menu_btn: Button
 
 func _ready() -> void:
+	Pause.disarm()
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
