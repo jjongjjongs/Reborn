@@ -1,67 +1,105 @@
 class_name Soldier
 extends Node3D
-## Animated soldier built on the Quaternius CC0 mannequin (46 clips). Reskinned
-## as a tactical trooper: dark uniform, bone-tracked helmet + team-colored plate
-## carrier, and a rifle. Gear/weapon follow the animated bones' WORLD positions
-## but take the body's orientation (so no dependency on each bone's local axes).
+## Animated SWAT trooper. The Quaternius SWAT mesh (its own simple rig) is posed
+## at runtime by RETARGETING from a hidden Universal-Animation-Library mannequin
+## (Rigify rig) that actually plays the 46 clips. Bones are matched by name map;
+## each target bone copies the source's rotation delta from its rest pose.
 ## Owner drives it via drive() + shoot()/set_dead().
 
-const SRC: PackedScene = preload("res://assets/soldier/AnimationLibrary_Godot_Standard.gltf")
+const SWAT: PackedScene = preload("res://assets/soldier/Swat.glb")
+const ANIM: PackedScene = preload("res://assets/soldier/AnimationLibrary_Godot_Standard.gltf")
+
+# SWAT bone -> animation-library (Rigify) bone
+const MAP := {
+	"Hips": "DEF-hips", "Abdomen": "DEF-spine.001", "Torso": "DEF-spine.002", "Chest": "DEF-spine.003",
+	"Neck": "DEF-neck", "Head": "DEF-head",
+	"Shoulder.L": "DEF-shoulder.L", "UpperArm.L": "DEF-upper_arm.L", "LowerArm.L": "DEF-forearm.L", "Hand.L": "DEF-hand.L",
+	"Shoulder.R": "DEF-shoulder.R", "UpperArm.R": "DEF-upper_arm.R", "LowerArm.R": "DEF-forearm.R", "Hand.R": "DEF-hand.R",
+	"UpperLeg.L": "DEF-thigh.L", "LowerLeg.L": "DEF-shin.L", "Foot.L": "DEF-foot.L",
+	"UpperLeg.R": "DEF-thigh.R", "LowerLeg.R": "DEF-shin.R", "Foot.R": "DEF-foot.R",
+	"Index2.L": "DEF-f_index.01.L", "Index3.L": "DEF-f_index.02.L", "Index4.L": "DEF-f_index.03.L",
+	"Middle2.L": "DEF-f_middle.01.L", "Middle3.L": "DEF-f_middle.02.L", "Middle4.L": "DEF-f_middle.03.L",
+	"Ring2.L": "DEF-f_ring.01.L", "Ring3.L": "DEF-f_ring.02.L", "Ring4.L": "DEF-f_ring.03.L",
+	"Pinky2.L": "DEF-f_pinky.01.L", "Pinky3.L": "DEF-f_pinky.02.L", "Pinky4.L": "DEF-f_pinky.03.L",
+	"Thumb2.L": "DEF-thumb.01.L", "Thumb3.L": "DEF-thumb.02.L",
+	"Index2.R": "DEF-f_index.01.R", "Index3.R": "DEF-f_index.02.R", "Index4.R": "DEF-f_index.03.R",
+	"Middle2.R": "DEF-f_middle.01.R", "Middle3.R": "DEF-f_middle.02.R", "Middle4.R": "DEF-f_middle.03.R",
+	"Ring2.R": "DEF-f_ring.01.R", "Ring3.R": "DEF-f_ring.02.R", "Ring4.R": "DEF-f_ring.03.R",
+	"Pinky2.R": "DEF-f_pinky.01.R", "Pinky3.R": "DEF-f_pinky.02.R", "Pinky4.R": "DEF-f_pinky.03.R",
+	"Thumb2.R": "DEF-thumb.01.R", "Thumb3.R": "DEF-thumb.02.R",
+}
+const GEAR_GREY := Color(0.3098, 0.3255, 0.3529)
 
 @export var yaw_offset := PI
 
 var _ap: AnimationPlayer
-var _sk: Skeleton3D
+var _src: Skeleton3D
+var _tgt: Skeleton3D
 var _hand_idx := -1
 var _gun: Node3D
+var _tgt_idx := PackedInt32Array()
+var _src_idx := PackedInt32Array()
+var _tgt_rest: Array[Quaternion] = []
+var _src_rest_inv: Array[Quaternion] = []
 var _loco := 0.0
 var _aiming := false
 var _dead := false
 var _oneshot := 0.0
 var _base := "?"
-var _gear_dark := StandardMaterial3D.new()
 var _team := Color(0.8, 0.4, 0.3)
+var _gun_mat := StandardMaterial3D.new()
 
-func setup(team_color: Color, _gear: Color = Color(0.11, 0.12, 0.14)) -> void:
+func setup(team_color: Color, _gear: Color = Color.BLACK) -> void:
 	_team = team_color
-	_gear_dark.albedo_color = Color(0.12, 0.13, 0.16)
-	var inst := SRC.instantiate()
-	inst.rotation.y = yaw_offset
-	add_child(inst)
-	for n in _all(inst):
-		if n is AnimationPlayer:
-			_ap = n
-		elif n is Skeleton3D:
-			_sk = n
-		elif n is MeshInstance3D:
-			_tint(n)
-	if _sk != null:
-		_hand_idx = _sk.find_bone("DEF-hand.R")
+	_gun_mat.albedo_color = Color(0.07, 0.07, 0.09)
+	# visible SWAT
+	var swat := SWAT.instantiate()
+	swat.rotation.y = yaw_offset
+	add_child(swat)
+	for n in _all(swat):
+		if n is Skeleton3D: _tgt = n
+		elif n is MeshInstance3D: _team_tint(n)
+	# hidden animation driver
+	var anim := ANIM.instantiate()
+	anim.rotation.y = yaw_offset
+	add_child(anim)
+	for n in _all(anim):
+		if n is AnimationPlayer: _ap = n
+		elif n is Skeleton3D: _src = n
+		elif n is MeshInstance3D: (n as MeshInstance3D).visible = false
+	_build_map()
 	_build_gun()
-	if _ap:
-		_ap.play("Idle"); _base = "Idle"
+	if _tgt: _hand_idx = _tgt.find_bone("Hand.R")
+	if _ap: _ap.play("Idle"); _base = "Idle"
+
+func _build_map() -> void:
+	if _tgt == null or _src == null: return
+	for swat_bone in MAP:
+		var ti := _tgt.find_bone(swat_bone)
+		var si := _src.find_bone(MAP[swat_bone])
+		if ti < 0 or si < 0: continue
+		_tgt_idx.append(ti); _src_idx.append(si)
+		_tgt_rest.append(_tgt.get_bone_rest(ti).basis.get_rotation_quaternion())
+		_src_rest_inv.append(_src.get_bone_rest(si).basis.get_rotation_quaternion().inverse())
 
 func drive(loco_ratio: float, aiming: bool) -> void:
 	_loco = loco_ratio; _aiming = aiming
 
 func shoot() -> void:
-	if _dead or _ap == null:
-		return
-	_ap.play("Pistol_Shoot", 0.03)
-	_oneshot = 0.16; _base = "?"
+	if _dead or _ap == null: return
+	_ap.play("Pistol_Shoot", 0.03); _oneshot = 0.16; _base = "?"
 
 func set_dead(d: bool) -> void:
-	if d == _dead:
-		return
+	if d == _dead: return
 	_dead = d; _oneshot = 0.0; _base = "?"
 	if _ap:
 		_ap.play("Death01" if d else "Idle", 0.12)
 		if d: _base = "Death01"
 
 func _process(dt: float) -> void:
-	_update_attachments()
-	if _ap == null or _dead:
-		return
+	_retarget()
+	_update_gun()
+	if _ap == null or _dead: return
 	if _oneshot > 0.0:
 		_oneshot -= dt
 		return
@@ -74,42 +112,43 @@ func _process(dt: float) -> void:
 		_base = want
 		_ap.play(want, 0.15)
 
-# ---- appearance ----
-func _tint(mi: MeshInstance3D) -> void:
-	# dark tactical uniform (faint team hue) + a vivid team-color accent region
-	var uniform := _team.lerp(Color(0.15, 0.17, 0.18), 0.72)
-	var accent := _team.lerp(Color(0.10, 0.10, 0.10), 0.12)
-	var m0 := StandardMaterial3D.new(); m0.albedo_color = uniform; m0.roughness = 0.9
-	mi.set_surface_override_material(0, m0)
-	if mi.mesh and mi.mesh.get_surface_count() > 1:
-		var m1 := StandardMaterial3D.new(); m1.albedo_color = accent; m1.roughness = 0.85
-		mi.set_surface_override_material(1, m1)
+func _retarget() -> void:
+	if _tgt == null or _src == null: return
+	for i in _tgt_idx.size():
+		var cur := _src.get_bone_pose_rotation(_src_idx[i])
+		_tgt.set_bone_pose_rotation(_tgt_idx[i], _tgt_rest[i] * (_src_rest_inv[i] * cur))
 
-func _mesh(parent: Node3D, size: Vector3, pos: Vector3, mat: StandardMaterial3D) -> void:
-	var m := MeshInstance3D.new()
-	var b := BoxMesh.new(); b.size = size; m.mesh = b
-	m.material_override = mat; m.position = pos
-	parent.add_child(m)
+func _team_tint(mi: MeshInstance3D) -> void:
+	if mi.mesh == null: return
+	for s in mi.mesh.get_surface_count():
+		var m: Material = mi.mesh.surface_get_material(s)
+		if m is StandardMaterial3D and (m as StandardMaterial3D).albedo_color.is_equal_approx(GEAR_GREY):
+			var nm := StandardMaterial3D.new()
+			nm.albedo_color = _team; nm.roughness = 0.8
+			mi.set_surface_override_material(s, nm)
 
 func _build_gun() -> void:
 	_gun = Node3D.new(); add_child(_gun)
-	var body := _gear_dark
-	# receiver, barrel, stock, mag, sight — extends forward along -Z
-	_mesh(_gun, Vector3(0.05, 0.10, 0.34), Vector3(0, 0, -0.12), body)
-	_mesh(_gun, Vector3(0.03, 0.03, 0.30), Vector3(0, 0.01, -0.40), body)
-	_mesh(_gun, Vector3(0.045, 0.09, 0.14), Vector3(0, -0.01, 0.12), body)
-	_mesh(_gun, Vector3(0.04, 0.13, 0.05), Vector3(0, -0.09, -0.06), body)
-	_mesh(_gun, Vector3(0.018, 0.05, 0.03), Vector3(0, 0.08, -0.18), body)
+	_mesh(_gun, Vector3(0.05, 0.10, 0.34), Vector3(0, 0, -0.12))
+	_mesh(_gun, Vector3(0.03, 0.03, 0.30), Vector3(0, 0.01, -0.40))
+	_mesh(_gun, Vector3(0.045, 0.09, 0.14), Vector3(0, -0.01, 0.12))
+	_mesh(_gun, Vector3(0.04, 0.13, 0.05), Vector3(0, -0.09, -0.06))
+	_mesh(_gun, Vector3(0.018, 0.05, 0.03), Vector3(0, 0.08, -0.18))
 
-func _update_attachments() -> void:
-	if _sk == null or _gun == null or _hand_idx < 0:
-		return
+func _mesh(parent: Node3D, size: Vector3, pos: Vector3) -> void:
+	var m := MeshInstance3D.new()
+	var b := BoxMesh.new(); b.size = size; m.mesh = b
+	m.material_override = _gun_mat; m.position = pos
+	parent.add_child(m)
+
+func _update_gun() -> void:
+	if _gun == null or _tgt == null or _hand_idx < 0: return
 	var body := get_parent()
 	var basis: Basis = global_transform.basis
 	if body is Node3D:
 		basis = (body as Node3D).global_transform.basis
-	var hw: Vector3 = (_sk.global_transform * _sk.get_bone_global_pose(_hand_idx)).origin
-	_gun.global_transform = Transform3D(basis, hw + basis * Vector3(0.02, 0.02, 0.0))
+	var hw: Vector3 = (_tgt.global_transform * _tgt.get_bone_global_pose(_hand_idx)).origin
+	_gun.global_transform = Transform3D(basis, hw + basis * Vector3(0.0, 0.02, -0.05))
 	_gun.visible = visible and not _dead
 
 func _all(n: Node) -> Array:
