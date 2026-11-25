@@ -64,6 +64,15 @@ var _crouch := false
 var _windup := false
 var _throw_t := 0.0
 var _nade: Node3D
+# hip height: the clips lower the hips (crouch, death); rotations alone would leave
+# the body floating, so follow the source hip height change (scaled to SWAT size)
+var _swat: Node3D
+var _src_hips := -1
+var _rs := Transform3D.IDENTITY
+var _ref_hips_y := 0.0
+var _hip_ratio := 1.0
+var _toes := PackedInt32Array()
+var _ref_toe_y := 0.0
 var _aiming := false
 var _dead := false
 var _oneshot := 0.0
@@ -76,6 +85,7 @@ func setup(team_color: Color, _gear: Color = Color.BLACK) -> void:
 	_gun_mat.albedo_color = Color(0.07, 0.07, 0.09)
 	# visible SWAT
 	var swat := SWAT.instantiate()
+	_swat = swat
 	swat.rotation.y = yaw_offset
 	add_child(swat)
 	for n in _all(swat):
@@ -94,6 +104,19 @@ func setup(team_color: Color, _gear: Color = Color.BLACK) -> void:
 	if _ap:
 		_ap.play("Idle"); _ap.seek(0.0, true)
 	_build_map()
+	if _src != null and _tgt != null:
+		_src_hips = _src.find_bone("DEF-hips")
+		var th := _tgt.find_bone("Hips")
+		if _src_hips >= 0 and th >= 0:
+			_rs = _rel(_src)
+			_ref_hips_y = (_rs * _src.get_bone_global_pose(_src_hips).origin).y
+			var tgt_hips_y := (_rel(_tgt) * _tgt.get_bone_global_rest(th).origin).y
+			if _ref_hips_y > 0.01:
+				_hip_ratio = tgt_hips_y / _ref_hips_y
+		for t in ["Foot.L_end", "Foot.R_end"]:
+			var ti := _tgt.find_bone(t)
+			if ti >= 0: _toes.append(ti)
+		_ref_toe_y = _min_toe_y()       # standing reference (SWAT rest)
 	_build_gun()
 	if _tgt: _hand_idx = _tgt.find_bone("Hand.R")
 	if _ap: _ap.play("Idle"); _base = "Idle"
@@ -225,6 +248,22 @@ func _retarget() -> void:
 		if par >= 0:
 			pg = _tgt.get_bone_global_pose(par).basis.get_rotation_quaternion()
 		_tgt.set_bone_pose_rotation(_tgt_idx[i], pg.inverse() * d_skel)
+	if _src_hips >= 0 and _swat != null:
+		var hy := (_rs * _src.get_bone_global_pose(_src_hips).origin).y
+		_swat.position.y = (hy - _ref_hips_y) * _hip_ratio
+		# leg proportions differ, so a crouch can still leave the toes a few cm up:
+		# pull the body down until the lowest toe is back at the standing level
+		if not _dead and _toes.size() > 0:
+			var lift := _min_toe_y() - _ref_toe_y
+			if lift > 0.0:
+				_swat.position.y -= minf(lift, 0.2)
+
+func _min_toe_y() -> float:
+	var rt := _rel(_tgt)
+	var m := 1e9
+	for ti in _toes:
+		m = minf(m, (rt * _tgt.get_bone_global_pose(ti).origin).y)
+	return m if m < 1e8 else 0.0
 
 func _team_tint(mi: MeshInstance3D) -> void:
 	if mi.mesh == null: return
