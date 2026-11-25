@@ -81,6 +81,8 @@ func _logo() -> void:
 	var dog := _label("OFFLINE · SOLO OPS", 18, DIM, true); dog.position = Vector2(78, 420); add_child(dog)
 	var rec := _label("최고 웨이브 %d · 처치 %d" % [Controls.best_wave, Controls.best_kills], 18, MUTED, false)
 	rec.position = Vector2(78, 452); add_child(rec)
+	var ver := _label("v%d · %s" % [int(ProjectSettings.get_setting("application/config/build_code", 0)), str(ProjectSettings.get_setting("application/config/version", ""))], 16, DIM, false)
+	ver.position = Vector2(78, 482); add_child(ver)
 
 # ---- mode stack (right) ----
 func _mode_stack() -> void:
