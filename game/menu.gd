@@ -89,6 +89,7 @@ func _mode_stack() -> void:
 	_mode("웨이브 서바이벌", "PvE · 좀비 방어", "res://Main.tscn", 232, true, "survival")
 	_mode("데스매치", "개인전 · 봇", "res://Deathmatch.tscn", 332, false, "dm")
 	_mode("팀 데스매치", "3 vs 3 · 봇", "res://TeamDeathmatch.tscn", 432, false, "team")
+	_mode("폭파미션", "5 vs 5 · 폭탄 설치/해체", "res://BombMode.tscn", 532, false, "bomb")
 
 func _mode(title: String, subtitle: String, scene: String, y: float, primary: bool, kind: String) -> void:
 	var p := Control.new()

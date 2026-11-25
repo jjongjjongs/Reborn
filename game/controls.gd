@@ -18,7 +18,11 @@ var grenades: int = NADE_MAX
 var nade_aiming: bool = false
 var nade_over_cancel: bool = false
 var _nade_throw: bool = false
-var shake: float = 0.0            # camera shake amount (decays)
+var shake: float = 0.0
+# bomb defusal: context action button (설치 / 해체), hold to progress
+var act_label: String = ""
+var act_held: bool = false
+var act_progress: float = 0.0            # camera shake amount (decays)
 
 # --- weapon / player ---
 # loadout (persisted, chosen in the menu 장비 tab): primary / secondary / melee
@@ -163,6 +167,7 @@ func reset() -> void:
 	_jump = false; _reload = false; spread_deg = 1.0
 	_crouch = false; crouched = false; grenades = NADE_MAX; nade_aiming = false
 	nade_over_cancel = false; _nade_throw = false; shake = 0.0
+	act_label = ""; act_held = false; act_progress = 0.0
 	ammo = 30; ammo_max = 30; reloading = false
 	slot = 0; weapon_id = str(loadout[0]); swapping = false; _swap_to = -1
 	scoped = false; _scope = false; mag_bonus = 0

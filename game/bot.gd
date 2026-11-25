@@ -45,7 +45,12 @@ var wid := "m4"
 var _ammo := {}
 var _reload_t := 0.0
 var _swap_t := 0.0
-var rusher := false        # some bots close in for the knife when a target is near
+var rusher := false
+# objective play (bomb defusal): the mode sets these
+var frozen := false            # round prep: can't move or shoot
+var busy := false              # planting / defusing: stand still
+var objective := Vector3.INF   # where to go when not fighting
+var engage_range := 0.0        # > 0: only chase enemies this close or in sight        # some bots close in for the knife when a target is near
 # grenades: lob one at a mid-range target (more likely when it's behind cover)
 const NADE_MIN := 7.0
 const NADE_MAX_D := 22.0
@@ -128,7 +133,14 @@ func _physics_process(delta: float) -> void:
 		_retarget_cd = Difficulty.v("react")
 		_target = _find_nearest()
 
-	if _target != null and _alive_of(_target):
+	if frozen or busy:
+		velocity.x = 0.0; velocity.z = 0.0
+		if not is_on_floor(): velocity.y -= GRAVITY * delta
+		move_and_slide()
+		if _soldier: _soldier.drive(0.0, false)
+		return
+
+	if _engaged():
 		var to := _target.global_position - global_position
 		to.y = 0.0
 		var dist := to.length()
@@ -180,6 +192,15 @@ func _physics_process(delta: float) -> void:
 				_try_fire(delta)
 		else:
 			velocity.x = 0.0; velocity.z = 0.0
+	elif objective != Vector3.INF:
+		var tf := objective - global_position; tf.y = 0.0
+		if tf.length() > 1.4:
+			_move_to(objective, tf)
+			_unstick(delta)
+			var mv := Vector3(velocity.x, 0, velocity.z)
+			if mv.length() > 0.1: look_at(global_position + mv, Vector3.UP)
+		else:
+			velocity.x = 0.0; velocity.z = 0.0
 	else:
 		velocity.x = 0.0; velocity.z = 0.0
 
@@ -189,7 +210,37 @@ func _physics_process(delta: float) -> void:
 
 	if _soldier:
 		var hs := Vector2(velocity.x, velocity.z).length()
-		_soldier.drive(hs / SPEED, _target != null and _alive_of(_target) and wid != "knife")
+		_soldier.drive(hs / SPEED, _engaged() and wid != "knife")
+
+# stuck on a corner while walking to the objective: sidestep for a moment
+var _stuck_t := 0.0
+var _last_pos := Vector3.ZERO
+var _side_t := 0.0
+var _side_dir := Vector3.ZERO
+func _unstick(delta: float) -> void:
+	if _side_t > 0.0:
+		_side_t -= delta
+		velocity.x = _side_dir.x * _speed(); velocity.z = _side_dir.z * _speed()
+		return
+	if global_position.distance_to(_last_pos) < 0.6 * delta * _speed():
+		_stuck_t += delta
+	else:
+		_stuck_t = 0.0
+	_last_pos = global_position
+	if _stuck_t > 0.8:
+		_stuck_t = 0.0
+		var f := Vector3(velocity.x, 0, velocity.z).normalized()
+		_side_dir = f.rotated(Vector3.UP, PI * 0.5 * (1.0 if randf() < 0.5 else -1.0))
+		_side_t = 0.5
+
+# fight the current target? With an objective, ignore far enemies we can't see
+func _engaged() -> bool:
+	if _target == null or not _alive_of(_target):
+		return false
+	if objective == Vector3.INF or engage_range <= 0.0:
+		return true
+	var d := global_position.distance_to(_target.global_position)
+	return d <= engage_range or _los_cached()
 
 func _refill() -> void:
 	for id in loadout:

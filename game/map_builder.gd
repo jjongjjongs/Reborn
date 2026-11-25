@@ -20,6 +20,10 @@ static func build(id: String, parent: Node3D) -> Dictionary:
 			var d := MapDowntown.new()
 			d.root = parent
 			return d.build_downtown()
+		"oldtown":
+			var o := MapOldTown.new()
+			o.root = parent
+			return o.build_oldtown()
 		"bazaar": return b._bazaar()
 		"cell": return b._cell()
 		"harbor": return b._harbor()

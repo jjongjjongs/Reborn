@@ -47,8 +47,8 @@ func _process(_dt: float) -> void:
 	# redraw when state changes outside of touch events (throw consumed by the
 	# player, grenade count, crouch toggled) or while the cancel zone is live
 	var st := "%s|%d|%s|%s|%s|%s|%s|%s|%s" % [Controls.nade_aiming, Controls.grenades, Controls.crouched, Controls.nade_over_cancel,
-		Controls.slot, Controls.slot_ammo, Controls.reloading, Controls.scoped, Controls.swapping]
-	if st != _last_state or Controls.nade_aiming:
+		Controls.slot, Controls.slot_ammo, Controls.reloading, Controls.scoped, Controls.swapping] + Controls.act_label
+	if st != _last_state or Controls.nade_aiming or Controls.act_label != "":
 		_last_state = st
 		queue_redraw()
 
@@ -108,7 +108,13 @@ func _layout() -> Dictionary:
 		out[key] = {"c": c, "r": r}
 	return out
 
+func _act_center() -> Vector2:
+	var s := get_viewport().get_visible_rect().size
+	return Vector2(s.x * 0.5, s.y * 0.64)
+
 func _role_at(pos: Vector2) -> String:
+	if Controls.act_label != "" and pos.distance_to(_act_center()) <= 74.0:
+		return "act"
 	var rects := _chip_rects()
 	for i in 3:
 		if (rects[i] as Rect2).grow(4.0).has_point(pos):
@@ -156,6 +162,8 @@ func _input(event: InputEvent) -> void:
 				Controls.request_crouch()
 			elif role == "scope":
 				Controls.request_scope()
+			elif role == "act":
+				Controls.act_held = true
 			elif role.begins_with("swap"):
 				Controls.request_swap(int(role.substr(4)))
 			elif role == "nade":
@@ -174,6 +182,8 @@ func _input(event: InputEvent) -> void:
 				_m_idx = -1; Controls.move = Vector2.ZERO
 			elif role == "fire":
 				Controls.fire_held = _has_other("fire", t.index)
+			elif role == "act":
+				Controls.act_held = _has_other("act", t.index)
 			elif role == "nade" and t.index == _nade_idx:
 				if Controls.nade_aiming:
 					if t.position.distance_to(_cancel_center()) <= CANCEL_R:
@@ -213,6 +223,12 @@ func _draw() -> void:
 	if has_scope():
 		_draw_btn(L["scope"]["c"], float(L["scope"]["r"]), "조준경", Controls.scoped, Color(0.21, 0.83, 0.61), 24)
 	_draw_chip()
+	if Controls.act_label != "":
+		var ac := _act_center()
+		var col := Color(1.0, 0.55, 0.15) if Controls.act_label == "설치" else Color(0.35, 0.68, 1.0)
+		_draw_btn(ac, 70.0, Controls.act_label, Controls.act_held, col, 30)
+		if Controls.act_progress > 0.0:
+			draw_arc(ac, 80.0, -PI * 0.5, -PI * 0.5 + TAU * Controls.act_progress, 48, col, 8.0, true)
 	var cr_c := Color(0.56, 0.76, 1.0)
 	_draw_btn(L["crouch"]["c"], float(L["crouch"]["r"]), "서기" if Controls.crouched else "앉기",
 		Controls.crouched or _active("crouch"), cr_c, 28)

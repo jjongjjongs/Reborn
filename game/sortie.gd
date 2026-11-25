@@ -14,6 +14,15 @@ const MUTED := Color(0.54, 0.60, 0.66)
 const SOFT := Color(0.65, 0.71, 0.75)
 
 # maps: only the training ground is built so far; the others are planned originals
+# bomb-defusal maps (only offered for 폭파미션)
+const BOMB_MAPS := [
+	{"id": "oldtown", "name": "구시가지", "en": "OLD TOWN", "size": "대형 · 5 vs 5", "tag": "성당 광장 A · 시장 B · 운하 다리", "ready": true,
+		"ground": Color("3a3d42"), "rects": [[6, 25, 26, 22, "b9b2a6"], [64, 17, 30, 30, "6e5a48"], [12, 30, 12, 12, "ff7a1a"], [72, 25, 14, 12, "f2c14e"], [44, 20, 12, 60, "2a2d31"], [60, 65, 40, 5, "1d4a63"], [38, 88, 24, 11, "f05a52"], [38, 12, 24, 8, "56a8ff"]]},
+	{"id": "dockside", "name": "항만 창고", "en": "DOCKSIDE", "size": "대형 · 5 vs 5", "tag": "실내 창고 A · 컨테이너 B", "ready": false,
+		"ground": Color("30353b"), "rects": [[0, 0, 100, 8, "1d4a63"], [6, 20, 32, 30, "3d362f"], [64, 20, 30, 30, "a2482f"], [38, 50, 26, 10, "3a3430"]]},
+	{"id": "facility", "name": "연구 시설", "en": "FACILITY", "size": "대형 · 5 vs 5", "tag": "반응로실 A · 하역장 B", "ready": false,
+		"ground": Color("2a2e33"), "rects": [[4, 17, 34, 38, "3d362f"], [62, 17, 34, 33, "3d362f"], [42, 55, 16, 20, "3b3f45"]]},
+]
 const MAPS := [
 	{"id": "downtown", "name": "다운타운", "en": "DOWNTOWN", "size": "중형 · 4–8명", "tag": "대로 + 뒷골목, 옥상 2곳", "ready": true,
 		"ground": Color("3a3d42"), "rects": [[0, 44, 100, 12, "23262a"], [0, 60, 22, 40, "8a4a3a"], [78, 0, 22, 40, "8a4a3a"], [29, 14, 20, 24, "b9b2a6"], [51, 60, 20, 24, "b9b2a6"], [54, 14, 21, 24, "7a3b2e"], [25, 60, 21, 24, "7a3b2e"], [10, 46, 6, 6, "d6c63a"], [62, 48, 6, 6, "3a6fd6"]]},
@@ -47,7 +56,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var bg := ColorRect.new(); bg.color = Color(0.043, 0.055, 0.071)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); add_child(bg)
-	if not _map_ready(Controls.sel_map): Controls.sel_map = "range"
+	if not _map_ready(Controls.sel_map): Controls.sel_map = "oldtown" if kind == "bomb" else "downtown"
 
 	# --- top bar ---
 	var back := _btn("‹ 메뉴", 20, Vector2(28, 18), Vector2(110, 48))
@@ -67,7 +76,7 @@ func _ready() -> void:
 	var col_h := 520.0
 	var c1 := _panel(Vector2(28, col_y), Vector2(548, col_h)); add_child(c1)
 	var h1 := _label("맵", 20, FG); h1.position = Vector2(16, 12); c1.add_child(h1)
-	var h1b := _label("%d개" % MAPS.size(), 14, MUTED); h1b.position = Vector2(46, 17); c1.add_child(h1b)
+	var h1b := _label("%d개" % _maps().size(), 14, MUTED); h1b.position = Vector2(46, 17); c1.add_child(h1b)
 	_map_box = GridContainer.new(); _map_box.columns = 2
 	_map_box.position = Vector2(16, 48)
 	_map_box.add_theme_constant_override("h_separation", 10)
@@ -134,8 +143,11 @@ func _launch() -> void:
 	Controls.reset()
 	get_tree().change_scene_to_file(scene)
 
+func _maps() -> Array:
+	return BOMB_MAPS if kind == "bomb" else MAPS
+
 func _map_ready(id: String) -> bool:
-	for m in MAPS:
+	for m in _maps():
 		if m["id"] == id: return bool(m["ready"])
 	return false
 
@@ -143,7 +155,7 @@ func _refresh() -> void:
 	if not is_inside_tree(): return
 	# maps
 	for c in _map_box.get_children(): c.queue_free()
-	for m in MAPS:
+	for m in _maps():
 		_map_box.add_child(_map_card(m))
 	# difficulty
 	for c in _diff_box.get_children(): c.queue_free()
@@ -193,9 +205,9 @@ func _refresh() -> void:
 		_slots.add_child(row)
 	# summary
 	var mname := ""
-	for m in MAPS:
+	for m in _maps():
 		if m["id"] == Controls.sel_map: mname = m["name"]
-	var who := "웨이브 5" if surv else ("3 vs 3" if kind == "team" else "개인전 6명")
+	var who := "웨이브 5" if surv else ("3 vs 3" if kind == "team" else ("5 vs 5 · 7승" if kind == "bomb" else "개인전 6명"))
 	_summary.text = "%s · %s · %s" % [mname, Difficulty.cur()["name"], who]
 
 func _map_card(m: Dictionary) -> Button:

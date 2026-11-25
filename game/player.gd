@@ -47,6 +47,7 @@ const NADE_PITCH_MIN := -15.0
 const NADE_PITCH_MAX := 45.0      # 45 deg = farthest throw
 const NADE_PITCH_SENS := 0.6
 var nade_pitch := 0.0
+var frozen := false        # round prep (bomb defusal): look around only
 var _nade_was := false
 
 func _ready() -> void:
@@ -191,14 +192,14 @@ func _physics_process(delta: float) -> void:
 	dir.y = 0.0
 	if dir.length() > 1.0:
 		dir = dir.normalized()
-	var spd := SPEED * Controls.speed_mult * (CROUCH_SPEED if crouched else 1.0) \
+	var spd := 0.0 if frozen else SPEED * Controls.speed_mult * (CROUCH_SPEED if crouched else 1.0) \
 		* float(Weapons.get_w(_wid())["speed"]) * (0.6 if Controls.scoped else 1.0)
 	velocity.x = dir.x * spd
 	velocity.z = dir.z * spd
 	if Controls.consume_crouch():
 		_set_crouch(not crouched)
 	if is_on_floor():
-		if Controls.consume_jump():
+		if Controls.consume_jump() and not frozen:
 			if crouched: _set_crouch(false)     # jump while crouched = stand up
 			else: velocity.y = JUMP_VELOCITY
 	else:
@@ -253,7 +254,7 @@ func _physics_process(delta: float) -> void:
 	var pressed := Controls.fire_held and not _fire_was
 	_fire_was = Controls.fire_held
 	var want_fire := Controls.fire_held if (melee or bool(w.get("auto", false))) else pressed
-	if want_fire and not nade_aim and _fire_cd <= 0.0 and _reload_t <= 0.0 and _swap_t <= 0.0:
+	if want_fire and not frozen and not nade_aim and _fire_cd <= 0.0 and _reload_t <= 0.0 and _swap_t <= 0.0:
 		if melee:
 			_stab()
 			_fire_cd = Weapons.interval(_wid())
