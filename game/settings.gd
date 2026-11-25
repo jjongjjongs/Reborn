@@ -80,6 +80,14 @@ func _build() -> void:
 
 	v.add_child(_toggle("왼손 모드", "조이스틱/사격 좌우 전환", Controls.left_handed, func(on: bool) -> void:
 		Controls.left_handed = on; Controls.save_settings(); Sfx.play("ui")))
+	v.add_child(_sep())
+
+	var he := Button.new(); he.text = "HUD 버튼 편집  ›"; he.focus_mode = Control.FOCUS_NONE
+	he.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	he.add_theme_font_size_override("font_size", 24)
+	he.flat = true
+	he.pressed.connect(_open_hud_editor)
+	v.add_child(he)
 
 	var ver := Label.new()
 	ver.text = "버전 %s" % _app_version()
@@ -89,6 +97,12 @@ func _build() -> void:
 	v.add_child(ver)
 
 	add_child(_sheet)
+
+func _open_hud_editor() -> void:
+	Sfx.play("ui")
+	close()
+	get_tree().paused = false
+	get_tree().change_scene_to_file("res://HudEditor.tscn")
 
 func _sync() -> void:
 	if _sens_val:

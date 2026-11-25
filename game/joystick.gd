@@ -35,25 +35,40 @@ func _process(_dt: float) -> void:
 		Controls.fire_held = false
 		queue_redraw()
 
-func _centers() -> Dictionary:
-	var s := get_viewport().get_visible_rect().size
+func _base_radius(key: String) -> float:
+	return R_FIRE if key == "fire" else R_SMALL
+
+func _default_center(key: String, s: Vector2) -> Vector2:
 	var lh := Controls.left_handed
 	var fx := 150.0 if lh else s.x - 150.0        # fire / jump column
 	var rx := 370.0 if lh else s.x - 370.0        # reload (toward center)
-	return {
-		"fire": Vector2(fx, s.y - 160.0),
-		"jump": Vector2(fx, s.y - 380.0),
-		"reload": Vector2(rx, s.y - 160.0),
-	}
+	match key:
+		"fire": return Vector2(fx, s.y - 160.0)
+		"jump": return Vector2(fx, s.y - 380.0)
+		"reload": return Vector2(rx, s.y - 160.0)
+	return Vector2.ZERO
+
+# center + radius per button, honoring custom HUD layout (fractions of screen)
+func _layout() -> Dictionary:
+	var s := get_viewport().get_visible_rect().size
+	var out := {}
+	for key in ["fire", "jump", "reload"]:
+		var c: Vector2
+		var r := _base_radius(key)
+		if Controls.hud_layout.has(key):
+			var d: Dictionary = Controls.hud_layout[key]
+			c = Vector2(float(d.get("x", 0.5)) * s.x, float(d.get("y", 0.5)) * s.y)
+			r *= float(d.get("s", 1.0))
+		else:
+			c = _default_center(key, s)
+		out[key] = {"c": c, "r": r}
+	return out
 
 func _role_at(pos: Vector2) -> String:
-	var c := _centers()
-	if pos.distance_to(c["fire"]) <= R_FIRE:
-		return "fire"
-	if pos.distance_to(c["jump"]) <= R_SMALL:
-		return "jump"
-	if pos.distance_to(c["reload"]) <= R_SMALL:
-		return "reload"
+	var L := _layout()
+	for key in ["fire", "jump", "reload"]:
+		if pos.distance_to(L[key]["c"]) <= float(L[key]["r"]):
+			return key
 	var on_left := pos.x < get_viewport().get_visible_rect().size.x * 0.5
 	# move stick lives on the opposite side from the action buttons
 	if on_left == (not Controls.left_handed):
@@ -115,10 +130,10 @@ func _active(role: String) -> bool:
 	return _touch.values().has(role)
 
 func _draw() -> void:
-	var c := _centers()
-	_draw_btn(c["fire"], R_FIRE, "사격", _active("fire"), Color(1.0, 0.36, 0.22))
-	_draw_btn(c["jump"], R_SMALL, "점프", _active("jump"), Color(0.8, 0.85, 0.9))
-	_draw_btn(c["reload"], R_SMALL, "장전", _active("reload"), Color(0.8, 0.85, 0.9))
+	var L := _layout()
+	_draw_btn(L["fire"]["c"], float(L["fire"]["r"]), "사격", _active("fire"), Color(1.0, 0.36, 0.22))
+	_draw_btn(L["jump"]["c"], float(L["jump"]["r"]), "점프", _active("jump"), Color(0.8, 0.85, 0.9))
+	_draw_btn(L["reload"]["c"], float(L["reload"]["r"]), "장전", _active("reload"), Color(0.8, 0.85, 0.9))
 	if _m_idx != -1:
 		draw_circle(_m_origin, MOVE_RADIUS, Color(1, 1, 1, 0.06))
 		draw_arc(_m_origin, MOVE_RADIUS, 0.0, TAU, 48, Color(1.0, 0.61, 0.24, 0.5), 3.0, true)

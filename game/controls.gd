@@ -55,6 +55,11 @@ var sfx_on: bool = true
 var vibrate_on: bool = true
 var look_sens: float = 1.0      # 0.4 .. 2.0 multiplier
 var left_handed: bool = false
+var hud_layout: Dictionary = {}   # "fire"/"jump"/"reload" -> {x,y (frac), s (scale)}
+
+func reset_hud() -> void:
+	hud_layout.clear()
+	save_settings()
 
 func vibrate(ms: int = 40) -> void:
 	if vibrate_on:
@@ -125,6 +130,9 @@ func _load_best() -> void:
 		vibrate_on = bool(data.get("vibrate_on", true))
 		look_sens = clampf(float(data.get("look_sens", 1.0)), 0.4, 2.0)
 		left_handed = bool(data.get("left_handed", false))
+		var hl = data.get("hud_layout", {})
+		if typeof(hl) == TYPE_DICTIONARY:
+			hud_layout = hl
 
 func save_settings() -> void:
 	_save_best()
@@ -137,5 +145,6 @@ func _save_best() -> void:
 		"best_wave": best_wave, "best_kills": best_kills, "best_time": best_time,
 		"sfx_on": sfx_on, "vibrate_on": vibrate_on,
 		"look_sens": look_sens, "left_handed": left_handed,
+		"hud_layout": hud_layout,
 	}))
 	f.close()
