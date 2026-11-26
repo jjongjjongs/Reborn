@@ -56,6 +56,7 @@ var _diff_box: VBoxContainer
 var _detail: GridContainer
 var _slots: VBoxContainer
 var _summary: Label
+var _view_btns: Array = []   # [1인칭, 3인칭]
 
 func setup(t: String, sub: String, sc: String, k: String) -> SortieScreen:
 	title = t; subtitle = sub; scene = sc; kind = k
@@ -145,6 +146,21 @@ func _ready() -> void:
 	go.offset_left = -328; go.offset_right = -28; go.offset_top = -86; go.offset_bottom = -22
 	go.pressed.connect(_launch)
 	add_child(go)
+
+	# view: first / third person (remembered, applies to every mode)
+	var vbox := HBoxContainer.new(); vbox.add_theme_constant_override("separation", 8)
+	vbox.anchor_left = 0.5; vbox.anchor_right = 0.5; vbox.anchor_top = 1.0; vbox.anchor_bottom = 1.0
+	vbox.offset_left = -250; vbox.offset_right = 200; vbox.offset_top = -84; vbox.offset_bottom = -24
+	var vl := _label("시점", 20, MUTED); vl.custom_minimum_size = Vector2(56, 0)
+	vl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER; vbox.add_child(vl)
+	for t in [["1인칭", true, "총구 시점 · 몰입"], ["3인칭", false, "어깨 너머 · 시야 넓음"]]:
+		var b := Button.new(); b.focus_mode = Control.FOCUS_NONE; b.custom_minimum_size = Vector2(180, 60)
+		var l1 := _label(t[0], 20, FG); l1.position = Vector2(14, 4); l1.mouse_filter = Control.MOUSE_FILTER_IGNORE; b.add_child(l1)
+		var l2 := _label(t[2], 13, SOFT); l2.position = Vector2(14, 32); l2.mouse_filter = Control.MOUSE_FILTER_IGNORE; b.add_child(l2)
+		var fp: bool = t[1]
+		b.pressed.connect(func() -> void: Sfx.play("ui"); Controls.view_fp = fp; _refresh())
+		vbox.add_child(b); _view_btns.append(b)
+	add_child(vbox)
 	_refresh()
 
 func _launch() -> void:
@@ -210,6 +226,11 @@ func _refresh() -> void:
 		var a := _label(r[0], 14, MUTED); a.custom_minimum_size = Vector2(134, 0); _detail.add_child(a)
 		var v := _label(r[1], 14, FG); v.custom_minimum_size = Vector2(134, 0)
 		v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT; _detail.add_child(v)
+	# view toggle
+	for i in _view_btns.size():
+		var on: bool = (i == 0) == Controls.view_fp
+		for k in ["normal", "hover", "pressed"]:
+			(_view_btns[i] as Button).add_theme_stylebox_override(k, _sb(SEL_BG if on else CARD, ACCENT if on else LINE2, 2 if on else 1, 10))
 	# loadout slots
 	for c in _slots.get_children(): c.queue_free()
 	var names := ["주무기", "보조", "근접", "투척"]

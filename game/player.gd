@@ -304,7 +304,7 @@ func _physics_process(delta: float) -> void:
 	if _soldier:
 		var hspeed := Vector2(velocity.x, velocity.z).length()
 		var ratio := hspeed / (SPEED * maxf(0.1, Controls.speed_mult) * (CROUCH_SPEED if crouched else 1.0))
-		_soldier.visible = scope_k < 0.5          # scoped: first-person view
+		_soldier.visible = scope_k < 0.5 and not Controls.view_fp   # scoped / 1인칭: no own body
 		_soldier.drive(ratio, Controls.fire_held or _reload_t > 0.0)
 
 func _start_reload() -> void:
@@ -353,7 +353,7 @@ func _shoot(w: Dictionary) -> void:
 				col.hit(dmg, is_head, self)
 				any_hit = true
 		if p == 0 or randf() < 0.35:
-			_tracer(_muzzle.global_position, end)
+			_tracer(ViewModel.muzzle if (Controls.view_fp and ViewModel.active and scope_k < 0.5) else _muzzle.global_position, end)
 		last_end = end
 	if any_hit:
 		Fx.hitmarker()

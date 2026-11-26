@@ -1,11 +1,23 @@
 class_name CamRig
-## Third-person camera shared by the modes: over-the-shoulder follow, sniper scope
+## Camera shared by the modes. 1인칭 (Controls.view_fp): at the eyes with a ViewModel.
+## Third-person: over-the-shoulder follow, sniper scope
 ## blend, and wall collision (the camera is pulled in front of anything between
 ## the player's head and its wanted spot, so walls never block or get seen through).
 
 static func follow(cam: Camera3D, player: PlayerBody) -> void:
 	var b := Basis.from_euler(Vector3(deg_to_rad(player.aim_pitch), deg_to_rad(player.aim_yaw), 0))
 	var fwd := -b.z
+	if Controls.view_fp:
+		# 1인칭: eyes + weapon view model on the camera
+		if cam.get_node_or_null("ViewModel") == null:
+			var vm := ViewModel.new(); vm.name = "ViewModel"; vm.player = player
+			cam.add_child(vm)
+		cam.near = 0.03
+		cam.global_position = player.global_position + Vector3(0, player.eye_h + 0.18, 0) + Controls.shake_offset()
+		cam.global_basis = b
+		cam.fov = lerpf(72.0, 72.0 / 2.5, player.scope_k)
+		return
+	cam.near = 0.05
 	var pivot := player.global_position + Vector3(0, player.eye_h, 0)
 	var k := player.scope_k                     # sniper scope: first person + zoom
 	var want := pivot - fwd * lerpf(4.0, -0.2, k) + b.x * lerpf(0.7, 0.0, k) + Vector3(0, lerpf(0.3, 0.1, k), 0)
