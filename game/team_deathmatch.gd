@@ -87,6 +87,7 @@ func _on_died(attacker, victim) -> void:
 		_score[kt] += 1
 		if attacker == player:
 			Controls.kills += 1
+			Missions.add("kill"); if Controls.weapon_id == "knife": Missions.add("knife_kill")
 		if _score[kt] >= TEAM_TARGET:
 			_end_match(kt)
 			return
@@ -116,6 +117,9 @@ func _end_match(winner_team: int) -> void:
 	_result.visible = true
 	var v := _result.get_node("v")
 	(v.get_node("t") as Label).text = "승리!" if winner_team == RED else "패배"
+	Missions.add("match")
+	if winner_team == RED: Missions.add("win")
+	Missions.record("팀 데스매치", SortieScreen.map_name(Controls.sel_map), "%s %d : %d · 처치 %d" % ["승리" if winner_team == RED else "패배", _score[RED], _score[BLUE], Controls.kills])
 	(v.get_node("s") as Label).text = "레드 %d : %d 블루\n내 처치 %d\n목표 %d 선취" % [
 		_score[RED], _score[BLUE], Controls.kills, TEAM_TARGET]
 

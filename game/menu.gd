@@ -29,8 +29,10 @@ func _ready() -> void:
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 
+	_backdrop()
 	_top_bar()
 	_logo()
+	_cards()
 	_mode_stack()
 	_bottom_nav()
 	if not Updater.checked.is_connected(_on_update_checked):
@@ -59,7 +61,7 @@ func _top_bar() -> void:
 	add_child(pill)
 	var coin := _panel(Vector2(16, 12), Vector2(24, 24), Color(0.90, 0.68, 0.18), Color(0.66, 0.47, 0.10), 1, 12)
 	pill.add_child(coin)
-	var gv := _label("0", 22, FG, true); gv.position = Vector2(52, 10); pill.add_child(gv)
+	var gv := _label(str(Missions.coins()), 22, FG, true); gv.position = Vector2(52, 10); pill.add_child(gv)
 
 	# update button (left of gold)
 	_upd_btn = Button.new()
@@ -73,15 +75,95 @@ func _top_bar() -> void:
 	_upd_btn.pressed.connect(func() -> void: Updater.show_dialog())
 	add_child(_upd_btn)
 
+# ---- live backdrop: the old quarter with your soldier holding your primary ----
+var _bd_cam: Camera3D
+var _bd_t := 0.0
+const BD_SOLDIER := Vector3(1.0, 0.0, 35.0)
+
+func _backdrop() -> void:
+	var svc := SubViewportContainer.new(); svc.stretch = true
+	svc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); svc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(svc)
+	var vp := SubViewport.new(); vp.own_world_3d = true
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	svc.add_child(vp)
+	var w := Node3D.new(); vp.add_child(w)
+	MapBuilder.backdrop = true
+	MapBuilder.build("quarter", w)
+	MapBuilder.backdrop = false
+	var s := Soldier.new(); w.add_child(s); s.setup(Color(0.95, 0.62, 0.24))
+	s.position = BD_SOLDIER; s.rotation_degrees.y = 55.0
+	s.set_weapon(Controls.loadout[0] if Controls.loadout[0] != "knife" else "m4"); s.drive(0.0, true)
+	_bd_cam = Camera3D.new(); _bd_cam.fov = 36.0; w.add_child(_bd_cam); _bd_cam.current = true
+	_place_cam()
+	# shade the sides so the logo / cards (left) and the mode list (right) stay readable
+	var g := Gradient.new(); g.set_color(0, Color(0.03, 0.04, 0.05, 0.62)); g.set_color(1, Color(0.03, 0.04, 0.05, 0.92))
+	g.add_point(0.42, Color(0.03, 0.04, 0.05, 0.10))
+	var gt := GradientTexture2D.new(); gt.gradient = g; gt.width = 256; gt.height = 8
+	var tr := TextureRect.new(); tr.texture = gt; tr.stretch_mode = TextureRect.STRETCH_SCALE
+	tr.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(tr)
+
+func _place_cam() -> void:
+	var a := sin(_bd_t * 0.18) * 0.35            # slow sway around the soldier
+	var off := Vector3(-4.2 * cos(a), 1.35 + sin(_bd_t * 0.13) * 0.06, 0.3 - 4.2 * sin(a) * 0.5)
+	_bd_cam.position = BD_SOLDIER + off
+	_bd_cam.look_at(BD_SOLDIER + Vector3(0.0, 1.05, 0.55), Vector3.UP)
+
+func _process(dt: float) -> void:
+	if _bd_cam:
+		_bd_t += dt
+		_place_cam()
+
 # ---- logo (left) ----
 func _logo() -> void:
-	var k1 := _label("MINI", 58, FG, true); k1.position = Vector2(72, 268); add_child(k1)
-	var k2 := _label("SOLDIER", 58, ACCENT, true); k2.position = Vector2(72, 332); add_child(k2)
-	var dog := _label("OFFLINE · SOLO OPS", 18, DIM, true); dog.position = Vector2(78, 420); add_child(dog)
-	var rec := _label("최고 웨이브 %d · 처치 %d" % [Controls.best_wave, Controls.best_kills], 18, MUTED, false)
-	rec.position = Vector2(78, 452); add_child(rec)
+	var k1 := _label("MINI", 58, FG, true); k1.position = Vector2(72, 190); add_child(k1)
+	var k2 := _label("SOLDIER", 58, ACCENT, true); k2.position = Vector2(72, 254); add_child(k2)
+	var dog := _label("OFFLINE · SOLO OPS", 18, MUTED, true); dog.position = Vector2(78, 332); add_child(dog)
 	var ver := _label("v%d · %s" % [int(ProjectSettings.get_setting("application/config/build_code", 0)), str(ProjectSettings.get_setting("application/config/version", ""))], 16, DIM, false)
-	ver.position = Vector2(78, 482); add_child(ver)
+	ver.position = Vector2(78, 360); add_child(ver)
+
+# ---- cards (bottom left): today's missions + last match ----
+func _cards() -> void:
+	var box := VBoxContainer.new(); box.add_theme_constant_override("separation", 10)
+	box.position = Vector2(72, 396); box.custom_minimum_size = Vector2(400, 0); add_child(box)
+	var ms := Missions.today()
+	var done := 0
+	for x in ms: if x["done"]: done += 1
+	var p := _card_panel(); box.add_child(p)
+	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 4); p.add_child(v)
+	var h := HBoxContainer.new()
+	var t := _label("오늘의 임무", 15, ACCENT, false); t.size_flags_horizontal = Control.SIZE_EXPAND_FILL; h.add_child(t)
+	h.add_child(_label("%d / %d 완료" % [done, ms.size()], 14, MUTED, false)); v.add_child(h)
+	for x in ms:
+		var r := HBoxContainer.new(); r.add_theme_constant_override("separation", 8)
+		var nm := _label(("✓ " if x["done"] else "") + String(x["text"]), 17, Color(0.45, 0.85, 0.6) if x["done"] else FG, false)
+		nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL; r.add_child(nm)
+		r.add_child(_label("%d/%d" % [int(x["have"]), int(x["goal"])], 15, MUTED, false))
+		r.add_child(_label("◆%d" % int(x["coin"]), 15, Color(0.95, 0.75, 0.3), false))
+		v.add_child(r)
+		var pb := ProgressBar.new(); pb.max_value = float(x["goal"]); pb.value = float(x["have"]); pb.show_percentage = false
+		pb.custom_minimum_size = Vector2(0, 4)
+		pb.add_theme_stylebox_override("background", _sb(Color(0.15, 0.18, 0.21), Color(0, 0, 0, 0), 0, 2))
+		pb.add_theme_stylebox_override("fill", _sb(Color(0.45, 0.85, 0.6) if x["done"] else ACCENT, Color(0, 0, 0, 0), 0, 2))
+		v.add_child(pb)
+	var last := Missions.last()
+	var p2 := _card_panel(); box.add_child(p2)
+	var v2 := VBoxContainer.new(); v2.add_theme_constant_override("separation", 2); p2.add_child(v2)
+	var h2 := HBoxContainer.new()
+	var t2 := _label("최근 기록", 15, ACCENT, false); t2.size_flags_horizontal = Control.SIZE_EXPAND_FILL; h2.add_child(t2)
+	h2.add_child(_label("최고 웨이브 %d · 처치 %d" % [Controls.best_wave, Controls.best_kills], 14, MUTED, false)); v2.add_child(h2)
+	if last.is_empty():
+		v2.add_child(_label("아직 기록이 없습니다 — 첫 판을 시작해 보세요", 17, MUTED, false))
+	else:
+		v2.add_child(_label("%s · %s" % [last["mode"], last["map"]], 18, FG, false))
+		v2.add_child(_label(String(last["result"]), 15, MUTED, false))
+
+func _card_panel() -> PanelContainer:
+	var p := PanelContainer.new()
+	var sb := _sb(Color(0.07, 0.09, 0.11, 0.86), LINE, 1, 12); sb.set_content_margin_all(12)
+	p.add_theme_stylebox_override("panel", sb)
+	return p
 
 # ---- mode stack (right) ----
 func _mode_stack() -> void:

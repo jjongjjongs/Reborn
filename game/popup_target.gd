@@ -41,6 +41,7 @@ func hit(dmg: int, is_head: bool = false, _attacker = null) -> void:
 	hp -= dmg
 	if hp <= 0:
 		Controls.kills += 1
+		Missions.add("target")
 		_down_t = DOWN_TIME
 		for cs in _cols: (cs as CollisionShape3D).set_deferred("disabled", true)
 		Sfx.play("hit")

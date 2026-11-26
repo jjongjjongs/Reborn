@@ -5,6 +5,7 @@ extends RefCounted
 ## still made here.
 ## build() returns spawn lists: {"ffa", "red", "blue", "zombie": Array[Vector3], "player": Vector3}
 
+static var backdrop := false   # building only to look at (main menu): no navmesh
 var root: Node3D
 var nav: NavigationRegion3D
 var _mats := {}

@@ -198,6 +198,7 @@ func _live(dt: float) -> void:
 		elif defuser is BotPlayer:
 			defuse_prog += dt / DEFUSE
 		if defuse_prog >= 1.0:
+			if defuser == player: Missions.add("defuse")
 			_bomb_light.visible = false
 			bomb_state = "gone"
 			_end_round(def_team, "폭탄 해체")
@@ -232,6 +233,7 @@ func _enemy_near(n: Node3D, r: float) -> bool:
 
 func _plant(site: String) -> void:
 	bomb_state = "planted"; bomb_t = FUSE; plant_prog = 0.0
+	if carrier == player: Missions.add("plant")
 	bomb_pos = carrier.global_position
 	if carrier is BotPlayer: carrier.busy = false
 	_place_bomb(true)
@@ -304,6 +306,7 @@ func _jit(r: float) -> Vector3:
 func _on_died(attacker, victim) -> void:
 	if attacker == player and victim != player:
 		Controls.kills += 1
+		Missions.add("kill"); if Controls.weapon_id == "knife": Missions.add("knife_kill")
 
 # ---------------------------------------------------------------- bomb visual
 func _build_bomb() -> void:
@@ -384,6 +387,9 @@ func _end_match() -> void:
 	_result.visible = true
 	var v := _result.get_node("v")
 	(v.get_node("t") as Label).text = "승리!" if score[RED] > score[BLUE] else "패배"
+	Missions.add("match")
+	if score[RED] > score[BLUE]: Missions.add("win")
+	Missions.record("폭파미션", SortieScreen.map_name(Controls.sel_map), "%s %d : %d · 처치 %d" % ["승리" if score[RED] > score[BLUE] else "패배", score[RED], score[BLUE], Controls.kills])
 	(v.get_node("s") as Label).text = "레드 %d : %d 블루\n내 처치 %d" % [score[RED], score[BLUE], Controls.kills]
 
 func _build_hud() -> void:

@@ -101,6 +101,7 @@ func hit(dmg: int, is_head: bool = false, _attacker = null) -> void:
 func _die() -> void:
 	_dead = true
 	Controls.kills += 1
+	Missions.add("kill"); if Controls.weapon_id == "knife": Missions.add("knife_kill")
 	Controls.points += 10
 	if _last_head:
 		Controls.points += 5

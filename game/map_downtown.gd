@@ -214,6 +214,7 @@ func jersey(p: Vector3, yaw: float) -> void:
 	sb.transform = Transform3D(b, p + Vector3(0, 0.53, 0)); nav.add_child(sb)
 
 func _bake_colliders() -> void:
+	if MapBuilder.backdrop: return       # menu backdrop: nobody walks, skip the navmesh
 	var nm := NavigationMesh.new()
 	nm.cell_size = 0.25; nm.cell_height = 0.2
 	nm.agent_radius = 0.5; nm.agent_height = 1.8; nm.agent_max_climb = 0.35; nm.agent_max_slope = 40.0

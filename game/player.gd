@@ -379,6 +379,7 @@ func _shoot(w: Dictionary) -> void:
 				var dmg := randi_range(int(w["dmg"][0]), int(w["dmg"][1]))
 				if is_head:
 					dmg = int(dmg * HEAD_MULT)
+					Missions.add("headshot")
 				if randf() < CRIT_CHANCE:
 					dmg = int(dmg * CRIT_MULT)
 				dmg = int(dmg * Controls.dmg_mult)

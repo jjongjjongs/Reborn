@@ -168,6 +168,9 @@ func end_run(win: bool) -> void:
 	game_over = true
 	victory = win
 	new_best = false
+	Missions.add("match"); Missions.add("wave", wave)
+	if win: Missions.add("win")
+	Missions.record("웨이브 서바이벌", SortieScreen.map_name(sel_map), "%s · 웨이브 %d · 처치 %d" % ["클리어" if win else "전멸", wave, kills])
 	if wave > best_wave:
 		best_wave = wave; new_best = true
 	if kills > best_kills:

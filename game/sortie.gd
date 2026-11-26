@@ -31,6 +31,11 @@ const TRAIN_MAPS := [
 const KIND_COL := {"street": "8c8678", "plaza": "b9b2a6", "siteA": "ff7a1a", "siteB": "f2c14e", "att": "f05a52", "def": "56a8ff",
 	"room": "5f5a52", "tunnel": "1d4a63", "water": "1d4a63"}
 
+static func map_name(id: String) -> String:
+	for m in BOMB_MAPS + MAPS + TRAIN_MAPS:
+		if m["id"] == id: return m["name"]
+	return id
+
 static func _thumb_rects(m: Dictionary) -> Array:
 	if not m.has("plan"): return m["rects"]
 	var p = JSON.parse_string(FileAccess.get_file_as_string("res://assets/maps/%s.json" % m["plan"]))

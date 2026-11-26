@@ -85,6 +85,7 @@ func _on_died(attacker, victim) -> void:
 	var killer_kills := -1
 	if attacker == player:
 		Controls.kills += 1
+		Missions.add("kill"); if Controls.weapon_id == "knife": Missions.add("knife_kill")
 		killer_kills = Controls.kills
 	elif attacker is BotPlayer and attacker != victim:
 		attacker.kills += 1
@@ -128,6 +129,9 @@ func _end_match(winner) -> void:
 	Pause.disarm()
 	get_tree().paused = true
 	var win: bool = (winner == player)
+	Missions.add("match")
+	if win: Missions.add("win")
+	Missions.record("데스매치", SortieScreen.map_name(Controls.sel_map), "%s · 처치 %d" % ["1위" if win else "패배", Controls.kills])
 	_result.visible = true
 	var r := _result.get_node("v")
 	(r.get_node("t") as Label).text = "승리!" if win else "패배"
