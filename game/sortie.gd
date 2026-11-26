@@ -16,6 +16,8 @@ const SOFT := Color(0.65, 0.71, 0.75)
 # maps: only the training ground is built so far; the others are planned originals
 # bomb-defusal maps (only offered for 폭파미션)
 const BOMB_MAPS := [
+	{"id": "quarter", "name": "구도심", "en": "OLD QUARTER", "size": "110×100m · 5 vs 5", "tag": "지하 통로 · 발코니 · 중앙 고지대", "ready": true,
+		"ground": Color("3a3d42"), "rects": [[3.6, 82, 92.7, 6, "8c8678"], [3.6, 38, 9.1, 44, "8c8678"], [3.6, 4, 92.7, 8, "8c8678"], [49.1, 38, 14.5, 20, "b9b2a6"], [3.6, 16, 23.6, 22, "ff7a1a"], [70.9, 18, 23.6, 24, "f2c14e"], [83.6, 52, 10.9, 30, "8c8678"], [52.7, 58, 5.5, 24, "8c8678"], [58.2, 66, 25.5, 4, "8c8678"], [69.1, 58, 3.6, 18, "1d4a63"], [38.2, 88, 25.5, 10, "f05a52"], [40, 12, 20, 8, "56a8ff"]]},
 	{"id": "oldtown2", "name": "구시가지", "en": "OLD TOWN", "size": "200×150m · 5 vs 5", "tag": "언덕 위 A · 시장 B · 운하 다리 4곳", "ready": true,
 		"ground": Color("3a3d42"), "rects": [[6, 25, 26, 22, "b9b2a6"], [64, 17, 30, 30, "6e5a48"], [12, 30, 12, 12, "ff7a1a"], [72, 25, 14, 12, "f2c14e"], [44, 20, 12, 60, "2a2d31"], [60, 65, 40, 5, "1d4a63"], [38, 88, 24, 11, "f05a52"], [38, 12, 24, 8, "56a8ff"]]},
 	{"id": "dockside", "name": "항만 창고", "en": "DOCKSIDE", "size": "대형 · 5 vs 5", "tag": "실내 창고 A · 컨테이너 B", "ready": false,
@@ -56,7 +58,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var bg := ColorRect.new(); bg.color = Color(0.043, 0.055, 0.071)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); add_child(bg)
-	if not _map_ready(Controls.sel_map): Controls.sel_map = "oldtown2" if kind == "bomb" else "downtown"
+	if not _map_ready(Controls.sel_map): Controls.sel_map = "quarter" if kind == "bomb" else "downtown"
 
 	# --- top bar ---
 	var back := _btn("‹ 메뉴", 20, Vector2(28, 18), Vector2(110, 48))

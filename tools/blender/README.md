@@ -13,3 +13,10 @@ every non-walkable area with buildings (parcel heights, windows, cornices).
 5. Re-run the texture slimmer so the GLB points at `game/assets/city/tex/`.
 
 Godot side: `game/map_oldtown2.gd` loads the GLB, adds collisions, props, spawns and sites.
+
+## 구도심 (oldquarter) — multi-level bomb map
+`build_quarter.py` reads `game/assets/maps/oldquarter.json` (spaces / ramps / blocks)
+and meshes every 0.5 m column as a stack of solid intervals, so rooms, a tunnel
+under a street, balconies and catwalks are possible. Stair steps go to a separate
+visual-only `Steps` mesh; Godot (`map_quarter.gd`) walks on smooth wedge colliders
+built from the same `ramps` list. Export with `export_quarter.py`.

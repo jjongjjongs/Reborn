@@ -49,8 +49,8 @@ var _result: Control
 var _banner_t := 0.0
 
 func _ready() -> void:
-	if not Controls.sel_map in ["oldtown2", "oldtown"]:
-		Controls.sel_map = "oldtown2"
+	if not Controls.sel_map in ["quarter", "oldtown2", "oldtown"]:
+		Controls.sel_map = "quarter"
 	info = MapBuilder.build(Controls.sel_map, self)
 	player = PlayerBody.new()
 	player.team = RED
