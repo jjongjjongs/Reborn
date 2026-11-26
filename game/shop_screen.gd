@@ -115,6 +115,7 @@ func _rebuild_preview() -> void:
 		_cam.fov = 34.0; _cam.position = Vector3(-1.5, 1.25, -2.6); _cam.look_at_from_position(_cam.position, Vector3(0.0, 0.95, -0.1))
 	if _soldier: _soldier.queue_free()
 	var suit := Profile.suit_color(); var kit := Profile.kit_color(); var fin := Profile.equipped("finish")
+	var bd := Profile.equipped("body").substr(5); var gr := Profile.equipped("gear").substr(5)
 	var wid: String = Controls.loadout[0] if Controls.loadout[0] != "knife" else "m4"
 	var it := Profile.item(_sel)
 	if _sel.begins_with("gold:"):
@@ -124,7 +125,9 @@ func _rebuild_preview() -> void:
 			"suit": suit = it["col"]
 			"kit": kit = it["col"]
 			"finish": fin = _sel
-	_soldier = Soldier.new(); _vp.add_child(_soldier)
+			"body": bd = _sel.substr(5)
+			"gear": gr = _sel.substr(5); bd = "mini"
+	_soldier = Soldier.new(); _soldier.body = bd; _soldier.gear = gr; _vp.add_child(_soldier)
 	_soldier.setup(suit, kit)
 	_soldier.set_weapon(wid)
 	if fin == Profile.equipped("finish") and not _sel.begins_with("gold:") and String(it.get("cat", "")) != "finish":
@@ -201,6 +204,11 @@ func _card(it: Dictionary) -> Control:
 	if cat == "title":
 		sw.color = Color(0.09, 0.11, 0.13)
 		var tl := _lbl("「%s」" % it["name"], 18, rar[1]); tl.position = Vector2(8, 16); sw.add_child(tl)
+	elif cat == "body" or cat == "gear":
+		sw.color = Color(0.10, 0.13, 0.16)
+		var sub: String = {"body_mini": "기본 · 큰 머리 장난감 병정", "body_swat": "실사 비율 특수부대", "gear_helmet": "고글 올린 전투 헬멧",
+			"gear_beret": "꼬마 병사 전용", "gear_mask": "꼬마 병사 전용"}.get(id, "")
+		var tl := _lbl(sub, 13, MUTED); tl.position = Vector2(8, 20); sw.add_child(tl)
 	elif c.a == 0.0:
 		sw.color = Color(0.36, 0.30, 0.24) if cat == "kit" else Color(0.22, 0.24, 0.26)
 	else:

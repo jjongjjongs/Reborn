@@ -86,7 +86,8 @@ var _base := "?"
 var _team := Color(0.8, 0.4, 0.3)
 var _kit := Color(0, 0, 0, 0)      # helmet / plate carrier colour (alpha 0 = team-tinted default)
 var cosmetic := false              # the player's own soldier: wear the shop finish on guns
-var body := "swat"                 # "swat" or "mini" (Mini Soldier toy body, same skeleton)
+var body := "mini"                 # "mini" (default toy soldier) or "swat" (shop), same skeleton
+var gun_k := 1.0                   # weapon size multiplier (the chunky mini holds bigger guns)
 static var test_body := ""         # dev: force a body for every soldier (comparison shots)
 var gear := "helmet"               # mini head gear: helmet / beret / mask
 
@@ -95,6 +96,7 @@ func setup(team_color: Color, kit: Color = Color(0, 0, 0, 0)) -> void:
 	_kit = kit
 	# visible body (SWAT, or the Mini Soldier test body built on the same skeleton)
 	if test_body != "": body = test_body
+	gun_k = 1.15 if body == "mini" else 1.0
 	var swat: Node3D = (load("res://assets/soldier/Mini.glb") as PackedScene).instantiate() if body == "mini" else SWAT.instantiate()
 	if body == "mini":
 		for g in swat.find_children("Gear_*", "", true, false):
@@ -377,7 +379,7 @@ func _anchor(key: String) -> Vector3:
 	return Vector3(0.0, float(v[1]) * L, (0.5 - float(v[0])) * L)
 
 func _len() -> float:
-	return float(_wdef["len"]) * (LONG_SCALE if _wdef["kind"] == "long" else 1.0)
+	return float(_wdef["len"]) * (LONG_SCALE if _wdef["kind"] == "long" else 1.0) * gun_k
 
 func _model_aabb(root: Node3D) -> AABB:
 	var out := AABB(); var first := true

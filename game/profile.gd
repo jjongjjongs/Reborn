@@ -8,8 +8,15 @@ extends RefCounted
 const PATH := "user://profile.json"
 
 # ---------------------------------------------------------------- catalogue
-const CATS := [["suit", "병사 위장복"], ["kit", "헬멧·조끼"], ["finish", "무기 도색"], ["title", "칭호"]]
+const CATS := [["body", "캐릭터"], ["gear", "머리 장비"], ["suit", "병사 위장복"], ["kit", "헬멧·조끼 색"], ["finish", "무기 도색"], ["title", "칭호"]]
 const ITEMS := [
+	# body: the soldier model (same skeleton / animations)
+	{"id": "body_mini", "cat": "body", "name": "꼬마 병사", "price": 0},
+	{"id": "body_swat", "cat": "body", "name": "SWAT 대원", "price": 300},
+	# gear: head gear on the mini
+	{"id": "gear_helmet", "cat": "gear", "name": "고글 헬멧", "price": 0},
+	{"id": "gear_beret", "cat": "gear", "name": "베레모", "price": 150},
+	{"id": "gear_mask", "cat": "gear", "name": "방독면", "price": 250},
 	# suit: the uniform colour (sleeves / trousers)
 	{"id": "suit_orange", "cat": "suit", "name": "기본 주황", "price": 0, "col": Color(0.95, 0.62, 0.24)},
 	{"id": "suit_desert", "cat": "suit", "name": "사막", "price": 120, "col": Color(0.78, 0.68, 0.48)},
@@ -47,7 +54,7 @@ const ITEMS := [
 	{"id": "tt_ghost", "cat": "title", "name": "그림자", "price": 200},
 	{"id": "tt_legend", "cat": "title", "name": "전설의 병사", "price": 300},
 ]
-const DEFAULT_EQUIP := {"suit": "suit_orange", "kit": "kit_brown", "finish": "fin_none", "title": "tt_rookie"}
+const DEFAULT_EQUIP := {"body": "body_mini", "gear": "gear_helmet", "suit": "suit_orange", "kit": "kit_brown", "finish": "fin_none", "title": "tt_rookie"}
 
 static var _d := {}
 static var _loaded := false
