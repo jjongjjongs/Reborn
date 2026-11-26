@@ -361,7 +361,7 @@ func set_weapon(id: String) -> void:
 	m.position = -(Basis(Vector3.UP, PI * 0.5) * (a.get_center() * sc))
 	_gun.add_child(m)
 	_wmodel = m
-	if cosmetic: Profile.apply_finish(m)
+	if cosmetic: Profile.apply_finish(m, "", id)
 
 # anchor [from-butt fraction, height fraction] -> holder space (barrel -Z, butt +Z)
 func _anchor(key: String) -> Vector3:

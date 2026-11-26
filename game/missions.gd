@@ -80,6 +80,11 @@ static func coins() -> int:
 	_load()
 	return int(_data["coins"])
 
+static func earn(n: int) -> void:
+	_load()
+	_data["coins"] = int(_data["coins"]) + n
+	_save()
+
 static func spend(n: int) -> bool:
 	_load()
 	if int(_data["coins"]) < n: return false
