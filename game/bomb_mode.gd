@@ -144,7 +144,7 @@ func _process(dt: float) -> void:
 	_camera()
 	_hud(dt)
 	if state == "over": return
-	t -= dt
+	t -= minf(dt, 0.1)        # a loading hitch must not eat the prep time
 	match state:
 		"prep":
 			if t <= 0.0: _go_live()
@@ -398,6 +398,7 @@ func _build_hud() -> void:
 		if bomb_state == "planted": out.append({"pos": bomb_pos, "kind": "bomb"})
 		return out
 	layer.add_child(radar)
+	layer.add_child(PrepLoadout.new().setup(self))     # weapon change during each round's prep
 	_carry_lbl = _lbl(20, Color(1.0, 0.75, 0.45)); _carry_lbl.position = Vector2(26, 268); layer.add_child(_carry_lbl)
 	_score_lbl = _lbl(28, Color(1.0, 0.72, 0.38), true); _score_lbl.offset_top = 10; layer.add_child(_score_lbl)
 	_time_lbl = _lbl(34, Color(0.95, 0.96, 0.98), true); _time_lbl.offset_top = 44; layer.add_child(_time_lbl)
