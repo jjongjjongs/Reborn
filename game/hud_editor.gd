@@ -14,10 +14,14 @@ var _drag := ""
 var _snap := false
 var _slider: HSlider
 var _font: Font
+var overlay := false       # opened over a paused match (from 일시정지 > 설정): close back to it
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	size = get_viewport_rect().size
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	add_to_group("hud_editor")
 	_font = ThemeDB.fallback_font
 	_init_layout()
 	_build_bar()
@@ -103,6 +107,8 @@ func _gui_input(event: InputEvent) -> void:
 		queue_redraw()
 
 func _draw() -> void:
+	if overlay:   # hide the paused match behind it
+		draw_rect(Rect2(Vector2.ZERO, size), Color(0.20, 0.21, 0.22, 1.0))
 	# grid
 	var step := size.x / 40.0
 	var gc := Color(1, 1, 1, 0.06)
@@ -170,6 +176,10 @@ func _on_done() -> void:
 	_commit()
 	Controls.save_settings()
 	Sfx.play("ui")
+	if overlay:
+		get_parent().queue_free()      # the CanvasLayer it was opened in
+		Settings.open()                # back to the settings sheet over the paused match
+		return
 	get_tree().change_scene_to_file("res://Menu.tscn")
 
 func _btn(txt: String, cb: Callable, pri := false) -> Button:

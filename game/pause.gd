@@ -96,6 +96,9 @@ func _notification(what: int) -> void:
 
 func _on_back() -> void:
 	# close the topmost overlay first
+	var eds := get_tree().get_nodes_in_group("hud_editor")
+	if not eds.is_empty() and eds[0].get("overlay"):
+		eds[0]._on_done(); return
 	if Settings.is_open():
 		Settings.close(); return
 	if Updater.is_open():

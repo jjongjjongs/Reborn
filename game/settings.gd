@@ -115,8 +115,18 @@ func _build() -> void:
 func _open_hud_editor() -> void:
 	Sfx.play("ui")
 	close()
-	get_tree().paused = false
-	get_tree().change_scene_to_file("res://HudEditor.tscn")
+	var scene := get_tree().current_scene
+	var in_menu := scene == null or scene.scene_file_path.ends_with("Menu.tscn")
+	if in_menu:
+		get_tree().paused = false
+		get_tree().change_scene_to_file("res://HudEditor.tscn")
+		return
+	# in a match (paused): edit on top of it and come back, the match keeps its state
+	var cl := CanvasLayer.new(); cl.layer = 97; cl.process_mode = Node.PROCESS_MODE_ALWAYS
+	var ed: Control = (load("res://HudEditor.tscn") as PackedScene).instantiate()
+	ed.set("overlay", true)
+	cl.add_child(ed)
+	get_tree().root.add_child(cl)
 
 func _sync() -> void:
 	if _sens_val:
