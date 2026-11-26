@@ -82,6 +82,7 @@ func _set_weapon(id: String) -> void:
 	m.scale = Vector3.ONE * sc
 	m.position = -(Basis(Vector3.UP, PI * 0.5) * (ab.get_center() * sc))
 	_gun = m
+	Profile.apply_finish(m)
 	_raise = 1.0                          # bring the new weapon up
 
 func _anchor(key: String) -> Vector3:   # [from-butt fraction, height fraction] -> holder space

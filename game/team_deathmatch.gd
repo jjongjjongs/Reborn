@@ -119,7 +119,7 @@ func _end_match(winner_team: int) -> void:
 	(v.get_node("t") as Label).text = "승리!" if winner_team == RED else "패배"
 	Missions.add("match")
 	if winner_team == RED: Missions.add("win")
-	Missions.record("팀 데스매치", SortieScreen.map_name(Controls.sel_map), "%s %d : %d · 처치 %d" % ["승리" if winner_team == RED else "패배", _score[RED], _score[BLUE], Controls.kills])
+	Missions.record("팀 데스매치", SortieScreen.map_name(Controls.sel_map), "%s %d : %d · 처치 %d" % ["승리" if winner_team == RED else "패배", _score[RED], _score[BLUE], Controls.kills], winner_team == RED)
 	(v.get_node("s") as Label).text = "레드 %d : %d 블루\n내 처치 %d\n목표 %d 선취" % [
 		_score[RED], _score[BLUE], Controls.kills, TEAM_TARGET]
 

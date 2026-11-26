@@ -105,6 +105,7 @@ func hit(dmg: int, _is_head: bool = false, attacker = null) -> void:
 		_cancel_nade()
 		if _soldier: _soldier.set_dead(true)
 		Sfx.play("die")
+		Profile.bump("deaths")
 		died.emit(attacker)
 
 func take_damage(dmg: int) -> void:   # melee convenience (zombies)
@@ -156,7 +157,8 @@ func respawn_at(pos: Vector3) -> void:
 func _build() -> void:
 	_soldier = Soldier.new()
 	add_child(_soldier)
-	_soldier.setup(Color(0.95, 0.62, 0.24))
+	_soldier.cosmetic = true
+	_soldier.setup(Profile.suit_color(), Profile.kit_color())
 	_muzzle = Node3D.new(); _muzzle.position = Vector3(0.22, 1.3, -0.5)
 	add_child(_muzzle)
 	_col = CollisionShape3D.new()
@@ -197,6 +199,7 @@ func _physics_process(delta: float) -> void:
 		if invuln_t <= 0.0:
 			visible = true
 	# look
+	if alive and not frozen: Profile.bump("time", delta)
 	var l := Controls.consume_look()
 	if scope_k > 0.5: l *= Controls.scope_sens      # own sensitivity through the scope
 	aim_yaw -= l.x
@@ -384,6 +387,7 @@ func _shoot(w: Dictionary) -> void:
 					dmg = int(dmg * CRIT_MULT)
 				dmg = int(dmg * Controls.dmg_mult)
 				col.hit(dmg, is_head, self)
+				Profile.bump("hits")
 				any_hit = true
 		if p == 0 or randf() < 0.35:
 			_tracer(ViewModel.muzzle if (Controls.view_fp and ViewModel.active and scope_k < 0.5) else _muzzle.global_position, end)

@@ -67,7 +67,8 @@ func _build_left() -> void:
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR; e.ambient_light_color = Color(0.8, 0.82, 0.86)
 	we.environment = e; vp.add_child(we)
 	_soldier = Soldier.new(); vp.add_child(_soldier)
-	_soldier.setup(Color(0.95, 0.62, 0.24))
+	_soldier.cosmetic = true
+	_soldier.setup(Profile.suit_color(), Profile.kit_color())
 	_soldier.drive(0.0, true)
 
 	_name_lbl = _label("", 34, FG); _name_lbl.position = Vector2(24, 392); box.add_child(_name_lbl)

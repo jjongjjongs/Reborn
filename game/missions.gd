@@ -59,6 +59,9 @@ static func _save() -> void:
 ## wave (value = the wave reached; keeps the best of the day)
 static func add(id: String, n := 1) -> void:
 	_load()
+	if id == "wave": Profile.best("best_wave", n)
+	elif id != "match" and id != "win": Profile.bump(id, n)
+	if id == "kill": Profile.bump("k_%s" % Controls.weapon_id, n)
 	var changed := false
 	for m in _data["list"]:
 		if m["id"] != id or m["done"]: continue
@@ -77,11 +80,19 @@ static func coins() -> int:
 	_load()
 	return int(_data["coins"])
 
-## last finished match for the 최근 기록 card
-static func record(mode: String, map_name: String, result: String) -> void:
+static func spend(n: int) -> bool:
+	_load()
+	if int(_data["coins"]) < n: return false
+	_data["coins"] = int(_data["coins"]) - n
+	_save()
+	return true
+
+## last finished match for the 최근 기록 card (+ career stats)
+static func record(mode: String, map_name: String, result: String, win := false, tag := "") -> void:
 	_load()
 	_data["last"] = {"mode": mode, "map": map_name, "result": result}
 	_save()
+	Profile.match_done(mode, map_name, result, win, tag if tag != "" else ("승리" if win else "패배"))
 
 static func last() -> Dictionary:
 	_load()

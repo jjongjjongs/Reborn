@@ -52,7 +52,7 @@ func _top_bar() -> void:
 	ava.add_child(ai)
 
 	var nm := _label("SOLDIER_01", 26, FG, false); nm.position = Vector2(108, 26); add_child(nm)
-	var lv := _label("LV.1", 18, DIM, false); lv.position = Vector2(110, 58); add_child(lv)
+	var lv := _label(Profile.title(), 18, ACCENT.lerp(FG, 0.3), false); lv.position = Vector2(110, 58); add_child(lv)
 
 	# gold pill (상점 경제는 2단계 — 자리만)
 	var pill := _panel(Vector2(0, 30), Vector2(168, 48), Color(0.08, 0.10, 0.12), LINE, 1, 24)
@@ -91,7 +91,7 @@ func _backdrop() -> void:
 	MapBuilder.backdrop = true
 	MapBuilder.build("quarter", w)
 	MapBuilder.backdrop = false
-	var s := Soldier.new(); w.add_child(s); s.setup(Color(0.95, 0.62, 0.24))
+	var s := Soldier.new(); w.add_child(s); s.cosmetic = true; s.setup(Profile.suit_color(), Profile.kit_color())
 	s.position = BD_SOLDIER; s.rotation_degrees.y = 55.0
 	s.set_weapon(Controls.loadout[0] if Controls.loadout[0] != "knife" else "m4"); s.drive(0.0, true)
 	_bd_cam = Camera3D.new(); _bd_cam.fov = 36.0; w.add_child(_bd_cam); _bd_cam.current = true
@@ -223,6 +223,17 @@ func _bottom_nav() -> void:
 		elif i == "장비":
 			b.add_theme_color_override("font_color", ACCENT)
 			b.pressed.connect(func() -> void: Sfx.play("ui"); add_child(LoadoutScreen.new()))
+		elif i == "상점":
+			b.add_theme_color_override("font_color", ACCENT)
+			b.pressed.connect(func() -> void:
+				Sfx.play("ui")
+				var sh := ShopScreen.new()
+				sh.tree_exited.connect(func() -> void:     # rebuild: coins + what the soldier wears
+					if is_inside_tree(): get_tree().change_scene_to_file.call_deferred("res://Menu.tscn"))
+				add_child(sh))
+		elif i == "기록":
+			b.add_theme_color_override("font_color", ACCENT)
+			b.pressed.connect(func() -> void: Sfx.play("ui"); add_child(RecordsScreen.new()))
 		else:
 			b.pressed.connect(func() -> void: Sfx.play("ui"))
 		bar.add_child(b)

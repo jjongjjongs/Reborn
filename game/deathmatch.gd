@@ -131,7 +131,7 @@ func _end_match(winner) -> void:
 	var win: bool = (winner == player)
 	Missions.add("match")
 	if win: Missions.add("win")
-	Missions.record("데스매치", SortieScreen.map_name(Controls.sel_map), "%s · 처치 %d" % ["1위" if win else "패배", Controls.kills])
+	Missions.record("데스매치", SortieScreen.map_name(Controls.sel_map), "%s · 처치 %d" % ["1위" if win else "패배", Controls.kills], win, "1위" if win else "패배")
 	_result.visible = true
 	var r := _result.get_node("v")
 	(r.get_node("t") as Label).text = "승리!" if win else "패배"

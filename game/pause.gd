@@ -113,7 +113,7 @@ func _on_back() -> void:
 		# menu sub-screens (출격 준비, 장비): close the topmost one
 		var top: Control = null
 		for c in scene.get_children():
-			if c is SortieScreen or c is LoadoutScreen: top = c
+			if c is SortieScreen or c is LoadoutScreen or c is ShopScreen or c is RecordsScreen: top = c
 		if top != null:
 			for c in top.get_children():
 				if c is LoadoutScreen: top = c

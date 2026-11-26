@@ -389,7 +389,7 @@ func _end_match() -> void:
 	(v.get_node("t") as Label).text = "승리!" if score[RED] > score[BLUE] else "패배"
 	Missions.add("match")
 	if score[RED] > score[BLUE]: Missions.add("win")
-	Missions.record("폭파미션", SortieScreen.map_name(Controls.sel_map), "%s %d : %d · 처치 %d" % ["승리" if score[RED] > score[BLUE] else "패배", score[RED], score[BLUE], Controls.kills])
+	Missions.record("폭파미션", SortieScreen.map_name(Controls.sel_map), "%s %d : %d · 처치 %d" % ["승리" if score[RED] > score[BLUE] else "패배", score[RED], score[BLUE], Controls.kills], score[RED] > score[BLUE])
 	(v.get_node("s") as Label).text = "레드 %d : %d 블루\n내 처치 %d" % [score[RED], score[BLUE], Controls.kills]
 
 func _build_hud() -> void:

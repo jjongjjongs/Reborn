@@ -84,9 +84,12 @@ var _dead := false
 var _oneshot := 0.0
 var _base := "?"
 var _team := Color(0.8, 0.4, 0.3)
+var _kit := Color(0, 0, 0, 0)      # helmet / plate carrier colour (alpha 0 = team-tinted default)
+var cosmetic := false              # the player's own soldier: wear the shop finish on guns
 
-func setup(team_color: Color, _gear: Color = Color.BLACK) -> void:
+func setup(team_color: Color, kit: Color = Color(0, 0, 0, 0)) -> void:
 	_team = team_color
+	_kit = kit
 	# visible SWAT
 	var swat := SWAT.instantiate()
 	_swat = swat
@@ -298,7 +301,7 @@ func _team_tint(mi: MeshInstance3D) -> void:
 		if cv.distance_to(grey) < 0.14:        # plate carrier / gear -> full team color
 			col = _team
 		elif cv.distance_to(dark) < 0.12:      # dark fatigues -> team-tinted dark
-			col = _team.lerp(Color(0.12, 0.12, 0.13), 0.74)
+			col = _kit if _kit.a > 0.0 else _team.lerp(Color(0.12, 0.12, 0.13), 0.74)
 		else:
 			continue                            # skin / black straps: leave as-is
 		var nm := StandardMaterial3D.new()
@@ -358,6 +361,7 @@ func set_weapon(id: String) -> void:
 	m.position = -(Basis(Vector3.UP, PI * 0.5) * (a.get_center() * sc))
 	_gun.add_child(m)
 	_wmodel = m
+	if cosmetic: Profile.apply_finish(m)
 
 # anchor [from-butt fraction, height fraction] -> holder space (barrel -Z, butt +Z)
 func _anchor(key: String) -> Vector3:
