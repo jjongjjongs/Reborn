@@ -4,8 +4,8 @@ config_version=5
 [application]
 
 config/name="Mini Soldier"
-config/version="6.9"
-config/build_code=70
+config/version="7.0"
+config/build_code=71
 run/main_scene="res://Menu.tscn"
 config/icon="res://icons/icon_512.png"
 config/quit_on_go_back=false
