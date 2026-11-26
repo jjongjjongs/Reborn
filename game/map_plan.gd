@@ -41,6 +41,7 @@ func build_plan(file: String) -> Dictionary:
 	solid(-w, -h, w, -_hh, 30); solid(-w, _hh, w, h, 30)
 	solid(-w, -_hh, -_hw, _hh, 30); solid(_hw, -_hh, w, _hh, 30)
 	_plan_props()
+	Radar.overview = _overview()
 	var bomb := plan.has("siteA") and plan.has("siteB")
 	if bomb:
 		_site_mark("A", _wp(_centroid(plan["siteA"])) + Vector3(0, 0.06, 0), Vector2(0, 0))
@@ -60,6 +61,52 @@ func build_plan(file: String) -> Dictionary:
 		out["site_a"] = _rect_of(plan["siteA"]); out["site_b"] = _rect_of(plan["siteB"])
 		out["site_a_poly"] = _poly(plan["siteA"]); out["site_b_poly"] = _poly(plan["siteB"])
 	return out
+
+# readable top-down map for the radar / full map: drawn from the plan, not rendered
+# (walkable = light, buildings = dark, covered rooms / tunnels / stairs / raised floors marked)
+const OV_PX := 8.0
+func _overview() -> ImageTexture:
+	var W := float(plan["W"]); var H := float(plan["H"])
+	var img := Image.create(int(W * OV_PX), int(H * OV_PX), false, Image.FORMAT_RGBA8)
+	img.fill(Color(0.17, 0.18, 0.20))
+	var col := {"street": Color(0.60, 0.60, 0.58), "plaza": Color(0.66, 0.65, 0.61), "att": Color(0.70, 0.52, 0.50),
+		"def": Color(0.50, 0.58, 0.72), "siteA": Color(0.86, 0.60, 0.36), "siteB": Color(0.86, 0.74, 0.40),
+		"room": Color(0.42, 0.41, 0.40), "tunnel": Color(0.30, 0.40, 0.50), "water": Color(0.16, 0.30, 0.40)}
+	var R := func(x0: float, y0: float, x1: float, y1: float, c: Color) -> void:
+		img.fill_rect(Rect2i(int(x0 * OV_PX), int(y0 * OV_PX), int(ceil((x1 - x0) * OV_PX)), int(ceil((y1 - y0) * OV_PX))), c)
+	# covered spaces first (rooms, tunnels, passages under bridges), open ground over them
+	for sp in plan["spaces"]:
+		if sp[6] != null:
+			var k := String(sp[0])
+			R.call(sp[1], sp[2], sp[3], sp[4], col.get(k, col["room"]) if k != "street" else col["room"])
+	for sp in plan["spaces"]:
+		if sp[6] == null:
+			var c: Color = col.get(String(sp[0]), col["street"])
+			var z := float(sp[5])
+			if z > 0.3:   # raised floor: lighter + outlined
+				R.call(sp[1], sp[2], sp[3], sp[4], c.darkened(0.45))
+				R.call(float(sp[1]) + 0.25, float(sp[2]) + 0.25, float(sp[3]) - 0.25, float(sp[4]) - 0.25, c.lightened(minf(0.45, z * 0.1)))
+			else:
+				R.call(sp[1], sp[2], sp[3], sp[4], c)
+	for r in plan["ramps"]:   # stairs: stripes across the slope
+		var x0 := float(r[0]); var y0 := float(r[1]); var x1 := float(r[2]); var y1 := float(r[3])
+		R.call(x0, y0, x1, y1, Color(0.52, 0.52, 0.50))
+		var along_x: bool = r[6] in ["e", "w"]
+		var n := int((x1 - x0 if along_x else y1 - y0) / 0.5)
+		for i in n:
+			if i % 2 == 0: continue
+			if along_x: R.call(x0 + i * 0.5, y0, x0 + i * 0.5 + 0.25, y1, Color(0.38, 0.38, 0.37))
+			else: R.call(x0, y0 + i * 0.5, x1, y0 + i * 0.5 + 0.25, Color(0.38, 0.38, 0.37))
+	for b in plan["blocks"]:
+		var k := String(b[5]) if b.size() > 5 else "crate"
+		var c := Color(0.42, 0.32, 0.22) if k == "crate" else (Color(0.36, 0.38, 0.40) if k == "barrier" else Color(0.30, 0.34, 0.40))
+		R.call(b[0], b[1], float(b[0]) + float(b[2]), float(b[1]) + float(b[3]), c.darkened(0.3))
+		R.call(float(b[0]) + 0.2, float(b[1]) + 0.2, float(b[0]) + float(b[2]) - 0.2, float(b[1]) + float(b[3]) - 0.2, c)
+	for pr in plan.get("props", []):
+		if pr[0] == "car":
+			var w := 1.9 if float(pr[3]) == 0.0 else 4.3; var h := 4.3 if float(pr[3]) == 0.0 else 1.9
+			R.call(float(pr[1]) - w * 0.5, float(pr[2]) - h * 0.5, float(pr[1]) + w * 0.5, float(pr[2]) + h * 0.5, Color(0.30, 0.32, 0.36))
+	return ImageTexture.create_from_image(img)
 
 # floor height of the open space at a plan point (props stand on it)
 func _floor_at(x: float, y: float) -> float:

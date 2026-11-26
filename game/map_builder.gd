@@ -13,6 +13,7 @@ var _grain: ImageTexture
 static func build(id: String, parent: Node3D) -> Dictionary:
 	var b := MapBuilder.new()
 	b.root = parent
+	Radar.overview = null      # plan maps set their drawn overview; others are baked by the radar
 	match id:
 		"quarter", "dockside", "facility", "downtown", "bazaar", "cell", "harbor":
 			var m := MapPlan.new()

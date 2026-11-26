@@ -117,6 +117,10 @@ func _act_center() -> Vector2:
 	return Vector2(s.x * 0.5, s.y * 0.64)
 
 func _role_at(pos: Vector2) -> String:
+	if Controls.map_open:
+		return "mapclose"                    # any tap closes the full map
+	if Controls.radar_rect.size.x > 0.0 and pos.distance_to(Controls.radar_rect.get_center()) <= Controls.radar_rect.size.x * 0.5:
+		return "map"
 	if Controls.act_label != "" and pos.distance_to(_act_center()) <= 74.0:
 		return "act"
 	var rects := _chip_rects()
@@ -168,6 +172,10 @@ func _input(event: InputEvent) -> void:
 				Controls.request_scope()
 			elif role == "act":
 				Controls.act_held = true
+			elif role == "map":
+				Controls.map_open = true
+			elif role == "mapclose":
+				Controls.map_open = false
 			elif role.begins_with("swap"):
 				Controls.request_swap(int(role.substr(4)))
 			elif role == "nade":

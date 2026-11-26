@@ -22,6 +22,8 @@ var shake: float = 0.0
 # bomb defusal: context action button (설치 / 해체), hold to progress
 var act_label: String = ""
 var act_held: bool = false
+var map_open := false            # full map overlay (tap the radar)
+var radar_rect := Rect2()        # radar circle on screen, for the tap test
 var act_progress: float = 0.0            # camera shake amount (decays)
 
 # --- weapon / player ---
