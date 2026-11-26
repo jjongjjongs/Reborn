@@ -60,6 +60,8 @@ func _build() -> void:
 		Controls.vibrate_on = on; Controls.save_settings()
 		if on: Controls.vibrate(40)))
 
+	v.add_child(_toggle("저격총 누르고 떼서 쏘기", "누르면 조준경 · 떼면 발사 후 조준 해제", Controls.sniper_hold, func(on: bool) -> void:
+		Controls.sniper_hold = on; Controls.save_settings()))
 	# sensitivity
 	var srow := VBoxContainer.new()
 	var sh := HBoxContainer.new()

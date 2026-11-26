@@ -49,6 +49,7 @@ const NADE_PITCH_SENS := 0.6
 var nade_pitch := 0.0
 var frozen := false        # round prep (bomb defusal): look around only
 var _nade_was := false
+var _auto_scope := false   # scoped by holding fire (sniper hold-to-scope); shoot + scope out on release
 
 func _ready() -> void:
 	# never inherit a 'platform' velocity from a body we stood on (e.g. another character that respawned far away)
@@ -276,8 +277,21 @@ func _physics_process(delta: float) -> void:
 	# fire (not while holding a grenade / swapping)
 	_fire_cd = maxf(0.0, _fire_cd - delta)
 	var pressed := Controls.fire_held and not _fire_was
+	var released := _fire_was and not Controls.fire_held
 	_fire_was = Controls.fire_held
 	var want_fire := Controls.fire_held if (melee or bool(w.get("auto", false))) else pressed
+	var unscope_after := false
+	if Controls.sniper_hold and w.has("scope") and not melee:
+		# hold fire = look through the scope, let go = shoot, then the scope closes
+		want_fire = false
+		if pressed and not Controls.scoped and not frozen and not nade_aim and _reload_t <= 0.0 and _swap_t <= 0.0:
+			Controls.scoped = true; _auto_scope = true
+		elif pressed and Controls.scoped and not _auto_scope:
+			want_fire = true; unscope_after = true      # scoped with the scope key: a tap shoots
+		if released and _auto_scope:
+			_auto_scope = false
+			want_fire = true; unscope_after = true
+		if not Controls.scoped: _auto_scope = false
 	if want_fire and not frozen and not nade_aim and _fire_cd <= 0.0 and _reload_t <= 0.0 and _swap_t <= 0.0:
 		if melee:
 			_stab()
@@ -287,6 +301,7 @@ func _physics_process(delta: float) -> void:
 			_fire_cd = Weapons.interval(_wid())
 		else:
 			_start_reload()
+	if unscope_after: Controls.scoped = false
 
 	# dynamic spread
 	var moving := inp.length() > 0.1

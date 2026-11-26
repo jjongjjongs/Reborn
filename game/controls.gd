@@ -81,6 +81,7 @@ var best_time: float = 0.0
 # --- settings (persisted) ---
 var sfx_on: bool = true
 var vibrate_on: bool = true
+var sniper_hold: bool = true    # sniper: press fire = scope in, release = shoot (then scope out)
 var look_sens: float = 1.0      # 0.4 .. 2.0 multiplier
 var view_fp := false            # 1인칭 (true) / 3인칭 (false), chosen on the sortie screen
 var scope_sens: float = 0.5     # 0.2 .. 1.5 extra multiplier while looking through a scope
@@ -206,6 +207,7 @@ func _load_best() -> void:
 		best_time = float(data.get("best_time", 0.0))
 		sfx_on = bool(data.get("sfx_on", true))
 		vibrate_on = bool(data.get("vibrate_on", true))
+		sniper_hold = bool(data.get("sniper_hold", true))
 		look_sens = clampf(float(data.get("look_sens", 1.0)), 0.4, 2.0)
 		scope_sens = clampf(float(data.get("scope_sens", 0.5)), 0.2, 1.5)
 		view_fp = bool(data.get("view_fp", false))
@@ -232,7 +234,7 @@ func _save_best() -> void:
 		return
 	f.store_string(JSON.stringify({
 		"best_wave": best_wave, "best_kills": best_kills, "best_time": best_time,
-		"sfx_on": sfx_on, "vibrate_on": vibrate_on,
+		"sfx_on": sfx_on, "vibrate_on": vibrate_on, "sniper_hold": sniper_hold,
 		"look_sens": look_sens, "scope_sens": scope_sens, "view_fp": view_fp, "left_handed": left_handed,
 		"hud_layout": hud_layout, "loadout": loadout,
 		"bot_diff": bot_diff, "sel_map": sel_map, "layout_v": 2,
