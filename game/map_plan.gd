@@ -13,6 +13,7 @@ const ENVS := {   # theme -> sky, ambient, sun rotation, sun colour, sun energy,
 	"harbor": [Color(0.60, 0.72, 0.84), Color(0.76, 0.80, 0.86), Vector3(-42, -60, 0), Color(1.0, 0.92, 0.82), 1.15, Color(0.66, 0.74, 0.82)],
 	"city": [Color(0.60, 0.70, 0.82), Color(0.78, 0.80, 0.84), Vector3(-55, 40, 0), Color(1.0, 0.95, 0.88), 1.2, Color(0.68, 0.72, 0.78)],
 	"base": [Color(0.64, 0.72, 0.80), Color(0.82, 0.80, 0.76), Vector3(-50, -50, 0), Color(1.0, 0.94, 0.84), 1.2, Color(0.74, 0.76, 0.76)],
+	"dusk": [Color(0.42, 0.36, 0.44), Color(0.56, 0.54, 0.60), Vector3(-18, -70, 0), Color(1.0, 0.62, 0.38), 1.0, Color(0.40, 0.42, 0.40), 0.016],
 	"lab": [Color(0.66, 0.72, 0.78), Color(0.80, 0.82, 0.84), Vector3(-60, -15, 0), Color(0.96, 0.97, 1.0), 1.15, Color(0.70, 0.74, 0.78)],
 }
 var plan := {}
@@ -24,7 +25,7 @@ func build_plan(file: String) -> Dictionary:
 	_hw = float(plan["W"]) * 0.5; _hh = float(plan["H"]) * 0.5
 	_bx = _hw; _bz = _hh
 	var e: Array = ENVS.get(String(plan.get("theme", "old")), ENVS["old"])
-	_env(e[0], e[1], 1.0, e[2], e[3], e[4], e[5], 0.006)
+	_env(e[0], e[1], 1.0, e[2], e[3], e[4], e[5], float(e[6]) if e.size() > 6 else 0.006)
 	var model: Node3D = (load("res://assets/maps/%s.gltf" % file) as PackedScene).instantiate()
 	nav.add_child(model)
 	for mi in model.find_children("*", "MeshInstance3D", true, false):
@@ -42,6 +43,7 @@ func build_plan(file: String) -> Dictionary:
 	solid(-w, -h, w, -_hh, 30); solid(-w, _hh, w, h, 30)
 	solid(-w, -_hh, -_hw, _hh, 30); solid(_hw, -_hh, w, _hh, 30)
 	_plan_props()
+	if String(plan.get("name", "")) == "zombie_reststop": _reststop_props()
 	Radar.overview = _overview()
 	var bomb := plan.has("siteA") and plan.has("siteB")
 	if bomb:
@@ -55,7 +57,10 @@ func build_plan(file: String) -> Dictionary:
 	var ffa: Array[Vector3] = []
 	for p in plan.get("ffa_spawns", []): ffa.append(_wp(p) + Vector3(0, 1.0, 0))
 	if ffa.is_empty(): ffa = att + def
-	var out := {"att": att, "def": def, "red": att, "blue": def, "ffa": ffa, "zombie": ffa,
+	var zs: Array[Vector3] = []
+	for p in plan.get("zombie_spawns", []): zs.append(_wp(p) + Vector3(0, 1.0, 0))
+	if zs.is_empty(): zs = ffa
+	var out := {"att": att, "def": def, "red": att, "blue": def, "ffa": ffa, "zombie": zs,
 		"player": att[0] if bomb else ffa[0], "bounds": Rect2(-_hw, -_hh, _hw * 2.0, _hh * 2.0),
 		"mid": _wp(plan["mid"]) + Vector3(0, 0.5, 0)}
 	if bomb:
@@ -149,6 +154,44 @@ func _plan_props() -> void:
 				barrel(p + Vector3(-0.35, 0, -0.3), cols[k % 3])
 				barrel(p + Vector3(0.45, 0, 0.1), cols[(k + 1) % 3])
 				if k % 2 == 0: barrel(p + Vector3(-0.2, 0, 0.55), cols[(k + 2) % 3])
+
+# 폐휴게소: what makes it read as a highway rest stop (pumps under the canopy, pole sign, shop sign, road paint)
+func _reststop_props() -> void:
+	var P := func(x: float, y: float, h := 0.0) -> Vector3: return Vector3(x - _hw, h, y - _hh)
+	var red := Color(0.72, 0.16, 0.12); var white := Color(0.86, 0.85, 0.80); var grey := Color(0.36, 0.37, 0.38)
+	# canopy: columns, striped fascia, pump islands
+	for c in [[19.5, 11], [32.5, 11], [19.5, 15], [32.5, 15]]:
+		cyl(P.call(c[0], c[1], 1.4), 0.2, 2.8, white)
+	for e in [[26.0, 9.9, 16.4, 0.0], [26.0, 16.1, 16.4, 0.0], [17.9, 13.0, 6.4, 90.0]]:
+		box(P.call(e[0], e[1], 2.98), Vector3(e[2], 0.22, 0.14), red, e[3], false, false)
+		box(P.call(e[0], e[1], 3.17), Vector3(e[2], 0.16, 0.14), white, e[3], false, false)
+	for x in [22.5, 26.0, 29.5]:
+		box(P.call(x, 13.0, 0.1), Vector3(2.2, 0.2, 1.0), grey, 0.0, true)
+		box(P.call(x, 13.0, 0.95), Vector3(0.7, 1.5, 0.5), white, 0.0, true)
+		box(P.call(x, 13.0, 1.82), Vector3(0.74, 0.26, 0.54), red, 0.0, false, false)
+		box(P.call(x, 12.74, 1.2), Vector3(0.36, 0.3, 0.02), Color(0.10, 0.14, 0.12), 0.0, false, false)   # display
+	# tall pole sign by the highway
+	cyl(P.call(15.0, 7.0, 4.0), 0.22, 8.0, grey)
+	box(P.call(15.0, 7.0, 8.4), Vector3(3.4, 1.8, 0.3), red, 0.0, false, false)
+	for side in [-1.0, 1.0]:
+		var lb := Label3D.new(); lb.text = "휴게소\n24H"; lb.font_size = 96; lb.pixel_size = 0.01
+		lb.modulate = Color(1, 0.96, 0.86); lb.outline_size = 0; lb.line_spacing = -18
+		lb.position = P.call(15.0, 7.0 + 0.17 * side, 8.4); lb.rotation_degrees.y = 0.0 if side > 0 else 180.0
+		nav.add_child(lb)
+	# shop sign over the forecourt door
+	box(P.call(32.0, 21.9, 3.75), Vector3(7.0, 0.8, 0.16), Color(0.14, 0.30, 0.22), 0.0, false, false)
+	var sl := Label3D.new(); sl.text = "MINI MART"; sl.font_size = 64; sl.pixel_size = 0.01
+	sl.modulate = Color(0.95, 0.92, 0.70); sl.outline_size = 0
+	sl.position = P.call(32.0, 21.8, 3.75); sl.rotation_degrees.y = 180.0
+	nav.add_child(sl)
+	# road paint: highway centre dashes, parking stalls behind the shop
+	for i in 15:
+		box(P.call(4.0 + i * 4.0, 4.0, 0.012), Vector3(2.0, 0.02, 0.18), white, 0.0, false, false)
+	for i in 7:
+		box(P.call(26.0 + i * 3.0, 38.8, 0.012), Vector3(0.12, 0.02, 4.6), white, 0.0, false, false)
+	# quarantine sandbags beside the gaps in the back wall
+	for x in [7.0, 13.0, 27.0, 33.0, 39.0, 45.0]:
+		box(P.call(x, 48.6, 0.32), Vector3(2.4, 0.64, 0.9), Color(0.50, 0.44, 0.32), 0.0, true)
 
 func _palm(p: Vector3, k: int) -> void:
 	var lean := Vector3(0.35 * sin(k), 0, 0.35 * cos(k))

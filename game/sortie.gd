@@ -25,6 +25,9 @@ const MAPS := [
 	{"id": "cell", "plan": "cell", "name": "교도소", "en": "CELLBLOCK", "size": "64×56m · 4–8명", "tag": "감방 복도 · 감시탑 · 운동장 통로", "ready": true, "ground": Color("2a2e33")},
 	{"id": "harbor", "plan": "harbor", "name": "컨테이너 항구", "en": "HARBOR", "size": "72×56m · 4–8명", "tag": "컨테이너 미로 · 사무동 옥상", "ready": true, "ground": Color("263038")},
 ]
+const ZOMBIE_MAPS := [
+	{"id": "reststop", "plan": "zombie_reststop", "name": "폐휴게소", "en": "REST STOP", "size": "64×56m · 좀비 전용", "tag": "편의점 농성 · 주유소 지붕 · 모텔 · 주차장 순환로", "ready": true, "ground": Color("2b2a2e")},
+]
 const TRAIN_MAPS := [
 	{"id": "range", "plan": "training", "name": "훈련장", "en": "TRAINING", "size": "60×52m · 혼자", "tag": "사격 레인 · 킬하우스 · 장애물 코스", "ready": true, "ground": Color("2a2d31")},
 ]
@@ -32,7 +35,7 @@ const KIND_COL := {"street": "8c8678", "plaza": "b9b2a6", "siteA": "ff7a1a", "si
 	"room": "5f5a52", "tunnel": "1d4a63", "water": "1d4a63"}
 
 static func map_name(id: String) -> String:
-	for m in BOMB_MAPS + MAPS + TRAIN_MAPS:
+	for m in BOMB_MAPS + MAPS + TRAIN_MAPS + ZOMBIE_MAPS:
 		if m["id"] == id: return m["name"]
 	return id
 
@@ -72,7 +75,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var bg := ColorRect.new(); bg.color = Color(0.043, 0.055, 0.071)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); add_child(bg)
-	if not _map_ready(Controls.sel_map): Controls.sel_map = {"bomb": "quarter", "training": "range"}.get(kind, "downtown")
+	if not _map_ready(Controls.sel_map): Controls.sel_map = {"bomb": "quarter", "training": "range", "survival": "reststop"}.get(kind, "downtown")
 
 	# --- top bar ---
 	var back := _btn("‹ 메뉴", 20, Vector2(28, 18), Vector2(110, 48))
@@ -176,6 +179,7 @@ func _launch() -> void:
 
 func _maps() -> Array:
 	if kind == "training": return TRAIN_MAPS
+	if kind == "survival": return ZOMBIE_MAPS
 	return BOMB_MAPS if kind == "bomb" else MAPS
 
 func _map_ready(id: String) -> bool:

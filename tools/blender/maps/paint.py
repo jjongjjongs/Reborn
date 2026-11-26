@@ -188,3 +188,32 @@ c.r(21, 8, 22, 19, "#").r(21, 9, 22, 11, ",").r(21, 13, 22, 14, ",").r(21, 16, 2
 c.p((2, 4), (27, 4), (11, 9), (20, 16), (7, 10), (23, 17), (15, 21), (5, 19), (25, 12), (7, 12), (20, 13), (12, 13))
 c.r(1, 3, 3, 8, "a").r(27, 3, 29, 9, "d")
 c.save("training", "base", "dm")
+
+# ---------------------------------------------------------------- 폐휴게소 (좀비 서바이벌) 64 x 56 m
+# a highway rest stop at dusk: shop in the middle (safe-ish room, 3 doors), fuel canopy you can climb,
+# parking loop to kite around, motel rooms (dead ends) and a garage. Zombies (z) pour in from the
+# highway ends, the motel back alley and three gaps in the back wall.
+c = Canvas(32, 28)
+c.r(1, 1, 31, 3, ".")                                                                       # highway
+c.r(7, 3, 22, 11, ",")                                                                      # forecourt
+c.r(9, 5, 17, 8, "h").r(17, 5, 20, 7, "<")                                                  # fuel canopy roof (3.2 m) + stairs
+c.r(11, 12, 21, 17, "o").r(15, 11, 17, 12, "o").r(12, 17, 14, 18, "o").r(21, 14, 22, 15, "o")   # shop + 3 doors
+c.r(13, 13, 15, 14, "k").r(17, 13, 19, 14, "k").r(13, 15, 15, 16, "k").r(17, 15, 19, 16, "k")   # shelves
+c.r(7, 11, 10, 18, ".").r(22, 3, 24, 25, ".")                                               # west lane / motel walkway
+c.r(1, 18, 24, 25, ",")                                                                     # parking + container yard
+c.r(2, 5, 6, 16, "o").r(6, 7, 7, 9, "o").r(6, 13, 7, 15, "o")                               # garage + 2 doors
+c.r(3, 7, 5, 8, "X").r(2, 12, 3, 14, "x")
+for y0 in (4, 8, 12, 16, 20):                                                               # motel rooms
+    c.r(25, y0, 28, y0 + 3, "o").r(24, y0 + 1, 25, y0 + 2, "o")
+c.r(28, 5, 29, 6, "o").r(28, 13, 29, 14, "o").r(28, 21, 29, 22, "o")                        # some have a back door
+c.r(29, 1, 31, 27, ".")                                                                     # motel back alley
+c.r(1, 26, 31, 27, ".")                                                                     # back road behind the wall
+c.r(4, 25, 6, 26, ".").r(14, 25, 16, 26, ".").r(20, 25, 22, 26, ".")                        # gaps in the back wall
+c.r(2, 19, 4, 21, "c").r(2, 22, 3, 24, "c")                                                 # containers (yard)
+c.p((9, 20), (14, 22), (18, 20), (9, 23), c="V")                                            # wrecked cars (2 long)
+c.p((12, 3), (21, 9), (8, 10), (15, 2), (24, 2), c="x").p((18, 3), (6, 23), c="X")
+c.p((5, 19), (19, 23), (23, 11), (8, 4), (26, 2), c="b")
+c.p((7, 19), (16, 19), (23, 19), (7, 4), (21, 4), (23, 8), c="L").p((1, 25), (30, 25), c="T")
+c.p((15, 10), (8, 15), (11, 21), (20, 21), (13, 9), c="p")
+c.p((1, 1), (30, 2), (30, 13), (1, 26), (15, 26), (30, 26), c="z")
+c.save("zombie_reststop", "dusk", "survival")

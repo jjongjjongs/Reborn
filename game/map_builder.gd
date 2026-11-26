@@ -16,10 +16,10 @@ static func build(id: String, parent: Node3D) -> Dictionary:
 	b.root = parent
 	Radar.overview = null      # plan maps set their drawn overview; others are baked by the radar
 	match id:
-		"quarter", "dockside", "facility", "downtown", "bazaar", "cell", "harbor", "range":
+		"quarter", "dockside", "facility", "downtown", "bazaar", "cell", "harbor", "range", "reststop":
 			var m := MapPlan.new()
 			m.root = parent
-			return m.build_plan({"quarter": "oldquarter", "range": "training"}.get(id, id))
+			return m.build_plan({"quarter": "oldquarter", "range": "training", "reststop": "zombie_reststop"}.get(id, id))
 		"oldtown":
 			var o := MapOldTown.new()
 			o.root = parent

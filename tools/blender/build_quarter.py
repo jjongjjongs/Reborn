@@ -93,13 +93,18 @@ THEMES = {
                        ("T_Trim_BaseColor.png", (0.9, 0.92, 0.95, 1)), ("T_Concrete_BaseColor.png", (0.66, 0.68, 0.72, 1))],
                 street=("T_Concrete_BaseColor.png", (0.62, 0.64, 0.66, 1)), plaza=("T_MarbleFloor_BaseColor.png", (0.78, 0.80, 0.82, 1)),
                 base=6.0, steps=3, crate=(0.36, 0.40, 0.30, 1)),
+    "dusk": dict(walls=[("T_Concrete_BaseColor.png", (0.66, 0.64, 0.58, 1)), ("T_MetalConcrete_BaseColor.png", (0.58, 0.60, 0.56, 1)),
+                        ("T_RedBrick_BaseColor.png", (0.66, 0.56, 0.50, 1)), ("T_Concrete_BaseColor.png", (0.74, 0.70, 0.60, 1)),
+                        ("T_MetalConcrete_BaseColor.png", (0.52, 0.56, 0.54, 1)), ("T_Trim_BaseColor.png", (0.80, 0.78, 0.72, 1))],
+                 street=("T_Concrete_Asphalt_BaseColor.png", (0.56, 0.56, 0.56, 1)), plaza=("T_Concrete_BaseColor.png", (0.62, 0.62, 0.58, 1)),
+                 base=4.0, steps=2, crate=(0.42, 0.32, 0.20, 1)),
 }
 TH = THEMES[P.get("theme", "old")]
 DETAIL = {   # ground floor dressing per theme: shop fronts and awnings
     "old": dict(shop="window_lit", awn=["awning_red", "awning_green"]), "desert": dict(shop=None, awn=["awning_red", "awning_blue", "awning_green"]),
     "prison": dict(shop="shutter", awn=[]), "harbor": dict(shop="shutter", awn=[]),
     "city": dict(shop="window_lit", awn=["awning_green", "awning_blue"]), "lab": dict(shop="shutter", awn=[]),
-    "base": dict(shop="shutter", awn=[]),
+    "base": dict(shop="shutter", awn=[]), "dusk": dict(shop="shutter", awn=["awning_red"]),
 }[P.get("theme", "old")]
 MT = "/home/user/Reborn/game/assets/maps/tex/"
 def parcel_top(i, j):

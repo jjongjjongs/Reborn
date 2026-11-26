@@ -23,6 +23,7 @@ func _ready() -> void:
 	add_child(wm)
 
 func _build_world() -> void:
+	Controls.sel_map = "reststop"            # survival has its own map(s)
 	_map = MapBuilder.build(Controls.sel_map, self)
 
 func _add_box(parent: Node, size: Vector3, pos: Vector3, c: Color) -> void:
