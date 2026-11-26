@@ -13,14 +13,14 @@ static func follow(cam: Camera3D, player: PlayerBody) -> void:
 			var vm := ViewModel.new(); vm.name = "ViewModel"; vm.player = player
 			cam.add_child(vm)
 		cam.near = 0.03
-		cam.global_position = player.global_position + Vector3(0, player.eye_h + 0.18, 0) + Controls.shake_offset()
+		cam.global_position = player.global_position + Vector3(0, player.eye_h + 0.24, 0) + Controls.shake_offset()
 		cam.global_basis = b
 		cam.fov = lerpf(60.0, 60.0 / 2.5, player.scope_k)
 		return
 	cam.near = 0.05
 	var pivot := player.global_position + Vector3(0, player.eye_h, 0)
 	var k := player.scope_k                     # sniper scope: first person + zoom
-	var want := pivot - fwd * lerpf(4.0, -0.2, k) + b.x * lerpf(0.7, 0.0, k) + Vector3(0, lerpf(0.3, 0.1, k), 0)
+	var want := pivot - fwd * lerpf(4.0, -0.2, k) + b.x * lerpf(0.85, 0.0, k) + Vector3(0, lerpf(0.42, 0.1, k), 0)
 	var hit := false
 	if k < 0.5:
 		var space := player.get_world_3d().direct_space_state
@@ -44,8 +44,8 @@ static func center_ray(player: PlayerBody, k: float) -> Array:
 	var fwd := -b.z
 	var pivot := player.global_position + Vector3(0, player.eye_h, 0)
 	if Controls.view_fp:
-		return [pivot + Vector3(0, 0.18, 0), fwd]
-	var want := pivot - fwd * lerpf(4.0, -0.2, k) + b.x * lerpf(0.7, 0.0, k) + Vector3(0, lerpf(0.3, 0.1, k), 0)
+		return [pivot + Vector3(0, 0.24, 0), fwd]
+	var want := pivot - fwd * lerpf(4.0, -0.2, k) + b.x * lerpf(0.85, 0.0, k) + Vector3(0, lerpf(0.42, 0.1, k), 0)
 	return [want, (pivot + fwd * 12.0 - want).normalized()]
 
 # turn the aim so that the camera of blend k looks straight at `t`

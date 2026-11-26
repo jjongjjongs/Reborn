@@ -163,8 +163,8 @@ func _build() -> void:
 	_muzzle = Node3D.new(); _muzzle.position = Vector3(0.22, 1.3, -0.5)
 	add_child(_muzzle)
 	_col = CollisionShape3D.new()
-	_shape = CapsuleShape3D.new(); _shape.radius = 0.4; _shape.height = 1.95
-	_col.shape = _shape; _col.position = Vector3(0, 0.975, 0)
+	_shape = CapsuleShape3D.new(); _shape.radius = 0.4; _shape.height = 2.15
+	_col.shape = _shape; _col.position = Vector3(0, 1.075, 0)
 	add_child(_col)
 	_aim = GrenadeAim.new()
 	add_child(_aim)
@@ -173,8 +173,8 @@ func _set_crouch(c: bool) -> void:
 	crouched = c
 	Controls.crouched = c
 	# lower hitbox while crouched (cover actually hides you)
-	_shape.height = 1.3 if c else 1.95
-	_col.position = Vector3(0, 0.65 if c else 0.975, 0)
+	_shape.height = 1.4 if c else 2.15
+	_col.position = Vector3(0, 0.7 if c else 1.075, 0)
 	aim_h = 0.75 if c else 1.1
 	if _soldier: _soldier.set_crouch(c)
 

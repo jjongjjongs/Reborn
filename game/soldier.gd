@@ -89,8 +89,9 @@ var cosmetic := false              # the player's own soldier: wear the shop fin
 var body := "mini"                 # "mini" (default toy soldier) or "swat" (shop), same skeleton
 var gun_k := 1.0                   # weapon size multiplier (the chunky mini holds bigger guns)
 static var test_body := ""
-const BODIES := {"mini": "res://assets/soldier/Mini.glb", "mini_swat": "res://assets/soldier/MiniSwat.glb",
-	"mini_zombie": "res://assets/soldier/MiniZombie.glb", "mini_v3": "res://assets/soldier/MiniV3.glb"}         # dev: force a body for every soldier (comparison shots)
+var cheap := false                 # crowd LOD: retarget every other frame
+const BODIES := {"mini": "res://assets/soldier/MiniV3.glb", "swat": "res://assets/soldier/MiniSwat.glb",
+	"zombie": "res://assets/soldier/MiniZombie.glb"}   # all built on the SWAT skeleton (tools/blender/build_minis.py)
 var gear := "helmet"               # mini head gear: helmet / beret / mask
 
 func setup(team_color: Color, kit: Color = Color(0, 0, 0, 0)) -> void:
@@ -98,11 +99,12 @@ func setup(team_color: Color, kit: Color = Color(0, 0, 0, 0)) -> void:
 	_kit = kit
 	# visible body (SWAT, or the Mini Soldier test body built on the same skeleton)
 	if test_body != "": body = test_body
-	gun_k = 1.15 if body.begins_with("mini") else 1.0
+	gun_k = 1.15 if BODIES.has(body) else 1.0
 	var path: String = BODIES.get(body, "")
 	var swat: Node3D = (load(path) as PackedScene).instantiate() if path != "" else SWAT.instantiate()
-	if body.begins_with("mini"):
-		for g in swat.find_children("Gear_*", "", true, false):
+	var gears := swat.find_children("Gear_*", "", true, false)
+	if gears.size() > 1:   # bodies with swappable head gear (helmet / beret / mask)
+		for g in gears:
 			(g as Node3D).visible = String(g.name).to_lower() == "gear_" + gear
 	_swat = swat
 	swat.rotation.y = yaw_offset
@@ -231,6 +233,8 @@ func set_dead(d: bool) -> void:
 		if d: _base = "Death01"
 
 func _process(dt: float) -> void:
+	if cheap and (Engine.get_process_frames() + get_instance_id()) % 2 == 1:
+		_update_gun(); return          # crowds (zombies): retarget every other frame
 	_retarget()
 	if _windup:
 		_apply_windup()

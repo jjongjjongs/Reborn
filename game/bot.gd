@@ -76,8 +76,8 @@ func _ready() -> void:
 	_muzzle = Node3D.new(); _muzzle.position = Vector3(0.22, 1.3, -0.5)
 	add_child(_muzzle)
 	var col := CollisionShape3D.new()
-	var cs := CapsuleShape3D.new(); cs.radius = 0.4; cs.height = 2.0
-	col.shape = cs; col.position = Vector3(0, 1.0, 0)
+	var cs := CapsuleShape3D.new(); cs.radius = 0.4; cs.height = 2.15
+	col.shape = cs; col.position = Vector3(0, 1.075, 0)
 	add_child(col)
 	_agent = NavigationAgent3D.new()
 	_agent.path_desired_distance = 0.6

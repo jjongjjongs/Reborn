@@ -1,6 +1,6 @@
 class_name Zombie
 extends CharacterBody3D
-## M2 enemy (PlayerMonster model): NavMesh chase -> melee attack. Headshot aware.
+## M2 enemy (mini zombie body on the soldier rig): NavMesh chase -> swipe attack. Headshot aware.
 
 const SPEED := 2.4
 const GRAVITY := 20.0
@@ -19,7 +19,7 @@ var _warmup := 0.6   # idle until the nav map is synced
 var _dead := false
 var _last_head := false
 var _agent: NavigationAgent3D
-var _mat: StandardMaterial3D
+var _body: Soldier
 var _flash := 0.0
 var player: Node3D
 
@@ -28,22 +28,16 @@ func _ready() -> void:
 	platform_on_leave = CharacterBody3D.PLATFORM_ON_LEAVE_DO_NOTHING
 	add_to_group("zombie")
 	hp = MAX_HP * hp_scale * Difficulty.v("z_hp")
-	var body := MeshInstance3D.new()
-	var cap := CapsuleMesh.new(); cap.radius = 0.4; cap.height = 1.8
-	body.mesh = cap
-	_mat = StandardMaterial3D.new(); _mat.albedo_color = Color(0.35, 0.55, 0.28)
-	body.material_override = _mat
-	body.position = Vector3(0, 0.9, 0)
-	add_child(body)
-	# head marker (visual only; headshot is height-based)
-	var head := MeshInstance3D.new()
-	var hm := SphereMesh.new(); hm.radius = 0.28; hm.height = 0.56; head.mesh = hm
-	var hmat := StandardMaterial3D.new(); hmat.albedo_color = Color(0.5, 0.65, 0.4); head.material_override = hmat
-	head.position = Vector3(0, 1.65, 0)
-	add_child(head)
+	# body: the soldier rig with the zombie mesh, arms reaching forward (the pistol-ready pose, gun hidden)
+	_body = Soldier.new(); _body.body = "zombie"; _body.cheap = true
+	add_child(_body)
+	_body.setup(Color(0.35, 0.55, 0.28))
+	_body.set_weapon("pistol")
+	if _body._wmodel: _body._wmodel.visible = false
+	_body.drive(0.0, true)
 	var col := CollisionShape3D.new()
-	var cs := CapsuleShape3D.new(); cs.radius = 0.4; cs.height = 2.0
-	col.shape = cs; col.position = Vector3(0, 1.0, 0)
+	var cs := CapsuleShape3D.new(); cs.radius = 0.4; cs.height = 2.1
+	col.shape = cs; col.position = Vector3(0, 1.05, 0)
 	add_child(col)
 	_agent = NavigationAgent3D.new()
 	_agent.path_desired_distance = 0.5
@@ -53,9 +47,9 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if _dead:
 		return
-	if _flash > 0.0:
-		_flash = maxf(0.0, _flash - delta * 5.0)
-		_mat.albedo_color = Color(0.35, 0.55, 0.28).lerp(Color(1, 0.3, 0.2), _flash)
+	if _flash > 0.0:   # hit: a quick flinch backwards
+		_flash = maxf(0.0, _flash - delta * 6.0)
+		_body.rotation.x = -0.18 * _flash
 	_atk_cd = maxf(0.0, _atk_cd - delta)
 	_warmup = maxf(0.0, _warmup - delta)
 	if player == null:
@@ -67,9 +61,11 @@ func _physics_process(delta: float) -> void:
 		# attack
 		if _atk_cd <= 0.0:
 			_atk_cd = ATTACK_COOL
+			_body.throw()                  # overhead swipe
 			if player.has_method("take_damage"):
 				player.take_damage(int(ATTACK_DMG * Difficulty.v("z_dmg")))
 		velocity.x = 0.0; velocity.z = 0.0
+		if dist > 0.1: look_at(global_position + to_player, Vector3.UP)
 	elif _warmup <= 0.0:
 		_agent.target_position = player.global_position
 		var next := _agent.get_next_path_position()
@@ -85,6 +81,7 @@ func _physics_process(delta: float) -> void:
 			look_at(global_position + Vector3(dir.x, 0, dir.z), Vector3.UP)
 	else:
 		velocity.x = 0.0; velocity.z = 0.0
+	_body.drive(clampf(Vector2(velocity.x, velocity.z).length() / 5.0, 0.0, 0.6), true)   # shamble: walk / jog, never sprint
 	if not is_on_floor():
 		velocity.y -= GRAVITY * delta
 	move_and_slide()
@@ -108,11 +105,12 @@ func _die() -> void:
 		Controls.headshots += 1
 	Sfx.play_at("die", global_position)
 	died.emit()
-	# fall over + fade out
+	# death animation, then sink into the floor
+	_body.rotation.x = 0.0
+	_body.set_dead(true)
 	var t := create_tween()
-	t.tween_property(self, "rotation_degrees:x", -90.0, 0.25)
-	t.parallel().tween_property(self, "scale", Vector3(1, 1, 1) * 0.9, 0.25)
-	t.tween_interval(0.4)
+	t.tween_interval(1.1)
+	t.tween_property(_body, "position:y", -0.6, 0.5)
 	t.tween_callback(queue_free)
 	# disable collision so bullets pass
 	for c in get_children():
