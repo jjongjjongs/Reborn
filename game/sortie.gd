@@ -24,7 +24,9 @@ const MAPS := [
 	{"id": "bazaar", "plan": "bazaar", "name": "사막 시장", "en": "BAZAAR", "size": "68×60m · 4–8명", "tag": "광장 · 실내 시장 · 지붕 테라스", "ready": true, "ground": Color("3a3226")},
 	{"id": "cell", "plan": "cell", "name": "교도소", "en": "CELLBLOCK", "size": "64×56m · 4–8명", "tag": "감방 복도 · 감시탑 · 운동장 통로", "ready": true, "ground": Color("2a2e33")},
 	{"id": "harbor", "plan": "harbor", "name": "컨테이너 항구", "en": "HARBOR", "size": "72×56m · 4–8명", "tag": "컨테이너 미로 · 사무동 옥상", "ready": true, "ground": Color("263038")},
-	{"id": "range", "plan": "training", "name": "훈련장", "en": "TRAINING", "size": "60×52m · 2–8명", "tag": "연병장 · 실내 사격장 · 장애물 코스", "ready": true, "ground": Color("2a2d31")},
+]
+const TRAIN_MAPS := [
+	{"id": "range", "plan": "training", "name": "훈련장", "en": "TRAINING", "size": "60×52m · 혼자", "tag": "사격 레인 · 킬하우스 · 장애물 코스", "ready": true, "ground": Color("2a2d31")},
 ]
 const KIND_COL := {"street": "8c8678", "plaza": "b9b2a6", "siteA": "ff7a1a", "siteB": "f2c14e", "att": "f05a52", "def": "56a8ff",
 	"room": "5f5a52", "tunnel": "1d4a63", "water": "1d4a63"}
@@ -64,7 +66,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var bg := ColorRect.new(); bg.color = Color(0.043, 0.055, 0.071)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); add_child(bg)
-	if not _map_ready(Controls.sel_map): Controls.sel_map = "quarter" if kind == "bomb" else "downtown"
+	if not _map_ready(Controls.sel_map): Controls.sel_map = {"bomb": "quarter", "training": "range"}.get(kind, "downtown")
 
 	# --- top bar ---
 	var back := _btn("‹ 메뉴", 20, Vector2(28, 18), Vector2(110, 48))
@@ -92,7 +94,7 @@ func _ready() -> void:
 	c1.add_child(_map_box)
 
 	var c2 := _panel(Vector2(592, col_y), Vector2(300, col_h)); add_child(c2)
-	var h2 := _label("좀비 강도" if kind == "survival" else "봇 난이도", 20, FG); h2.position = Vector2(16, 12); c2.add_child(h2)
+	var h2 := _label({"survival": "좀비 강도", "training": "훈련 안내"}.get(kind, "봇 난이도"), 20, FG); h2.position = Vector2(16, 12); c2.add_child(h2)
 	_diff_box = VBoxContainer.new(); _diff_box.position = Vector2(16, 48); _diff_box.size = Vector2(268, 300)
 	_diff_box.add_theme_constant_override("separation", 8)
 	c2.add_child(_diff_box)
@@ -152,6 +154,7 @@ func _launch() -> void:
 	get_tree().change_scene_to_file(scene)
 
 func _maps() -> Array:
+	if kind == "training": return TRAIN_MAPS
 	return BOMB_MAPS if kind == "bomb" else MAPS
 
 func _map_ready(id: String) -> bool:
@@ -165,10 +168,23 @@ func _refresh() -> void:
 	for c in _map_box.get_children(): c.queue_free()
 	for m in _maps():
 		_map_box.add_child(_map_card(m))
-	# difficulty
+	# difficulty (training: what the range offers instead)
 	for c in _diff_box.get_children(): c.queue_free()
+	for c in _detail.get_children(): c.queue_free()
+	if kind == "training":
+		for r in [["사격 레인", "10–30m 거리 표적 6개"], ["킬하우스", "방·복도 근접 표적 5개"], ["연병장·장애물", "상자 사이·감시탑 표적 7개"],
+				["정비장", "격납고 주변 표적 3개"]]:
+			var card := Panel.new(); card.custom_minimum_size = Vector2(268, 64)
+			card.add_theme_stylebox_override("panel", _sb(CARD, LINE2, 1, 10))
+			var n := _label(r[0], 18, FG); n.position = Vector2(14, 6); card.add_child(n)
+			var sh := _label(r[1], 13, SOFT); sh.position = Vector2(14, 36); card.add_child(sh)
+			_diff_box.add_child(card)
+		for r in [["표적 체력", "100"], ["헤드샷", "머리 부분"], ["다시 일어섬", "2.5초 후"], ["나가기", "일시정지 메뉴"]]:
+			var a := _label(r[0], 14, MUTED); a.custom_minimum_size = Vector2(134, 0); _detail.add_child(a)
+			var v := _label(r[1], 14, FG); v.custom_minimum_size = Vector2(134, 0)
+			v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT; _detail.add_child(v)
 	var surv := kind == "survival"
-	for id in Difficulty.IDS:
+	for id in (Difficulty.IDS if kind != "training" else []):
 		var d: Dictionary = Difficulty.L[id]
 		var on: bool = id == Controls.bot_diff
 		var b := Button.new(); b.focus_mode = Control.FOCUS_NONE
@@ -181,10 +197,11 @@ func _refresh() -> void:
 		var did: String = id
 		b.pressed.connect(func() -> void: Sfx.play("ui"); Controls.bot_diff = did; _refresh())
 		_diff_box.add_child(b)
-	for c in _detail.get_children(): c.queue_free()
 	var cd := Difficulty.cur()
 	var rows := []
-	if surv:
+	if kind == "training":
+		pass
+	elif surv:
 		rows = [["좀비 체력", "×%.2f" % cd["z_hp"]], ["좀비 공격력", "×%.2f" % cd["z_dmg"]], ["좀비 속도", "×%.2f" % cd["z_spd"]]]
 	else:
 		rows = [["반응 속도", "%.2f초" % cd["react"]], ["명중 퍼짐", "%.1f°" % cd["spread"]],
@@ -215,8 +232,8 @@ func _refresh() -> void:
 	var mname := ""
 	for m in _maps():
 		if m["id"] == Controls.sel_map: mname = m["name"]
-	var who := "웨이브 5" if surv else ("3 vs 3" if kind == "team" else ("5 vs 5 · 7승" if kind == "bomb" else "개인전 6명"))
-	_summary.text = "%s · %s · %s" % [mname, Difficulty.cur()["name"], who]
+	var who := "혼자 · 표적 21개" if kind == "training" else "웨이브 5" if surv else ("3 vs 3" if kind == "team" else ("5 vs 5 · 7승" if kind == "bomb" else "개인전 6명"))
+	_summary.text = ("%s · %s" % [mname, who]) if kind == "training" else ("%s · %s · %s" % [mname, Difficulty.cur()["name"], who])
 
 func _map_card(m: Dictionary) -> Button:
 	var on: bool = m["id"] == Controls.sel_map

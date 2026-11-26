@@ -86,33 +86,34 @@ func _logo() -> void:
 
 # ---- mode stack (right) ----
 func _mode_stack() -> void:
-	_mode("웨이브 서바이벌", "PvE · 좀비 방어", "res://Main.tscn", 232, true, "survival")
-	_mode("데스매치", "개인전 · 봇", "res://Deathmatch.tscn", 332, false, "dm")
-	_mode("팀 데스매치", "3 vs 3 · 봇", "res://TeamDeathmatch.tscn", 432, false, "team")
-	_mode("폭파미션", "5 vs 5 · 폭탄 설치/해체", "res://BombMode.tscn", 532, false, "bomb")
+	_mode("웨이브 서바이벌", "PvE · 좀비 방어", "res://Main.tscn", 196, true, "survival")
+	_mode("데스매치", "개인전 · 봇", "res://Deathmatch.tscn", 282, false, "dm")
+	_mode("팀 데스매치", "3 vs 3 · 봇", "res://TeamDeathmatch.tscn", 368, false, "team")
+	_mode("폭파미션", "5 vs 5 · 폭탄 설치/해체", "res://BombMode.tscn", 454, false, "bomb")
+	_mode("훈련", "훈련장 · 표적 사격", "res://Training.tscn", 540, false, "training")
 
 func _mode(title: String, subtitle: String, scene: String, y: float, primary: bool, kind: String) -> void:
 	var p := Control.new()
 	p.anchor_left = 1.0; p.anchor_right = 1.0
 	p.offset_left = -600; p.offset_right = -40
-	p.offset_top = y; p.offset_bottom = y + 86
+	p.offset_top = y; p.offset_bottom = y + 76
 	add_child(p)
 	var bgp := Panel.new()
 	bgp.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bgp.add_theme_stylebox_override("panel", _sb(PANEL if not primary else Color(0.16, 0.11, 0.05), ACCENT if primary else LINE, 2 if primary else 1, 12))
 	p.add_child(bgp)
-	var ic := _panel(Vector2(16, 17), Vector2(52, 52), Color(0.07, 0.09, 0.11), ACCENT if primary else LINE, 1, 9)
+	var ic := _panel(Vector2(16, 12), Vector2(52, 52), Color(0.07, 0.09, 0.11), ACCENT if primary else LINE, 1, 9)
 	p.add_child(ic)
 	var icon := ModeIcon.new()
 	icon.kind = kind
 	icon.col = ACCENT if primary else Color(0.85, 0.90, 0.95)
 	icon.set_anchors_preset(Control.PRESET_FULL_RECT)
 	ic.add_child(icon)
-	var t := _label(title, 30, FG, false); t.position = Vector2(86, 16); p.add_child(t)
-	var s := _label(subtitle, 19, DIM, false); s.position = Vector2(88, 52); p.add_child(s)
+	var t := _label(title, 28, FG, false); t.position = Vector2(86, 10); p.add_child(t)
+	var s := _label(subtitle, 18, DIM, false); s.position = Vector2(88, 44); p.add_child(s)
 	var arr := _label("›", 34, ACCENT, true)
 	arr.anchor_left = 1.0; arr.anchor_right = 1.0; arr.position = Vector2(0, 0)
-	arr.offset_left = -48; arr.offset_right = -18; arr.offset_top = 22
+	arr.offset_left = -48; arr.offset_right = -18; arr.offset_top = 16
 	p.add_child(arr)
 	var btn := Button.new()
 	btn.flat = true; btn.focus_mode = Control.FOCUS_NONE

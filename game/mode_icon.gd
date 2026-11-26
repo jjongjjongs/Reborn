@@ -31,6 +31,7 @@ func _draw() -> void:
 		"heal": _plus()
 		"nade": _nade()
 		"bomb": _bomb()
+		"training": _target()
 
 func _shield() -> void:
 	var pts := PackedVector2Array([
@@ -90,3 +91,11 @@ func _bomb() -> void:  # charge pack: box, timer face, wire
 	draw_arc(_p(12, 14.5), minf(size.x, size.y) * 0.13, 0.0, TAU, 24, col, _w() * 0.9, true)
 	draw_line(_p(12, 14.5), _p(12, 12.3), Color(1.0, 0.48, 0.1), _w() * 0.9, true)
 	draw_polyline(PackedVector2Array([_p(16, 9), _p(17, 5), _p(21, 3)]), col, _w() * 0.9, true)
+
+func _target() -> void:   # range target: rings + post
+	var c := _p(12, 10)
+	var r := minf(size.x, size.y) * 0.28
+	draw_arc(c, r, 0.0, TAU, 32, col, _w(), true)
+	draw_arc(c, r * 0.55, 0.0, TAU, 24, col, _w(), true)
+	draw_circle(c, _w() * 1.1, Color(1.0, 0.48, 0.1))
+	draw_line(_p(12, 10) + Vector2(0, r), _p(12, 22), col, _w(), true)

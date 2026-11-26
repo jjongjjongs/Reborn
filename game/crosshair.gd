@@ -3,6 +3,7 @@ extends Control
 ## Center crosshair; gap grows with Controls.spread_deg (dynamic accuracy).
 
 func _process(_dt: float) -> void:
+	visible = not Controls.shop_open      # the upgrade shop takes the screen
 	queue_redraw()
 
 func _draw() -> void:

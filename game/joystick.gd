@@ -33,6 +33,7 @@ func _ready() -> void:
 	z_index = 1          # above the crosshair / scope mask
 
 func _process(_dt: float) -> void:
+	visible = not Controls.shop_open      # the upgrade shop takes the screen
 	# While the shop is open input is ignored; a finger released during that time
 	# would leave stale state. Keep everything cleared so it's fresh on close.
 	if Controls.shop_open and (_m_idx != -1 or not _touch.is_empty() or not _look.is_empty()):

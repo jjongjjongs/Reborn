@@ -3,7 +3,8 @@ extends Control
 ## In-run upgrade shop shown during the prep phase between waves. Card layout:
 ## header (title + points pill), prep timer bar, and one card per upgrade with
 ## an icon, level pips, effect text and a buy button (dimmed when unaffordable,
-## "최대" when maxed). TouchInput is suppressed while open (Controls.shop_open).
+## "최대" when maxed). Two columns of cards. While open (Controls.shop_open) the
+## fight HUD (buttons, weapon chips, crosshair, radar) is hidden and touches are ignored.
 
 const UPG := [
 	{"id": "atk", "name": "공격력", "effect": "데미지 +10% / 레벨", "base": 60, "mul": 1.5, "max": 10},
@@ -14,8 +15,8 @@ const UPG := [
 	{"id": "heal", "name": "긴급 치료", "effect": "HP 즉시 +50%", "base": 100, "mul": 1.0, "max": -1},
 ]
 const NADE_CAP := 5
-const PANEL_W := 760.0
-const PANEL_H := 604.0
+const PANEL_W := 1120.0      # two columns of cards; shrinks to the screen
+const COLS := 2
 const PREP_MAX := 9.0
 
 const C_ACCENT := Color(1.0, 0.48, 0.10)
@@ -28,6 +29,7 @@ const C_DIM := Color(0.50, 0.57, 0.63)
 
 var _panel: PanelContainer
 var _pts: Label
+var _hp: Label
 var _timer_bar: ProgressBar
 var _timer_lbl: Label
 var _rows: Array = []
@@ -53,6 +55,14 @@ func _ready() -> void:
 	_pts = Label.new(); _pts.add_theme_font_size_override("font_size", 26)
 	_pts.add_theme_color_override("font_color", Color(1.0, 0.8, 0.35))
 	pill.add_child(_pts)
+	# HP lives here while the shop is open (the radar + HP bar are hidden then)
+	var hpp := PanelContainer.new()
+	hpp.add_theme_stylebox_override("panel", _sb(Color(0.05, 0.07, 0.09), C_LINE, 1, 22, 10))
+	_hp = Label.new(); _hp.add_theme_font_size_override("font_size", 22)
+	_hp.add_theme_color_override("font_color", Color(1.0, 0.55, 0.5))
+	hpp.add_child(_hp)
+	head.add_child(hpp)
+	var gap := Control.new(); gap.custom_minimum_size = Vector2(8, 0); head.add_child(gap)
 	head.add_child(pill)
 	v.add_child(head)
 
@@ -74,8 +84,14 @@ func _ready() -> void:
 	tr.add_child(_timer_lbl)
 	v.add_child(tr)
 
+	var grid := GridContainer.new(); grid.columns = COLS
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 10)
+	v.add_child(grid)
 	for upg in UPG:
-		v.add_child(_card(upg))
+		var cd := _card(upg)
+		cd.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		grid.add_child(cd)
 
 	visible = false
 	_relayout()
@@ -119,7 +135,7 @@ func _card(upg: Dictionary) -> Control:
 	h.add_child(mid)
 
 	var b := Button.new(); b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(150, 46)
+	b.custom_minimum_size = Vector2(128, 50)
 	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	b.add_theme_font_size_override("font_size", 24)
 	var bc := C_OK if heal else C_ACCENT
@@ -144,11 +160,11 @@ func _sb(bg: Color, border: Color, bw: int, rad: int, margin: int) -> StyleBoxFl
 
 func _relayout() -> void:
 	var vp := get_viewport().get_visible_rect().size
-	# start below the HUD's top row (wave label / HP bar) so nothing peeks behind it
-	var top := 96.0
-	var h := minf(PANEL_H, vp.y - top - 12.0)
-	_panel.position = Vector2((vp.x - PANEL_W) * 0.5, top)
-	_panel.size = Vector2(PANEL_W, h)
+	# below the wave label; the fight HUD is hidden while the shop is open
+	var top := 84.0
+	var w := minf(PANEL_W, vp.x - 64.0)
+	_panel.position = Vector2((vp.x - w) * 0.5, top)
+	_panel.size = Vector2(w, 0)   # height follows the content (header + 3 rows of cards)
 
 func _lv(id: String) -> int:
 	match id:
@@ -196,6 +212,7 @@ func _process(_dt: float) -> void:
 	if not visible:
 		return
 	_pts.text = "◆ %d" % Controls.points
+	_hp.text = "HP %d / %d" % [Controls.hp, Controls.hp_max]
 	_timer_bar.value = clampf(Controls.prep_left, 0.0, PREP_MAX)
 	_timer_lbl.text = "%d초" % ceili(Controls.prep_left)
 	for r in _rows:

@@ -125,6 +125,7 @@ func _to_radar(w: Vector3) -> Variant:
 	return Vector2(R, R) + p * (R * 2.0)
 
 func _process(dt: float) -> void:
+	visible = not Controls.shop_open
 	if player == null or not is_instance_valid(player): return
 	var gp := player.global_position
 	_mat.set_shader_parameter("center", Vector2((gp.x - bounds.position.x) / bounds.size.x, (gp.z - bounds.position.y) / bounds.size.y))
