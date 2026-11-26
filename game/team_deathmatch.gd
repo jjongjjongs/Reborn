@@ -108,7 +108,7 @@ func _process(dt: float) -> void:
 		if dead:
 			_player_resp = maxf(0.0, _player_resp - dt)
 			_respawn_lbl.text = "부활까지 %d" % ceili(_player_resp)
-		_respawn_lbl.visible = dead
+		_respawn_lbl.visible = dead and not Controls.shop_open   # the loadout panel shows the countdown
 
 func _end_match(winner_team: int) -> void:
 	_over = true
@@ -163,6 +163,7 @@ func _build_hud() -> void:
 	_respawn_lbl.anchor_right = 1.0; _respawn_lbl.anchor_top = 0.42
 	_respawn_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE; _respawn_lbl.visible = false
 	layer.add_child(_respawn_lbl)
+	layer.add_child(PrepLoadout.new().setup(self, "respawn"))   # change weapons while waiting to respawn
 
 	_build_result(layer)
 

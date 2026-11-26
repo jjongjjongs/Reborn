@@ -11,7 +11,8 @@ const FG := Color(0.92, 0.95, 0.97)
 const MUTED := Color(0.54, 0.60, 0.66)
 const LINE := Color(0.17, 0.20, 0.24)
 
-var mode: Node            # BombMode (state / t / PREP / player)
+var mode: Node            # BombMode (state / t / PREP / player) or DM / TDM / Training (player)
+var kind := "prep"        # prep: bomb round prep · respawn: while dead in DM/TDM · free: training (button)
 var _panel: PanelContainer
 var _chip: Button
 var _time_lbl: Label
@@ -19,10 +20,15 @@ var _bar: ProgressBar
 var _cards := {}          # id -> PanelContainer
 var _open := false
 var _last_state := ""
+var _was_dead := false
 
-func setup(m: Node) -> PrepLoadout:
-	mode = m
+func setup(m: Node, k := "prep") -> PrepLoadout:
+	mode = m; kind = k
 	return self
+
+## training: the HUD 장비 button toggles the panel
+func toggle() -> void:
+	_set_open(not _open)
 
 func _sb(bg: Color, bd: Color, bw: int, r := 10, m := 8) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new(); s.bg_color = bg; s.border_color = bd; s.set_border_width_all(bw); s.set_corner_radius_all(r)
@@ -100,7 +106,7 @@ func _pick(id: String, slot: int) -> void:
 	Controls.loadout[slot] = id
 	Controls.save_settings()
 	var p = mode.player
-	if p:
+	if p and p.alive:      # dead (respawn wait): respawn_at() equips the new loadout
 		p._ammo[id] = p._mag_of(id)
 		if Controls.slot == slot: p._equip(slot, true)
 		else: p._sync_hud()
@@ -125,6 +131,21 @@ func _set_open(on: bool) -> void:
 
 func _process(_dt: float) -> void:
 	if mode == null: return
+	if kind == "free":
+		_chip.visible = false
+		_time_lbl.text = "훈련 중엔 언제든 바꿀 수 있어요"
+		_bar.visible = false
+		return
+	if kind == "respawn":
+		_chip.visible = false
+		var dead: bool = mode.player != null and not mode.player.alive and not mode._over
+		if dead and not _was_dead: _set_open(true)       # each death opens it once
+		if not dead and _open: _set_open(false)
+		_was_dead = dead
+		if dead:
+			_bar.max_value = float(mode.RESPAWN_DELAY); _bar.value = maxf(0.0, float(mode._player_resp))
+			_time_lbl.text = "부활까지 %d초 · 고른 장비로 부활" % ceili(mode._player_resp)
+		return
 	var st: String = mode.state
 	var prep: bool = st == "prep" and mode.player != null and mode.player.alive
 	if st != _last_state:

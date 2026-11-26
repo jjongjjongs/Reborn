@@ -78,3 +78,12 @@ func _build_hud() -> void:
 	_sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(_sub)
 	layer.add_child(Radar.new().setup(player, _info.get("bounds", Rect2(-30, -26, 60, 52))))
+	var panel := PrepLoadout.new().setup(self, "free"); layer.add_child(panel)
+	var b := Button.new(); b.text = "  장비  "; b.focus_mode = Control.FOCUS_NONE
+	b.add_theme_font_size_override("font_size", 22)
+	var sb := StyleBoxFlat.new(); sb.bg_color = Color(0.06, 0.08, 0.10, 0.85); sb.border_color = Color(1.0, 0.48, 0.10)
+	sb.set_border_width_all(2); sb.set_corner_radius_all(12); sb.set_content_margin_all(8)
+	for k in ["normal", "hover", "pressed"]: b.add_theme_stylebox_override(k, sb)
+	b.anchor_left = 1.0; b.anchor_right = 1.0; b.offset_left = -236; b.offset_right = -100; b.offset_top = 20; b.offset_bottom = 72
+	b.pressed.connect(func() -> void: Sfx.play("ui"); panel.toggle())
+	layer.add_child(b)
