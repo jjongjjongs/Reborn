@@ -49,8 +49,8 @@ var _result: Control
 var _banner_t := 0.0
 
 func _ready() -> void:
-	if not Controls.sel_map in ["oldtown"]:
-		Controls.sel_map = "oldtown"
+	if not Controls.sel_map in ["oldtown2", "oldtown"]:
+		Controls.sel_map = "oldtown2"
 	info = MapBuilder.build(Controls.sel_map, self)
 	player = PlayerBody.new()
 	player.team = RED
@@ -216,6 +216,10 @@ func _live(dt: float) -> void:
 		_end_round(def_team, "시간 종료")
 
 func _site_at(p: Vector3) -> String:
+	if info.has("site_a_poly"):
+		if Geometry2D.is_point_in_polygon(Vector2(p.x, p.z), info["site_a_poly"]): return "A"
+		if Geometry2D.is_point_in_polygon(Vector2(p.x, p.z), info["site_b_poly"]): return "B"
+		return ""
 	if (info["site_a"] as Rect2).has_point(Vector2(p.x, p.z)): return "A"
 	if (info["site_b"] as Rect2).has_point(Vector2(p.x, p.z)): return "B"
 	return ""
@@ -257,7 +261,13 @@ func _explode() -> void:
 func _site_center(s: String) -> Vector3:
 	var r: Rect2 = info["site_a"] if s == "A" else info["site_b"]
 	var c := r.get_center()
-	return Vector3(c.x, 0.5, c.y)
+	var y := 0.5
+	# sample the ground height (the new maps have hills)
+	var space := get_world_3d().direct_space_state
+	var q := PhysicsRayQueryParameters3D.create(Vector3(c.x, 30, c.y), Vector3(c.x, -5, c.y))
+	var h := space.intersect_ray(q)
+	if h: y = h["position"].y + 0.5
+	return Vector3(c.x, y, c.y)
 
 func _assign_objectives() -> void:
 	var def_team := 1 - att_team
