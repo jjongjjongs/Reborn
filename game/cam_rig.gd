@@ -15,7 +15,7 @@ static func follow(cam: Camera3D, player: PlayerBody) -> void:
 		cam.near = 0.03
 		cam.global_position = player.global_position + Vector3(0, player.eye_h + 0.18, 0) + Controls.shake_offset()
 		cam.global_basis = b
-		cam.fov = lerpf(72.0, 72.0 / 2.5, player.scope_k)
+		cam.fov = lerpf(60.0, 60.0 / 2.5, player.scope_k)
 		return
 	cam.near = 0.05
 	var pivot := player.global_position + Vector3(0, player.eye_h, 0)

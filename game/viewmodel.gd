@@ -9,10 +9,14 @@ extends Node3D
 static var active := false
 static var muzzle := Vector3.ZERO     # world position of the muzzle (tracers start here)
 
-const SLEEVE := Color(0.36, 0.31, 0.22)
+const SLEEVE := Color(0.25, 0.27, 0.21)
 const GLOVE := Color(0.13, 0.12, 0.11)
-const SHOULDER_R := Vector3(0.30, -0.50, 0.12)
-const SHOULDER_L := Vector3(-0.22, -0.52, 0.05)
+# per kind: right-hand grip point (camera space), weapon rotation (deg), shoulders the forearms start from
+const POSE := {
+	"long":   {"grip": Vector3(0.24, -0.21, -0.38), "rot": Vector3(1.0, -2.0, 0.0), "sr": Vector3(0.36, -0.44, 0.02), "sl": Vector3(0.02, -0.50, -0.16)},
+	"pistol": {"grip": Vector3(0.14, -0.15, -0.48), "rot": Vector3(1.0, -2.0, 0.0), "sr": Vector3(0.26, -0.44, -0.10), "sl": Vector3(0.02, -0.44, -0.14)},
+	"knife":  {"grip": Vector3(0.25, -0.20, -0.38), "rot": Vector3(25.0, 25.0, -20.0), "sr": Vector3(0.34, -0.46, 0.0), "sl": Vector3(-0.30, -0.8, 0.0)},
+}
 
 var player: PlayerBody
 var _wid := ""
@@ -31,20 +35,26 @@ var _t := 0.0
 var _last_kick := 0.0
 var _raise := 0.0          # 0 = up, 1 = fully lowered (swap / grenade)
 var _reload_k := 0.0
-var _push := 0.0           # pulled back from a wall (m)
+var _push := 0.0           # 0..1: muzzle blocked by a wall -> weapon tucked down and in
 
 func _ready() -> void:
 	var sl := StandardMaterial3D.new(); sl.albedo_color = SLEEVE; sl.roughness = 0.95
 	var gl := StandardMaterial3D.new(); gl.albedo_color = GLOVE; gl.roughness = 0.8
 	_holder = Node3D.new(); add_child(_holder)
-	_arm_r = _limb(sl, 0.052); _arm_l = _limb(sl, 0.05)
-	_hand_r = _box(gl, Vector3(0.075, 0.07, 0.11)); _hand_l = _box(gl, Vector3(0.07, 0.065, 0.105))
+	_arm_r = _limb(sl, 0.042); _arm_l = _limb(sl, 0.040)
+	_hand_r = _fist(gl); _hand_l = _fist(gl)
 	_flash = OmniLight3D.new(); _flash.light_color = Color(1, 0.8, 0.4); _flash.light_energy = 3.0; _flash.omni_range = 4.0
 	_flash.visible = false; add_child(_flash)
 
 func _limb(m: Material, r: float) -> MeshInstance3D:
 	var mi := MeshInstance3D.new(); var cm := CapsuleMesh.new(); cm.radius = r; cm.height = 0.5
 	cm.radial_segments = 10; cm.rings = 2
+	mi.mesh = cm; mi.material_override = m; mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mi); return mi
+
+func _fist(m: Material) -> MeshInstance3D:   # rounded glove, long axis along the weapon
+	var mi := MeshInstance3D.new(); var cm := CapsuleMesh.new(); cm.radius = 0.036; cm.height = 0.11
+	cm.radial_segments = 10; cm.rings = 3
 	mi.mesh = cm; mi.material_override = m; mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(mi); return mi
 
@@ -86,7 +96,8 @@ func _process(dt: float) -> void:
 	_t += dt
 	var cam := get_parent() as Camera3D
 	# where the right hand holds the grip (camera space) per weapon kind
-	var grip: Vector3 = {"long": Vector3(0.15, -0.21, -0.30), "pistol": Vector3(0.12, -0.17, -0.38), "knife": Vector3(0.20, -0.22, -0.34)}[_kind]
+	var pose: Dictionary = POSE[_kind]
+	var grip: Vector3 = pose["grip"]
 	# walk bob
 	var hs := Vector2(player.velocity.x, player.velocity.z).length()
 	var mv := clampf(hs / 5.0, 0.0, 1.0)
@@ -117,23 +128,23 @@ func _process(dt: float) -> void:
 	q.exclude = [player.get_rid()]
 	var h := space.intersect_ray(q)
 	var want_push: float = (reach - cam.global_position.distance_to(h["position"])) if h else 0.0
-	_push = lerpf(_push, clampf(want_push, 0.0, 0.5), minf(1.0, dt * 14.0))
+	_push = lerpf(_push, clampf(want_push / 0.45, 0.0, 1.0), minf(1.0, dt * 12.0))   # 0..1 how blocked
 	# pose the weapon: grip anchor at `grip`
-	var rot := Vector3(rec_rot.x - 28.0 * _reload_k - 40.0 * _raise, 4.0 + rec_rot.y, rec_rot.z + 22.0 * _reload_k)
-	if _kind == "knife": rot += Vector3(8.0, -10.0, 0.0)
+	var rot: Vector3 = pose["rot"] + Vector3(rec_rot.x - 28.0 * _reload_k - 40.0 * _raise - 32.0 * _push, rec_rot.y + 28.0 * _push, rec_rot.z + 22.0 * _reload_k)
 	var bas := Basis.from_euler(Vector3(deg_to_rad(rot.x), deg_to_rad(rot.y), deg_to_rad(rot.z)))
-	var target: Vector3 = grip + bob + rec + Vector3(0, -0.10 * _reload_k - 0.30 * _raise, _push)
+	var target: Vector3 = grip + bob + rec + Vector3(-0.02 * _push, -0.10 * _reload_k - 0.30 * _raise - 0.05 * _push, 0.08 * _push)
 	_holder.transform = Transform3D(bas, target - bas * _anchor("grip"))
 	# hands + forearms
 	var hr: Vector3 = _holder.transform * _anchor("grip")
 	var hl: Vector3
-	if _kind == "long": hl = _holder.transform * _anchor("fore")
-	elif _kind == "pistol": hl = hr + bas * Vector3(-0.05, -0.02, 0.03)
-	else: hl = SHOULDER_L + Vector3(0.0, -0.3, -0.05)      # knife: free hand stays low (off screen)
-	_place_limb(_arm_r, SHOULDER_R, hr)
-	_place_limb(_arm_l, SHOULDER_L, hl)
-	_hand_r.transform = Transform3D(bas, hr + bas * Vector3(0, -0.02, 0.0))
-	_hand_l.transform = Transform3D(bas, hl + bas * Vector3(0, -0.025, 0.0))
+	if _kind == "long": hl = _holder.transform * _anchor("fore") + bas * Vector3(0, -0.035, 0)   # under the handguard
+	elif _kind == "pistol": hl = hr + bas * Vector3(-0.045, -0.025, 0.02)                          # cupping the grip
+	else: hl = pose["sl"]
+	_place_limb(_arm_r, pose["sr"], hr)
+	_place_limb(_arm_l, pose["sl"], hl)
+	var hb := bas * Basis(Vector3.RIGHT, PI * 0.5)       # capsule axis (Y) -> along the barrel
+	_hand_r.transform = Transform3D(hb, hr + bas * Vector3(0, -0.02, 0.0))
+	_hand_l.transform = Transform3D(hb, hl + bas * Vector3(0, -0.01, 0.0))
 	_hand_l.visible = _kind != "knife"; _arm_l.visible = _kind != "knife"
 	# muzzle (tracers / flash)
 	var mz: Vector3 = _holder.transform * Vector3(0, _anchor("grip").y + 0.03, -_len * 0.5)
