@@ -4,10 +4,10 @@ config_version=5
 [application]
 
 config/name="Mini Soldier"
-config/version="6.5"
-config/build_code=66
+config/version="6.6"
+config/build_code=67
 run/main_scene="res://Menu.tscn"
-config/icon="res://icon.svg"
+config/icon="res://icons/icon_512.png"
 config/quit_on_go_back=false
 config/features=PackedStringArray("4.3", "GL Compatibility")
 
