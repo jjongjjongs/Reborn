@@ -86,12 +86,19 @@ var _base := "?"
 var _team := Color(0.8, 0.4, 0.3)
 var _kit := Color(0, 0, 0, 0)      # helmet / plate carrier colour (alpha 0 = team-tinted default)
 var cosmetic := false              # the player's own soldier: wear the shop finish on guns
+var body := "swat"                 # "swat" or "mini" (Mini Soldier toy body, same skeleton)
+static var test_body := ""         # dev: force a body for every soldier (comparison shots)
+var gear := "helmet"               # mini head gear: helmet / beret / mask
 
 func setup(team_color: Color, kit: Color = Color(0, 0, 0, 0)) -> void:
 	_team = team_color
 	_kit = kit
-	# visible SWAT
-	var swat := SWAT.instantiate()
+	# visible body (SWAT, or the Mini Soldier test body built on the same skeleton)
+	if test_body != "": body = test_body
+	var swat: Node3D = (load("res://assets/soldier/Mini.glb") as PackedScene).instantiate() if body == "mini" else SWAT.instantiate()
+	if body == "mini":
+		for g in swat.find_children("Gear_*", "", true, false):
+			(g as Node3D).visible = String(g.name).to_lower() == "gear_" + gear
 	_swat = swat
 	swat.rotation.y = yaw_offset
 	add_child(swat)
