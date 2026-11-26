@@ -88,7 +88,9 @@ var _kit := Color(0, 0, 0, 0)      # helmet / plate carrier colour (alpha 0 = te
 var cosmetic := false              # the player's own soldier: wear the shop finish on guns
 var body := "mini"                 # "mini" (default toy soldier) or "swat" (shop), same skeleton
 var gun_k := 1.0                   # weapon size multiplier (the chunky mini holds bigger guns)
-static var test_body := ""         # dev: force a body for every soldier (comparison shots)
+static var test_body := ""
+const BODIES := {"mini": "res://assets/soldier/Mini.glb", "mini_swat": "res://assets/soldier/MiniSwat.glb",
+	"mini_zombie": "res://assets/soldier/MiniZombie.glb", "mini_v3": "res://assets/soldier/MiniV3.glb"}         # dev: force a body for every soldier (comparison shots)
 var gear := "helmet"               # mini head gear: helmet / beret / mask
 
 func setup(team_color: Color, kit: Color = Color(0, 0, 0, 0)) -> void:
@@ -96,9 +98,10 @@ func setup(team_color: Color, kit: Color = Color(0, 0, 0, 0)) -> void:
 	_kit = kit
 	# visible body (SWAT, or the Mini Soldier test body built on the same skeleton)
 	if test_body != "": body = test_body
-	gun_k = 1.15 if body == "mini" else 1.0
-	var swat: Node3D = (load("res://assets/soldier/Mini.glb") as PackedScene).instantiate() if body == "mini" else SWAT.instantiate()
-	if body == "mini":
+	gun_k = 1.15 if body.begins_with("mini") else 1.0
+	var path: String = BODIES.get(body, "")
+	var swat: Node3D = (load(path) as PackedScene).instantiate() if path != "" else SWAT.instantiate()
+	if body.begins_with("mini"):
 		for g in swat.find_children("Gear_*", "", true, false):
 			(g as Node3D).visible = String(g.name).to_lower() == "gear_" + gear
 	_swat = swat
