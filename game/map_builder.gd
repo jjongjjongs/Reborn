@@ -167,7 +167,7 @@ func _range() -> Dictionary:
 		"red": _spawns([[-16, 0], [-14, -9], [-14, 9], [-10, 0]]),
 		"blue": _spawns([[16, 0], [14, -9], [14, 9], [10, 0]]),
 		"zombie": _spawns([[17, 0], [-17, 0], [0, -19], [0, 19], [15, -15], [-15, 15]]),
-		"player": Vector3(0, 1.5, 0)}
+		"player": Vector3(0, 1.5, 0), "bounds": Rect2(-35, -35, 70, 70)}
 
 # ------------------------------------------------------------------ 사막 시장
 func _bazaar() -> Dictionary:
@@ -216,7 +216,7 @@ func _bazaar() -> Dictionary:
 		"red": _spawns([[-20, 8], [-11.5, 7.6], [-18, -8.3], [-10.6, -8.6]]),
 		"blue": _spawns([[19, -6.5], [11, -6.8], [19, 8.7], [11.2, 8.8]]),
 		"zombie": _spawns([[-20, 8], [19, 8.7], [-18, -8.3], [19, -6.5], [0, -9.5], [7.4, 4.0]]),
-		"player": Vector3(0, 1.0, 8.0)}
+		"player": Vector3(0, 1.0, 8.0), "bounds": Rect2(-23, -23, 46, 46)}
 
 func _house_details(x0: float, z0: float, x1: float, z1: float, h: float, trim: Color) -> void:
 	# roof lip + dark window/door insets on the faces that face the streets (visual only)
@@ -320,7 +320,7 @@ func _cell() -> Dictionary:
 		"red": _spawns([[-16, 14], [-10, 15.5], [-17, 6.5], [-12, 2.0]]),
 		"blue": _spawns([[16, 14], [16, 5.5], [8.4, 14.8], [13.5, 2.6]]),
 		"zombie": _spawns([[-17, -10], [17, -10], [0, -10], [16, 14], [-16, 14], [16, 5]]),
-		"player": Vector3(-8.0, 1.0, 8.0)}
+		"player": Vector3(-8.0, 1.0, 8.0), "bounds": Rect2(-20, -17.5, 40, 35)}
 
 # a row of cells between x0..x1; z_back = the solid back wall line, z_front = the barred front
 func _cell_row(x0: float, x1: float, z_back: float, z_front: float, _north: bool, c: Color, bars: Color) -> void:
@@ -420,7 +420,7 @@ func _harbor() -> Dictionary:
 		"red": _spawns([[-27.5, 18], [-27.5, 6], [-27.5, -3], [-25, 15.5]]),
 		"blue": _spawns([[27.5, 18], [27.5, 6], [27.5, -4], [25, 15.5]]),
 		"zombie": _spawns([[-27, 18], [27, 18], [-27, -1], [27, -4], [-8, -13], [8, -13]]),
-		"player": Vector3(0, 1.0, 6.5)}
+		"player": Vector3(0, 1.0, 6.5), "bounds": Rect2(-30, -22.5, 60, 45)}
 
 func _container(base: Vector3, yaw: float, c: Color) -> void:
 	var size := Vector3(6.1, 2.6, 2.44)

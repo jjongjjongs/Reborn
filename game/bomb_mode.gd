@@ -26,7 +26,7 @@ var score := [0, 0]
 var round_no := 0
 var state := "prep"          # prep / live / end / over
 var t := 0.0
-var bomb_state := "carried"  # carried / dropped / planted / gone
+var bomb_state := "carried"  # carried (every attacker has one) / planted / gone
 var carrier: Node3D = null
 var bomb_pos := Vector3.ZERO
 var bomb_t := 0.0
@@ -110,8 +110,7 @@ func _start_round() -> void:
 			n.frozen = true; n.busy = false
 		else:
 			n.frozen = true
-	var atts := _members(att_team)
-	carrier = atts[randi() % atts.size()]
+	carrier = null
 	plan_site = "A" if randf() < 0.5 else "B"
 	_assign_objectives()
 	var role := "공격" if att_team == RED else "수비"
@@ -156,39 +155,29 @@ func _process(dt: float) -> void:
 
 func _live(dt: float) -> void:
 	var def_team := 1 - att_team
-	# bomb carrier / pickup
-	if bomb_state == "carried" and (carrier == null or not carrier.alive):
-		bomb_state = "dropped"
-		if carrier: bomb_pos = carrier.global_position
-		_place_bomb(false)
-		_assign_objectives()
-	if bomb_state == "dropped":
-		for n in _alive(att_team):
-			if n.global_position.distance_to(bomb_pos) < 1.4:
-				carrier = n; bomb_state = "carried"
-				_bomb_vis.visible = false; _bomb_tag.visible = false
-				_assign_objectives(); break
-	# plant
+	# plant: every attacker carries a bomb; the first one planted counts
 	Controls.act_label = ""
-	if bomb_state == "carried" and carrier.alive:
-		var site := _site_at(carrier.global_position)
-		if site != "":
-			if carrier == player:
-				Controls.act_label = "설치"
-				if Controls.act_held and Controls.move.length() < 0.2:
-					plant_prog += dt / PLANT
-				else:
-					plant_prog = 0.0
-			else:
-				var b: BotPlayer = carrier
-				if not b.busy and not _enemy_near(b, 10.0):
-					b.busy = true
-				if b.busy: plant_prog += dt / PLANT
-			if plant_prog >= 1.0:
-				_plant(site)
-		else:
-			plant_prog = 0.0
+	if bomb_state == "carried":
+		if carrier != null and (not carrier.alive or _site_at(carrier.global_position) == ""):
 			if carrier is BotPlayer: carrier.busy = false
+			carrier = null; plant_prog = 0.0
+		if player.alive and player.team == att_team and _site_at(player.global_position) != "":
+			Controls.act_label = "설치"
+			if Controls.act_held and Controls.move.length() < 0.2:
+				if carrier != player:
+					if carrier is BotPlayer: carrier.busy = false
+					carrier = player; plant_prog = 0.0
+				plant_prog += dt / PLANT
+			elif carrier == player:
+				carrier = null; plant_prog = 0.0
+		if carrier == null:
+			for b in bots:
+				if b.alive and b.team == att_team and _site_at(b.global_position) != "" and not _enemy_near(b, 10.0):
+					carrier = b; b.busy = true; plant_prog = 0.0; break
+		elif carrier is BotPlayer:
+			plant_prog += dt / PLANT
+		if carrier != null and plant_prog >= 1.0:
+			_plant(_site_at(carrier.global_position))
 	# defuse
 	if bomb_state == "planted":
 		bomb_t -= dt
@@ -283,21 +272,13 @@ func _assign_objectives() -> void:
 				var a := TAU * float(i) / maxf(1.0, ab.size())
 				b.objective = bomb_pos + Vector3(cos(a), 0, sin(a)) * 6.0; i += 1
 			for b in db: b.objective = bomb_pos
-		"dropped":
-			var best: Node3D = null; var bd := 1e9
-			for b in ab:
-				if b.alive and b.global_position.distance_to(bomb_pos) < bd:
-					bd = b.global_position.distance_to(bomb_pos); best = b
-			for b in ab:
-				b.objective = bomb_pos if b == best else _site_center(plan_site) + _jit(3.0)
-			_defense(db, mid)
 		_:
 			var i := 0
 			for b in ab:
-				if b == carrier or i < 2: b.objective = _site_center(plan_site) + _jit(2.5)
-				elif i == 2: b.objective = _site_center(other) + _jit(3.0)
+				if i < 3: b.objective = _site_center(plan_site) + _jit(2.5)
+				elif i == 3: b.objective = _site_center(other) + _jit(3.0)
 				else: b.objective = mid + _jit(3.0)
-				if b != carrier: i += 1
+				i += 1
 			_defense(db, mid)
 
 func _defense(db: Array, mid: Vector3) -> void:
@@ -313,8 +294,6 @@ func _jit(r: float) -> Vector3:
 func _on_died(attacker, victim) -> void:
 	if attacker == player and victim != player:
 		Controls.kills += 1
-	if victim == carrier and bomb_state == "carried":
-		pass   # handled next frame in _live (drop)
 
 # ---------------------------------------------------------------- bomb visual
 func _build_bomb() -> void:
@@ -327,7 +306,7 @@ func _build_bomb() -> void:
 	pad.material_override = pm; pad.position.y = 0.24; _bomb_vis.add_child(pad)
 	_bomb_light = OmniLight3D.new(); _bomb_light.light_color = Color(1, 0.2, 0.1); _bomb_light.light_energy = 3.0
 	_bomb_light.omni_range = 4.0; _bomb_light.position.y = 0.5; _bomb_vis.add_child(_bomb_light)
-	_bomb_tag = Label3D.new(); _bomb_tag.text = "폭탄"; _bomb_tag.font_size = 48; _bomb_tag.pixel_size = 0.004
+	_bomb_tag = Label3D.new(); _bomb_tag.text = "폭탄"; _bomb_tag.font_size = 28; _bomb_tag.pixel_size = 0.0012
 	_bomb_tag.fixed_size = true
 	_bomb_tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED; _bomb_tag.no_depth_test = true
 	_bomb_tag.modulate = Color(1.0, 0.45, 0.3); _bomb_tag.position.y = 0.9
@@ -363,7 +342,6 @@ func _show_banner(txt: String, dur: float) -> void:
 	_banner.text = txt; _banner.visible = true; _banner_t = dur
 
 func _hud(dt: float) -> void:
-	_hp_fill.size.x = 360.0 * float(Controls.hp) / float(Controls.hp_max)
 	_score_lbl.text = "레드 %d  :  %d 블루" % [score[RED], score[BLUE]]
 	if bomb_state == "planted" and state == "live":
 		_time_lbl.text = "폭탄 %d" % ceili(maxf(bomb_t, 0.0))
@@ -378,7 +356,7 @@ func _hud(dt: float) -> void:
 	for n in _members(BLUE): pips += "●" if n.alive else "○"
 	_alive_lbl.text = pips
 	var role := "공격" if att_team == RED else "수비"
-	if bomb_state == "carried" and carrier == player and player.alive:
+	if bomb_state == "carried" and att_team == RED and player.alive:
 		_carry_lbl.text = "%s · 폭탄 보유 — A·B 사이트 안에서 '설치'를 누르고 있기" % role
 	elif not player.alive and state == "live":
 		_carry_lbl.text = "관전 중 — 다음 라운드에 부활"
@@ -404,13 +382,13 @@ func _build_hud() -> void:
 	touch.mouse_filter = Control.MOUSE_FILTER_IGNORE; layer.add_child(touch)
 	var cross := CrossHair.new(); cross.set_anchors_preset(Control.PRESET_FULL_RECT)
 	cross.mouse_filter = Control.MOUSE_FILTER_IGNORE; layer.add_child(cross)
-	var hp_bg := ColorRect.new(); hp_bg.color = Color(0, 0, 0, 0.55)
-	hp_bg.position = Vector2(28, 52); hp_bg.size = Vector2(360, 26); hp_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(hp_bg)
-	_hp_fill = ColorRect.new(); _hp_fill.color = Color(0.88, 0.30, 0.25)
-	_hp_fill.position = Vector2(28, 52); _hp_fill.size = Vector2(360, 26); _hp_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(_hp_fill)
-	_carry_lbl = _lbl(20, Color(1.0, 0.75, 0.45)); _carry_lbl.position = Vector2(30, 84); layer.add_child(_carry_lbl)
+	var radar := Radar.new().setup(player, info.get("bounds", Rect2(-50, -40, 100, 80)))
+	radar.extras = func() -> Array:
+		var out: Array = [{"pos": _site_center("A"), "kind": "A"}, {"pos": _site_center("B"), "kind": "B"}]
+		if bomb_state == "planted": out.append({"pos": bomb_pos, "kind": "bomb"})
+		return out
+	layer.add_child(radar)
+	_carry_lbl = _lbl(20, Color(1.0, 0.75, 0.45)); _carry_lbl.position = Vector2(26, 268); layer.add_child(_carry_lbl)
 	_score_lbl = _lbl(28, Color(1.0, 0.72, 0.38), true); _score_lbl.offset_top = 10; layer.add_child(_score_lbl)
 	_time_lbl = _lbl(34, Color(0.95, 0.96, 0.98), true); _time_lbl.offset_top = 44; layer.add_child(_time_lbl)
 	_alive_lbl = _lbl(20, Color(0.85, 0.88, 0.92), true); _alive_lbl.offset_top = 88; layer.add_child(_alive_lbl)

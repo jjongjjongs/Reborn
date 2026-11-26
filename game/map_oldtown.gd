@@ -11,9 +11,9 @@ extends MapDowntown
 
 const W := 50.0
 const D := 40.0
-var _win_xf: Array[Transform3D] = []
 
 func build_oldtown() -> Dictionary:
+	_bx = W; _bz = D
 	_env(Color(0.60, 0.68, 0.80), Color(0.80, 0.80, 0.82), 1.0, Vector3(-48, -25, 0), Color(1.0, 0.94, 0.84), 1.2, Color(0.66, 0.70, 0.76), 0.004)
 	box(Vector3(0, -0.5, 0), Vector3(W * 2 + 30, 1, D * 2 + 30), Color(0.3, 0.3, 0.3))
 	var cobble := _tex_mat("T_Concrete_Asphalt_BaseColor", 0.3, Color(0.86, 0.82, 0.76))
@@ -33,70 +33,10 @@ func build_oldtown() -> Dictionary:
 	var att := _spawns([[-8, 34], [-4, 36], [0, 34], [4, 36], [8, 34]])
 	var def := _spawns([[-8, -27], [-4, -28.5], [0, -27], [4, -28.5], [8, -27]])
 	return {"att": att, "def": def, "red": att, "blue": def, "ffa": att + def,
-		"zombie": att + def, "player": att[0],
+		"zombie": att + def, "player": att[0], "bounds": Rect2(-W, -D, W * 2, D * 2),
 		"site_a": Rect2(-38, -16, 12, 10), "site_b": Rect2(22, -20, 14, 10), "mid": Vector3(0, 0.5, -16)}
 
 # ---------------------------------------------------------------- building helpers
-# a city block: textured box + cornice + window rows on its faces (windows batched)
-func house(x0: float, z0: float, x1: float, z1: float, h: float, look := 0, windows := true) -> void:
-	var mats := [_tex_mat("T_RedBrick_BaseColor", 0.5), _tex_mat("T_Concrete_BaseColor", 0.3, Color(0.92, 0.86, 0.74)),
-		_tex_mat("T_RedBrick_BaseColor", 0.5, Color(0.80, 0.70, 0.62)), _tex_mat("T_Concrete_BaseColor", 0.3, Color(0.70, 0.72, 0.76))]
-	var m: Material = mats[look % mats.size()]
-	var mi := MeshInstance3D.new()
-	var bm := BoxMesh.new(); bm.size = Vector3(x1 - x0, h, z1 - z0); mi.mesh = bm
-	mi.material_override = m
-	mi.position = Vector3((x0 + x1) * 0.5, h * 0.5, (z0 + z1) * 0.5)
-	nav.add_child(mi)
-	solid(x0, z0, x1, z1, h)
-	# cornice
-	var ci := MeshInstance3D.new()
-	var cb := BoxMesh.new(); cb.size = Vector3(x1 - x0 + 0.5, 0.5, z1 - z0 + 0.5); ci.mesh = cb
-	ci.material_override = _tex_mat("T_Trim_BaseColor", 0.4)
-	ci.position = Vector3((x0 + x1) * 0.5, h - 0.25, (z0 + z1) * 0.5)
-	ci.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	nav.add_child(ci)
-	if windows:
-		_window_rows(x0, z0, x1, z1, h)
-
-func _window_rows(x0: float, z0: float, x1: float, z1: float, h: float) -> void:
-	var floors := []
-	var y := 4.2
-	while y < h - 1.2:
-		floors.append(y); y += 3.0
-	var faces := [[Vector3(x0, 0, z0), Vector3(x1, 0, z0), 180.0, Vector3(0, 0, -0.06)],
-		[Vector3(x0, 0, z1), Vector3(x1, 0, z1), 0.0, Vector3(0, 0, 0.06)],
-		[Vector3(x0, 0, z0), Vector3(x0, 0, z1), 270.0, Vector3(-0.06, 0, 0)],
-		[Vector3(x1, 0, z0), Vector3(x1, 0, z1), 90.0, Vector3(0.06, 0, 0)]]
-	for f in faces:
-		var a: Vector3 = f[0]; var b: Vector3 = f[1]
-		# skip faces on the outer edge of the map (nobody sees them)
-		if absf(a.x) >= W - 0.1 and absf(b.x) >= W - 0.1: continue
-		if absf(a.z) >= D - 0.1 and absf(b.z) >= D - 0.1: continue
-		var L := a.distance_to(b)
-		var n := int(L / 3.2)
-		for i in n:
-			var p := a.lerp(b, (i + 0.5) / float(n)) + (f[3] as Vector3)
-			for fy in floors:
-				_win_xf.append(Transform3D(Basis(Vector3.UP, deg_to_rad(f[2])), p + Vector3(0, fy, 0)))
-
-func _windows_flush() -> void:
-	# every window on the map in ONE draw call
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	var q := QuadMesh.new(); q.size = Vector2(1.1, 1.6)
-	var wm := StandardMaterial3D.new()
-	wm.albedo_texture = load("res://assets/city/tex/T_dark_interior.png")
-	wm.albedo_color = Color(0.75, 0.78, 0.85)
-	wm.roughness = 0.2
-	q.material = wm
-	mm.mesh = q
-	mm.instance_count = _win_xf.size()
-	for i in _win_xf.size():
-		mm.set_instance_transform(i, _win_xf[i])
-	var mmi := MultiMeshInstance3D.new(); mmi.multimesh = mm
-	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	nav.add_child(mmi)
-
 func _bounds_old() -> void:
 	solid(-W - 1, -D - 1, W + 1, -D, 14); solid(-W - 1, D, W + 1, D + 1, 14)
 	solid(-W - 1, -D, -W, D, 14); solid(W, -D, W + 1, D, 14)
@@ -233,7 +173,7 @@ func _props() -> void:
 	# barriers / crates along the lanes
 	var conc := Color(0.80, 0.78, 0.74)
 	for p in [[0, 27, 0], [-21, 0.5, 90], [17, 6, 90], [-2, -16, 0], [11, -11, 90], [-13, -8, 90], [20, -30, 0], [-22, -27, 0]]:
-		box(Vector3(p[0], 0.55, p[1]), Vector3(2.6, 1.1, 0.6), conc, p[2])
+		jersey(Vector3(p[0], 0, p[1]), p[2])
 	for p in [[-22.5, 22], [-19.5, 6], [18.5, 26], [3.5, -3], [-6.5, -22], [12, -24]]:
 		crate(Vector3(p[0], 0, p[1]), 1.1, randf_range(-12, 12))
 	for p in [Vector3(-6.6, 0, 26.5), Vector3(6.6, 0, 26.5), Vector3(-4.4, 0, -1.2), Vector3(4.4, 0, -1.2), Vector3(-20, 0, -24), Vector3(12, 0, -26)]:

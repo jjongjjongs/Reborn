@@ -46,6 +46,7 @@ var _ammo := {}
 var _reload_t := 0.0
 var _swap_t := 0.0
 var rusher := false
+var last_shot_t := -99.0     # radar: enemies show briefly after they fire
 # objective play (bomb defusal): the mode sets these
 var frozen := false            # round prep: can't move or shoot
 var busy := false              # planting / defusing: stand still
@@ -364,6 +365,7 @@ func _fire_one(w: Dictionary) -> void:
 	if _target == null:
 		return
 	_ammo[wid] = int(_ammo[wid]) - 1
+	last_shot_t = Time.get_ticks_msec() / 1000.0
 	var from := _muzzle.global_position
 	Sfx.play_at("shot", from, -4.0)
 	if _soldier: _soldier.shoot()

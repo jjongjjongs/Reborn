@@ -16,6 +16,7 @@ var _spawns: Array[Vector3] = [
 var _bots: Array = []
 var _player_resp := 0.0
 var _hp_fill: ColorRect
+var _bounds := Rect2(-35, -35, 70, 70)
 var _top_lbl: Label
 var _score_lbl: Label
 var _respawn_lbl: Label
@@ -37,6 +38,7 @@ func _ready() -> void:
 
 func _build_world() -> void:
 	var info := MapBuilder.build(Controls.sel_map, self)
+	_bounds = info.get("bounds", Rect2(-35, -35, 70, 70))
 	_spawns = info["ffa"]
 
 func _add_box(parent: Node, size: Vector3, pos: Vector3, c: Color) -> void:
@@ -156,12 +158,7 @@ func _build_hud() -> void:
 	_score_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	layer.add_child(_score_lbl)
 
-	var hp_bg := ColorRect.new(); hp_bg.color = Color(0, 0, 0, 0.55)
-	hp_bg.position = Vector2(28, 52); hp_bg.size = Vector2(360, 26)
-	hp_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE; layer.add_child(hp_bg)
-	_hp_fill = ColorRect.new(); _hp_fill.color = Color(0.88, 0.30, 0.25)
-	_hp_fill.position = Vector2(28, 52); _hp_fill.size = Vector2(360, 26)
-	_hp_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE; layer.add_child(_hp_fill)
+	layer.add_child(Radar.new().setup(player, _bounds))
 
 	_respawn_lbl = Label.new()
 	_respawn_lbl.add_theme_font_size_override("font_size", 52)

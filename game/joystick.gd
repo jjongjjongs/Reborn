@@ -103,6 +103,10 @@ func _layout() -> Dictionary:
 			var d: Dictionary = Controls.hud_layout[key]
 			c = Vector2(float(d.get("x", 0.5)) * s.x, float(d.get("y", 0.5)) * s.y)
 			r *= float(d.get("s", 1.0))
+		elif Controls.DEFAULT_LAYOUT.has(key):
+			var dd: Dictionary = Controls.DEFAULT_LAYOUT[key]
+			c = Vector2(float(dd["x"]) * s.x, float(dd["y"]) * s.y)
+			r *= float(dd["s"])
 		else:
 			c = _default_center(key, s)
 		out[key] = {"c": c, "r": r}

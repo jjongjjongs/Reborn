@@ -27,6 +27,8 @@ func _init_layout() -> void:
 		if Controls.hud_layout.has(key):
 			var d: Dictionary = Controls.hud_layout[key]
 			_layout[key] = {"x": float(d.get("x", 0.5)), "y": float(d.get("y", 0.5)), "s": float(d.get("s", 1.0))}
+		elif Controls.DEFAULT_LAYOUT.has(key):
+			_layout[key] = (Controls.DEFAULT_LAYOUT[key] as Dictionary).duplicate()
 		else:
 			var c := _default_center(key, s)
 			_layout[key] = {"x": c.x / s.x, "y": c.y / s.y, "s": 1.0}

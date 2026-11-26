@@ -99,17 +99,7 @@ func _build_hud() -> void:
 	layer.add_child(_pts_lbl)
 
 	# HP bar (top left)
-	layer.add_child(_mk_label("체력", 22, Vector2(28, 18)))
-	var hp_bg := ColorRect.new()
-	hp_bg.color = Color(0, 0, 0, 0.55)
-	hp_bg.position = Vector2(28, 52); hp_bg.size = Vector2(HP_W, 26)
-	hp_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(hp_bg)
-	_hp_fill = ColorRect.new()
-	_hp_fill.color = Color(0.88, 0.30, 0.25)
-	_hp_fill.position = Vector2(28, 52); _hp_fill.size = Vector2(HP_W, 26)
-	_hp_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(_hp_fill)
+	layer.add_child(Radar.new().setup(player, _map.get("bounds", Rect2(-35, -35, 70, 70))))
 
 
 	# in-run upgrade shop (shows itself during prep)

@@ -15,6 +15,9 @@ const KIT := "res://assets/city/%s.glb"
 const HX := 28.0
 const HZ := 20.0
 var _scenes := {}
+var _win_xf: Array[Transform3D] = []
+var _bx := HX
+var _bz := HZ
 
 func build_downtown() -> Dictionary:
 	_env(Color(0.56, 0.66, 0.78), Color(0.78, 0.80, 0.84), 1.05, Vector3(-52, -30, 0), Color(1.0, 0.95, 0.86), 1.2, Color(0.62, 0.66, 0.72), 0.004)
@@ -25,13 +28,14 @@ func build_downtown() -> Dictionary:
 	for s in [1.0, -1.0]:
 		_side(s)
 	_avenue_cover()
+	_windows_flush()
 	_bake_colliders()
 	return {
 		"ffa": _spawns([[-25.5, 0], [25.5, 0], [-21.5, -13.5], [21.5, 13.5], [0, 18], [0, -18], [-13.5, 11], [13.5, -11]]),
 		"red": _spawns([[-25.5, 0], [-25.5, -2.6], [-22, -12.5], [-25.5, 2.6]]),
 		"blue": _spawns([[25.5, 0], [25.5, 2.6], [22, 12.5], [25.5, -2.6]]),
 		"zombie": _spawns([[-25.5, 0], [25.5, 0], [-21.5, -13.5], [21.5, 13.5], [0, 18], [0, -18]]),
-		"player": Vector3(0, 1.0, -0.2) }
+		"player": Vector3(0, 1.0, -0.2), "bounds": Rect2(-HX, -HZ, HX * 2, HZ * 2) }
 
 # ---------------------------------------------------------------- helpers
 func piece(name: String, pos: Vector3, yaw := 0.0, scl := 1.0) -> Node3D:
@@ -44,6 +48,13 @@ func piece(name: String, pos: Vector3, yaw := 0.0, scl := 1.0) -> Node3D:
 	nav.add_child(n)
 	_fix_mats(n)
 	return n
+
+func _no_shadow_last() -> void:
+	# backdrop houses: drop the shadow casting of the two meshes just added
+	var kids := nav.get_children()
+	for k in range(maxi(0, kids.size() - 3), kids.size()):
+		if kids[k] is GeometryInstance3D:
+			(kids[k] as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 func _no_shadow(n: Node) -> void:
 	if n is GeometryInstance3D:
@@ -68,6 +79,67 @@ func _fix_mats(n: Node) -> void:
 	for c in n.get_children():
 		_fix_mats(c)
 
+# a city block: textured box + cornice + window rows on its faces (windows batched)
+func house(x0: float, z0: float, x1: float, z1: float, h: float, look := 0, windows := true) -> void:
+	var mats := [_tex_mat("T_RedBrick_BaseColor", 0.5), _tex_mat("T_Concrete_BaseColor", 0.3, Color(0.92, 0.86, 0.74)),
+		_tex_mat("T_RedBrick_BaseColor", 0.5, Color(0.80, 0.70, 0.62)), _tex_mat("T_Concrete_BaseColor", 0.3, Color(0.70, 0.72, 0.76))]
+	var m: Material = mats[look % mats.size()]
+	var mi := MeshInstance3D.new()
+	var bm := BoxMesh.new(); bm.size = Vector3(x1 - x0, h, z1 - z0); mi.mesh = bm
+	mi.material_override = m
+	mi.position = Vector3((x0 + x1) * 0.5, h * 0.5, (z0 + z1) * 0.5)
+	nav.add_child(mi)
+	solid(x0, z0, x1, z1, h)
+	# cornice
+	var ci := MeshInstance3D.new()
+	var cb := BoxMesh.new(); cb.size = Vector3(x1 - x0 + 0.5, 0.5, z1 - z0 + 0.5); ci.mesh = cb
+	ci.material_override = _tex_mat("T_Trim_BaseColor", 0.4)
+	ci.position = Vector3((x0 + x1) * 0.5, h - 0.25, (z0 + z1) * 0.5)
+	ci.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	nav.add_child(ci)
+	if windows:
+		_window_rows(x0, z0, x1, z1, h)
+
+func _window_rows(x0: float, z0: float, x1: float, z1: float, h: float) -> void:
+	var floors := []
+	var y := 4.2
+	while y < h - 1.2:
+		floors.append(y); y += 3.0
+	var faces := [[Vector3(x0, 0, z0), Vector3(x1, 0, z0), 180.0, Vector3(0, 0, -0.06)],
+		[Vector3(x0, 0, z1), Vector3(x1, 0, z1), 0.0, Vector3(0, 0, 0.06)],
+		[Vector3(x0, 0, z0), Vector3(x0, 0, z1), 270.0, Vector3(-0.06, 0, 0)],
+		[Vector3(x1, 0, z0), Vector3(x1, 0, z1), 90.0, Vector3(0.06, 0, 0)]]
+	for f in faces:
+		var a: Vector3 = f[0]; var b: Vector3 = f[1]
+		# skip faces nobody can see (outside, facing away from the play area)
+		var out_pt: Vector3 = (a + b) * 0.5 + (f[3] as Vector3) * 20.0
+		if absf(out_pt.x) > _bx + 0.5 or absf(out_pt.z) > _bz + 0.5:
+			if absf((a.x + b.x) * 0.5) >= _bx - 0.1 or absf((a.z + b.z) * 0.5) >= _bz - 0.1: continue
+		var L := a.distance_to(b)
+		var n := int(L / 3.2)
+		for i in n:
+			var p := a.lerp(b, (i + 0.5) / float(n)) + (f[3] as Vector3)
+			for fy in floors:
+				_win_xf.append(Transform3D(Basis(Vector3.UP, deg_to_rad(f[2])), p + Vector3(0, fy, 0)))
+
+func _windows_flush() -> void:
+	# every window on the map in ONE draw call
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	var q := QuadMesh.new(); q.size = Vector2(1.1, 1.6)
+	var wm := StandardMaterial3D.new()
+	wm.albedo_texture = load("res://assets/city/tex/T_dark_interior.png")
+	wm.albedo_color = Color(0.75, 0.78, 0.85)
+	wm.roughness = 0.2
+	q.material = wm
+	mm.mesh = q
+	mm.instance_count = _win_xf.size()
+	for i in _win_xf.size():
+		mm.set_instance_transform(i, _win_xf[i])
+	var mmi := MultiMeshInstance3D.new(); mmi.multimesh = mm
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	nav.add_child(mmi)
+
 # invisible collision box (min/max corners)
 func solid(x0: float, z0: float, x1: float, z1: float, h: float, y0 := 0.0) -> void:
 	var sb := StaticBody3D.new()
@@ -76,6 +148,70 @@ func solid(x0: float, z0: float, x1: float, z1: float, h: float, y0 := 0.0) -> v
 	sb.add_child(col)
 	sb.position = Vector3((x0 + x1) * 0.5, y0 + h * 0.5, (z0 + z1) * 0.5)
 	nav.add_child(sb)
+
+# walkable invisible slope (collision only)
+func ramp_col(a: Vector3, b: Vector3, width: float) -> void:
+	var d := b - a
+	var basis := Basis.looking_at(d.normalized(), Vector3.UP)
+	var t := 0.3
+	var sb := StaticBody3D.new()
+	var col := CollisionShape3D.new()
+	var bs := BoxShape3D.new(); bs.size = Vector3(width, t, d.length() + 0.2); col.shape = bs
+	sb.add_child(col)
+	sb.transform = Transform3D(basis, (a + b) * 0.5 - basis.y * (t * 0.5))
+	nav.add_child(sb)
+
+# real-looking stairs from a (bottom, floor) to b (top landing edge): one merged
+# mesh of steps + side walls (one draw call); walking uses an invisible ramp
+func stairs(a: Vector3, b: Vector3, width: float, m: Material, rails := false) -> void:
+	ramp_col(a, b, width)
+	var flat := Vector3(b.x - a.x, 0, b.z - a.z)
+	var run := flat.length()
+	var rise := b.y - a.y
+	var n := maxi(2, int(ceil(rise / 0.2)))
+	var basis := Basis.looking_at(flat.normalized(), Vector3.UP)    # -Z = up the stairs
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var unit := BoxMesh.new()
+	for i in n:
+		# each step is a solid block from the floor up to its tread
+		var h := rise * float(i + 1) / float(n)
+		var dz := run * (float(i) + 0.5) / float(n)
+		var xf := Transform3D(basis.scaled(Vector3(width, h, run / float(n) + 0.01)), a + basis * Vector3(0, h * 0.5, -dz))
+		st.append_from(unit, 0, xf)
+	if rails:
+		for sx in [-0.5, 0.5]:
+			var p0 := a + basis * Vector3(sx * width, 0.95, 0)
+			var p1 := b + basis * Vector3(sx * width, 0.95, 0)
+			var rb := Basis.looking_at((p1 - p0).normalized(), Vector3.UP)
+			st.append_from(unit, 0, Transform3D(rb.scaled(Vector3(0.06, 0.06, p0.distance_to(p1))), (p0 + p1) * 0.5))
+			for t in [0.0, 0.5, 1.0]:
+				var pp := a.lerp(b, t) + basis * Vector3(sx * width, 0.45, 0)
+				st.append_from(unit, 0, Transform3D(Basis().scaled(Vector3(0.06, 0.9, 0.06)), pp))
+	st.generate_normals()
+	var mi := MeshInstance3D.new(); mi.mesh = st.commit(); mi.material_override = m
+	nav.add_child(mi)
+
+func dumpster(p: Vector3, yaw: float) -> void:
+	var b := Basis(Vector3.UP, deg_to_rad(yaw))
+	var body := mat(Color(0.20, 0.34, 0.26))
+	box(p + Vector3(0, 0.62, 0), Vector3(1.9, 1.24, 1.1), Color(0.20, 0.34, 0.26), yaw)
+	box(p + b * Vector3(0, 1.3, -0.05), Vector3(2.0, 0.1, 1.2), Color(0.12, 0.20, 0.16), yaw, false)          # lid
+	box(p + b * Vector3(0, 0.95, 0.57), Vector3(1.7, 0.08, 0.04), Color(0.55, 0.56, 0.58), yaw, false, false)  # handle bar
+	for sx in [-0.8, 0.8]:
+		box(p + b * Vector3(sx, 0.08, 0.4), Vector3(0.16, 0.16, 0.16), Color(0.1, 0.1, 0.1), yaw, false, false)
+
+func jersey(p: Vector3, yaw: float) -> void:
+	var m := _tex_mat("T_Concrete_BaseColor", 0.35, Color(0.90, 0.88, 0.84))
+	var b := Basis(Vector3.UP, deg_to_rad(yaw))
+	for part in [[Vector3(0, 0.22, 0), Vector3(2.6, 0.44, 0.66)], [Vector3(0, 0.75, 0), Vector3(2.6, 0.62, 0.32)]]:
+		var mi := MeshInstance3D.new(); var bm := BoxMesh.new(); bm.size = part[1]; mi.mesh = bm
+		mi.material_override = m
+		mi.transform = Transform3D(b, p + b * (part[0] as Vector3))
+		nav.add_child(mi)
+	var sb := StaticBody3D.new(); var col := CollisionShape3D.new(); var bs := BoxShape3D.new()
+	bs.size = Vector3(2.6, 1.06, 0.5); col.shape = bs; sb.add_child(col)
+	sb.transform = Transform3D(b, p + Vector3(0, 0.53, 0)); nav.add_child(sb)
 
 func _bake_colliders() -> void:
 	var nm := NavigationMesh.new()
@@ -122,7 +258,7 @@ func wall_run(a: Vector2, b: Vector2, tokens: String, h := 3.0) -> void:
 
 # ---------------------------------------------------------------- ground
 func _tex_mat(tex: String, scale: float, tint := Color.WHITE) -> StandardMaterial3D:
-	var key := "tex:" + tex
+	var key := "tex:%s|%s|%s" % [tex, scale, tint.to_html()]
 	if _mats.has(key): return _mats[key]
 	var m := StandardMaterial3D.new()
 	m.albedo_texture = load("res://assets/city/tex/%s.png" % tex)
@@ -170,23 +306,17 @@ func _bounds() -> void:
 	# textured blocks elsewhere (one draw call each) so the skyline stays closed
 	_no_shadow(piece("building-medium-2-001", Vector3(-HX - 0.6, 0, 6.5), 90.0))
 	_no_shadow(piece("building-medium-2-001", Vector3(HX + 0.6, 0, -6.5), 270.0))
-	var brick := _tex_mat("T_RedBrick_BaseColor", 0.5)
-	var conc := _tex_mat("T_Concrete_BaseColor", 0.3, Color(0.85, 0.82, 0.76))
-	var blocks := [[-HX - 14, -HZ - 14, -HX, -2.0, 16.0, brick], [HX, 2.0, HX + 14, HZ + 14, 16.0, brick],
-		[-HX, -HZ - 12, -4, -HZ, 13.0, conc], [-4, -HZ - 12, HX + 14, -HZ, 19.0, brick],
-		[4, HZ, HX, HZ + 12, 13.0, conc], [-HX - 14, HZ, 4, HZ + 12, 19.0, brick],
-		[-HX - 14, 14.0, -HX, HZ, 16.0, conc], [HX, -HZ, HX + 14, -14.0, 16.0, conc]]
+	var blocks := [[-HX - 14, -HZ - 14, -HX, -2.0, 16.0, 0], [HX, 2.0, HX + 14, HZ + 14, 16.0, 0],
+		[-HX, -HZ - 12, -4, -HZ, 13.0, 1], [-4, -HZ - 12, HX + 14, -HZ, 19.0, 2],
+		[4, HZ, HX, HZ + 12, 13.0, 1], [-HX - 14, HZ, 4, HZ + 12, 19.0, 2],
+		[-HX - 14, 14.0, -HX, HZ, 16.0, 3], [HX, -HZ, HX + 14, -14.0, 16.0, 3]]
 	for b in blocks:
-		var mi := MeshInstance3D.new()
-		var bm := BoxMesh.new(); bm.size = Vector3(b[2] - b[0], b[4], b[3] - b[1]); mi.mesh = bm
-		mi.material_override = b[5]
-		mi.position = Vector3((b[0] + b[2]) * 0.5, b[4] * 0.5, (b[1] + b[3]) * 0.5)
-		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		nav.add_child(mi)
+		house(b[0], b[1], b[2], b[3], b[4], b[5])
+		_no_shadow_last()
 	# end-of-avenue barricades (the avenue leaves the map)
 	for s in [-1.0, 1.0]:
 		for z in [-2.2, 0.0, 2.2]:
-			box(Vector3(s * (HX - 0.6), 0.55, z), Vector3(0.6, 1.1, 2.0), Color(0.78, 0.76, 0.72))
+			jersey(Vector3(s * (HX - 0.6), 0, z), 90.0)
 
 # ---------------------------------------------------------------- one half (s = 1 north, -1 south mirror)
 func _side(s: float) -> void:
@@ -200,35 +330,45 @@ func _side(s: float) -> void:
 	# B) raised plaza x -12..-1, z 7..16, height 1.0, stairs down to the avenue and to the alley
 	var b0: Vector3 = P.call(-12.0, 7.0); var b1: Vector3 = P.call(-1.0, 16.0)
 	block(minf(b0.x, b1.x), minf(b0.z, b1.z), maxf(b0.x, b1.x), maxf(b0.z, b1.z), 1.0, Color(0.52, 0.50, 0.47))
-	for x in [-8.0, -6.0]:
-		piece("stairs-entrance-concrete", P.call(x, 5.0), yaw0 + 180.0)
-	ramp(P.call(-7.0, 4.95), P.call(-7.0, 7.0) + Vector3(0, 1.0, 0), 4.0, Color(0.70, 0.68, 0.64))
-	for x in [-5.0, -3.0]:
-		piece("stairs-entrance-concrete", P.call(x, 18.0), yaw0)
-	ramp(P.call(-4.0, 18.05), P.call(-4.0, 16.0) + Vector3(0, 1.0, 0), 4.0, Color(0.70, 0.68, 0.64))
+	var pz := _tex_mat("T_Concrete_BaseColor", 0.3, Color(0.86, 0.85, 0.83))
+	slab(minf(b0.x, b1.x), minf(b0.z, b1.z), maxf(b0.x, b1.x), maxf(b0.z, b1.z), 1.02, pz)
+	var step_m := _tex_mat("T_Concrete_BaseColor", 0.4, Color(0.80, 0.78, 0.74))
+	stairs(P.call(-7.0, 4.6), P.call(-7.0, 7.0) + Vector3(0, 1.0, 0), 4.2, step_m)
+	stairs(P.call(-4.0, 18.4), P.call(-4.0, 16.0) + Vector3(0, 1.0, 0), 4.2, step_m)
 	# plaza furniture: low walls (cover) along the avenue edge, planters, trees, a bench
 	var lw := Color(0.50, 0.47, 0.43)
+	var lw_m := _tex_mat("T_Concrete_BaseColor", 0.35, Color(0.78, 0.76, 0.72))
 	for seg in [[-12.0, -9.2], [-4.8, -1.0]]:
 		var c0: Vector3 = P.call(seg[0], 7.0); var c1: Vector3 = P.call(seg[1], 7.5)
-		block(minf(c0.x, c1.x), minf(c0.z, c1.z), maxf(c0.x, c1.x), maxf(c0.z, c1.z), 1.0, lw, 1.0)
+		var lx0 := minf(c0.x, c1.x); var lx1 := maxf(c0.x, c1.x); var lz0 := minf(c0.z, c1.z); var lz1 := maxf(c0.z, c1.z)
+		var lm := MeshInstance3D.new(); var lb := BoxMesh.new(); lb.size = Vector3(lx1 - lx0, 1.0, lz1 - lz0); lm.mesh = lb
+		lm.material_override = lw_m; lm.position = Vector3((lx0 + lx1) * 0.5, 1.5, (lz0 + lz1) * 0.5); nav.add_child(lm)
+		solid(lx0, lz0, lx1, lz1, 1.0, 1.0)
 	for p in [[-10.5, 10.5], [-2.8, 13.0], [-9.0, 14.5]]:
 		piece("sidewalk-planter", P.call(p[0], p[1]) + Vector3(0, 1.0, 0), yaw0)
 		var q: Vector3 = P.call(p[0], p[1])
 		solid(q.x - 1.0, q.z - 0.9, q.x + 1.0, q.z + 0.9, 0.55, 1.0)
 	_tree(P.call(-10.5, 10.5) + Vector3(0, 1.5, 0))
 	_tree(P.call(-2.8, 13.0) + Vector3(0, 1.5, 0))
-	box(P.call(-6.0, 12.0) + Vector3(0, 1.45, 0), Vector3(2.4, 0.9, 0.9), Color(0.40, 0.30, 0.22))   # kiosk counter
+	# newsstand (cover): counter, posts, awning
+	box(P.call(-6.0, 12.0) + Vector3(0, 1.55, 0), Vector3(2.4, 1.1, 1.0), Color(0.24, 0.30, 0.36))
+	box(P.call(-6.0, 12.0) + Vector3(0, 2.15, 0), Vector3(2.6, 0.1, 1.2), Color(0.70, 0.66, 0.58), 0.0, false)
+	for ox in [-1.15, 1.15]:
+		box(P.call(-6.0 + ox, 12.0) + Vector3(0, 2.4, 0), Vector3(0.08, 0.9, 0.08), Color(0.2, 0.2, 0.22), 0.0, false, false)
+	box(P.call(-6.0, 12.0) + Vector3(0, 2.9, 0), Vector3(2.8, 0.08, 1.6), Color(0.72, 0.22, 0.18), 0.0, false, false)
 	# C) cafe (enterable) x 2..14, z 7..17, roof 3.2 m with parapet, outside stairs on the east side
 	_shop(s)
 	# D) backyard x 16..28, z 7..20: dumpsters, pallets, a low wall; route avenue <-> alley
-	var dump := Color(0.22, 0.38, 0.28)
 	for p in [[19.5, 9.0, 0.0], [24.5, 15.5, 90.0]]:
-		box(P.call(p[0], p[1]) + Vector3(0, 0.7, 0), Vector3(2.0, 1.4, 1.2), dump, p[2])
+		dumpster(P.call(p[0], p[1]), p[2] + yaw0)
 	for p in [[22.0, 11.5], [18.0, 16.5]]:
 		crate(P.call(p[0], p[1]), 1.1, 12.0)
 	var w0: Vector3 = P.call(16.5, 12.6); var w1: Vector3 = P.call(21.0, 13.1)
-	block(minf(w0.x, w1.x), minf(w0.z, w1.z), maxf(w0.x, w1.x), maxf(w0.z, w1.z), 1.1, Color(0.55, 0.30, 0.24))
-	piece("prop-acunit", P.call(16.3, 9.0) + Vector3(0, 1.6, 0), yaw0 + 90.0)
+	var lwm := MeshInstance3D.new(); var lwb := BoxMesh.new()
+	lwb.size = Vector3(absf(w1.x - w0.x), 1.1, absf(w1.z - w0.z)); lwm.mesh = lwb
+	lwm.material_override = _tex_mat("T_RedBrick_BaseColor", 0.5)
+	lwm.position = Vector3((w0.x + w1.x) * 0.5, 0.55, (w0.z + w1.z) * 0.5); nav.add_child(lwm)
+	solid(minf(w0.x, w1.x), minf(w0.z, w1.z), maxf(w0.x, w1.x), maxf(w0.z, w1.z), 1.1)
 	# street furniture along this sidewalk
 	for x in [-20.0, -10.6, 9.0, 20.0]:
 		piece("streetlight-double", P.call(x, 5.2), yaw0, 4.2)
@@ -279,9 +419,14 @@ func _shop(s: float) -> void:
 		var zs := [a2.y, b.y, q.y, q.y + (b.y - a2.y)]
 		solid(xs.min(), zs.min(), xs.max(), zs.max(), 1.0, 3.25)
 	# outside stairs on the east wall: from the backyard (z 8) up to the roof corner (z 15)
-	ramp(P.call(15.1, 8.0), P.call(15.1, 15.2) + Vector3(0, 3.25, 0), 1.9, Color(0.35, 0.36, 0.38))
+	stairs(P.call(15.1, 8.0), P.call(15.1, 15.2) + Vector3(0, 3.25, 0), 1.9, _tex_mat("T_Concrete_BaseColor", 0.4, Color(0.62, 0.62, 0.64)), true)
 	var st: Vector3 = P.call(15.1, 16.1)
-	block(minf(st.x - 0.95 * s, st.x + 0.95 * s), minf(st.z - 0.9 * s, st.z + 0.9 * s), maxf(st.x - 0.95 * s, st.x + 0.95 * s), maxf(st.z - 0.9 * s, st.z + 0.9 * s), 3.25, Color(0.35, 0.36, 0.38))
+	var lx0 := minf(st.x - 0.95 * s, st.x + 0.95 * s); var lx1 := maxf(st.x - 0.95 * s, st.x + 0.95 * s)
+	var lz0 := minf(st.z - 0.9 * s, st.z + 0.9 * s); var lz1 := maxf(st.z - 0.9 * s, st.z + 0.9 * s)
+	var land := MeshInstance3D.new(); var lb := BoxMesh.new(); lb.size = Vector3(lx1 - lx0, 3.25, lz1 - lz0); land.mesh = lb
+	land.material_override = _tex_mat("T_RedBrick_BaseColor", 0.5)
+	land.position = Vector3((lx0 + lx1) * 0.5, 1.625, (lz0 + lz1) * 0.5); nav.add_child(land)
+	solid(lx0, lz0, lx1, lz1, 3.25)
 	# interior: tables (low cover) + a counter along the back
 	var wood := Color(0.42, 0.30, 0.20)
 	for p in [[5.0, 10.0], [9.0, 10.0], [5.0, 13.5]]:
@@ -319,4 +464,4 @@ func _avenue_cover() -> void:
 		nav.add_child(sb)
 	var conc := Color(0.80, 0.78, 0.74)
 	for p in [[0.0, 0.0, 90.0], [-22.5, -1.6, 15.0], [22.5, 1.6, 15.0]]:
-		box(Vector3(p[0], 0.55, p[1]), Vector3(2.6, 1.1, 0.6), conc, p[2])
+		jersey(Vector3(p[0], 0, p[1]), p[2])

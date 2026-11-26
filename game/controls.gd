@@ -81,7 +81,17 @@ var sfx_on: bool = true
 var vibrate_on: bool = true
 var look_sens: float = 1.0      # 0.4 .. 2.0 multiplier
 var left_handed: bool = false
-var hud_layout: Dictionary = {}   # "fire"/"jump"/"reload" -> {x,y (frac), s (scale)}
+var hud_layout: Dictionary = {}
+# default button layout (fractions of the screen + size scale), taken from the
+# arrangement the player settled on (다운타운 screenshots)
+const DEFAULT_LAYOUT := {
+	"fire":   {"x": 0.8925, "y": 0.780, "s": 1.00},
+	"jump":   {"x": 0.9385, "y": 0.553, "s": 0.78},
+	"crouch": {"x": 0.8590, "y": 0.555, "s": 0.88},
+	"reload": {"x": 0.7740, "y": 0.883, "s": 0.83},
+	"nade":   {"x": 0.6825, "y": 0.894, "s": 0.81},
+	"scope":  {"x": 0.8590, "y": 0.330, "s": 0.90},
+}   # "fire"/"jump"/"reload" -> {x,y (frac), s (scale)}
 
 func reset_hud() -> void:
 	hud_layout.clear()
@@ -203,7 +213,8 @@ func _load_best() -> void:
 		if not ["rook", "reg", "vet", "elite"].has(bot_diff): bot_diff = "reg"
 		sel_map = str(data.get("sel_map", "downtown"))
 		var hl = data.get("hud_layout", {})
-		if typeof(hl) == TYPE_DICTIONARY:
+		# layout v2: the new default arrangement replaces older saved layouts once
+		if typeof(hl) == TYPE_DICTIONARY and int(data.get("layout_v", 1)) >= 2:
 			hud_layout = hl
 
 func save_settings() -> void:
@@ -218,6 +229,6 @@ func _save_best() -> void:
 		"sfx_on": sfx_on, "vibrate_on": vibrate_on,
 		"look_sens": look_sens, "left_handed": left_handed,
 		"hud_layout": hud_layout, "loadout": loadout,
-		"bot_diff": bot_diff, "sel_map": sel_map,
+		"bot_diff": bot_diff, "sel_map": sel_map, "layout_v": 2,
 	}))
 	f.close()
