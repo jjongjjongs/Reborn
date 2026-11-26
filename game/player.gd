@@ -49,7 +49,8 @@ const NADE_PITCH_SENS := 0.6
 var nade_pitch := 0.0
 var frozen := false        # round prep (bomb defusal): look around only
 var _nade_was := false
-var _auto_scope := false   # scoped by holding fire (sniper hold-to-scope); shoot + scope out on release
+var _auto_scope := false
+var _was_scoped := false   # scoped by holding fire (sniper hold-to-scope); shoot + scope out on release
 
 func _ready() -> void:
 	# never inherit a 'platform' velocity from a body we stood on (e.g. another character that respawned far away)
@@ -242,6 +243,9 @@ func _physics_process(delta: float) -> void:
 	var melee := Weapons.is_melee(_wid())
 	if Controls.consume_scope() and w.has("scope"):
 		Controls.scoped = not Controls.scoped
+	if Controls.scoped != _was_scoped:
+		_was_scoped = Controls.scoped
+		_keep_aim(Controls.scoped)
 	scope_k = move_toward(scope_k, 1.0 if Controls.scoped and alive else 0.0, delta * 6.0)
 
 	# reload
@@ -321,6 +325,19 @@ func _physics_process(delta: float) -> void:
 		var ratio := hspeed / (SPEED * maxf(0.1, Controls.speed_mult) * (CROUCH_SPEED if crouched else 1.0))
 		_soldier.visible = scope_k < 0.5 and not Controls.view_fp   # scoped / 1인칭: no own body
 		_soldier.drive(ratio, Controls.fire_held or _reload_t > 0.0)
+
+# the shoulder camera and the scope look from different spots: re-aim so the scope
+# opens (and closes) on exactly the point that was under the crosshair
+func _keep_aim(to_scope: bool) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam == null or Controls.view_fp: return
+	var from := cam.global_position
+	var to := from - cam.global_transform.basis.z * 300.0
+	var q := PhysicsRayQueryParameters3D.create(from, to)
+	q.exclude = [get_rid()]
+	var h := get_world_3d().direct_space_state.intersect_ray(q)
+	var t: Vector3 = h["position"] if h else to
+	CamRig.match_aim(self, t, 1.0 if to_scope else 0.0)
 
 func _start_reload() -> void:
 	if Weapons.is_melee(_wid()): return

@@ -36,3 +36,24 @@ static func follow(cam: Camera3D, player: PlayerBody) -> void:
 	cam.look_at(pivot + fwd * 12.0, Vector3.UP)
 	cam.fov = lerpf(65.0, 65.0 / 2.5, k)
 	cam.global_position += Controls.shake_offset()
+
+
+# the centre ray the camera would have for a scope blend k (0 = shoulder view, 1 = scope)
+static func center_ray(player: PlayerBody, k: float) -> Array:
+	var b := Basis.from_euler(Vector3(deg_to_rad(player.aim_pitch), deg_to_rad(player.aim_yaw), 0))
+	var fwd := -b.z
+	var pivot := player.global_position + Vector3(0, player.eye_h, 0)
+	if Controls.view_fp:
+		return [pivot + Vector3(0, 0.18, 0), fwd]
+	var want := pivot - fwd * lerpf(4.0, -0.2, k) + b.x * lerpf(0.7, 0.0, k) + Vector3(0, lerpf(0.3, 0.1, k), 0)
+	return [want, (pivot + fwd * 12.0 - want).normalized()]
+
+# turn the aim so that the camera of blend k looks straight at `t`
+# (opening / closing the scope keeps the point under the crosshair)
+static func match_aim(player: PlayerBody, t: Vector3, k: float) -> void:
+	for i in 6:
+		var r := center_ray(player, k)
+		var d: Vector3 = r[1]
+		var w: Vector3 = (t - (r[0] as Vector3)).normalized()
+		player.aim_yaw += rad_to_deg(atan2(-w.x, -w.z) - atan2(-d.x, -d.z))
+		player.aim_pitch = clampf(player.aim_pitch + rad_to_deg(asin(clampf(w.y, -1, 1)) - asin(clampf(d.y, -1, 1))), -45.0, 45.0)
