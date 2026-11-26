@@ -39,7 +39,7 @@ soft = []    # (object, chain points, chain bones): weights blended along the ch
 def _smoothstep(a, b, x):
     t = max(0.0, min(1.0, (x - a) / (b - a))); return t * t * (3 - 2 * t)
 
-def tube(pts, radii, material, group="Mini_Body", segs=14, step=0.025, ell=None, caps=True):
+def tube(pts, radii, material, group="Mini_Body", segs=14, step=0.025, ell=None, caps=True, cap0=1.0, cap1=1.0):
     """a continuous rounded tube through pts (radius per point; ell = per-point (rx, ry) for oval
     cross sections, x = world X, y = world Y). Many rings -> bends smoothly when skinned."""
     pts = [Vector(p) for p in pts]
@@ -65,13 +65,13 @@ def tube(pts, radii, material, group="Mini_Body", segs=14, step=0.025, ell=None,
         p0, d0, rx0, ry0 = samples[0]
         for k in (3, 2, 1):
             f = math.cos(k * math.pi / 8)
-            rings.append(ring(p0 - d0 * rx0 * math.sin(k * math.pi / 8) * 0.9, d0, rx0 * f, ry0 * f))
+            rings.append(ring(p0 - d0 * rx0 * math.sin(k * math.pi / 8) * 0.9 * cap0, d0, rx0 * f, ry0 * f))
     for sp in samples: rings.append(ring(*sp))
     if caps:
         p1, d1, rx1, ry1 = samples[-1]
         for k in (1, 2, 3):
             f = math.cos(k * math.pi / 8)
-            rings.append(ring(p1 + d1 * rx1 * math.sin(k * math.pi / 8) * 0.9, d1, rx1 * f, ry1 * f))
+            rings.append(ring(p1 + d1 * rx1 * math.sin(k * math.pi / 8) * 0.9 * cap1, d1, rx1 * f, ry1 * f))
     for r in range(len(rings) - 1):
         for k in range(segs):
             a = rings[r] + k; b = rings[r] + (k + 1) % segs
@@ -171,6 +171,10 @@ if STYLE == "zombie":
     UNIFORM = mat("ZShirt", (0.05, 0.20, 0.08, 1))
     PANTS = mat("ZPants", (0.20, 0.12, 0.06, 1))
     KIT = mat("ZRag", (0.30, 0.24, 0.16, 1))
+    BANDAGE = mat("Bandage", (0.55, 0.50, 0.36, 1), 0.95)
+    SHOE = mat("ZShoe", (0.45, 0.05, 0.04, 1), 0.7)
+    STAIN = mat("ZStain", (0.02, 0.09, 0.03, 1))
+    ROPE = mat("Rope", (0.33, 0.22, 0.09, 1), 0.95)
 else:
     PANTS = UNIFORM
 
@@ -195,13 +199,14 @@ def surf_y(x, z):
     t = 1.0 - (x / HR[0]) ** 2 - ((z - HC) / HR[2]) ** 2
     return FY - HR[1] * math.sqrt(max(0.0, t))
 
-def head(kind="cute", mouth=True):
+def head(kind="cute", mouth=True, face=True):
     ellipsoid((0, FY, HC), HR, SKIN, "Head", seg=32, rings=18)
     for s in (1, -1):
         ellipsoid((0.283 * s, -0.005, HC - 0.02), (0.045, 0.04, 0.065), SKIN, "Head")
     cyl((0, -0.035, 1.555), 0.092, 0.12, SKIN, "Neck")
     if kind == "zombie":
         return zombie_face()
+    if not face: return
     for s in (1, -1):
         x = 0.098 * s; z = HC - 0.01
         ellipsoid((x, surf_y(x, z) + 0.006, z), (0.042, 0.018, 0.058), EYE, "Head")                    # glossy eye
@@ -247,8 +252,8 @@ def helmet(group, goggles=True):
             cyl((x, -0.342, HC + 0.16), 0.042, 0.012, LENS, "Head", group, rot=(math.pi / 2, 0, 0), verts=24)
 
 def body(vest=True, backpack=True, pouches=2):
-    SPINE = [(0, -0.05, 0.84), (0, -0.05, 0.98), (0, -0.045, 1.15), (0, -0.04, 1.36), (0, -0.04, 1.48)]
-    o = tube(SPINE, None, UNIFORM, ell=[(0.19, 0.14), (0.215, 0.16), (0.22, 0.165), (0.212, 0.152), (0.15, 0.11)], segs=24)
+    SPINE = [(0, -0.05, 0.90), (0, -0.05, 0.98), (0, -0.045, 1.15), (0, -0.04, 1.36), (0, -0.04, 1.48)]
+    o = tube(SPINE, None, UNIFORM, ell=[(0.205, 0.145), (0.215, 0.16), (0.22, 0.165), (0.212, 0.152), (0.15, 0.11)], segs=24, cap0=0.3)
     soft.append((o, [(0, -0.05, 0.894), (0, -0.045, 0.999), (0, -0.045, 1.161), (0, -0.04, 1.377), (0, -0.04, 1.511)], ["Hips", "Abdomen", "Torso", "Chest"]))
     if vest:   # fitted plate carrier: a short oval tube hugging the torso, bends with it
         o = tube([(0, -0.05, 1.07), (0, -0.045, 1.20), (0, -0.04, 1.36), (0, -0.04, 1.46)], None, KIT,
@@ -262,22 +267,43 @@ def body(vest=True, backpack=True, pouches=2):
     ring((0, -0.05, 0.935), 0.222, 0.168, 0.03, BOOT, "Hips")                                               # belt
     rbox((0.0, -0.222, 0.935), (0.07, 0.018, 0.05), BADGE, "Hips", bevel=0.012)                              # buckle
 
-def limbs(boots=True, mitts=BOOT, pads=True):
+def limbs(boots=True, mitts=BOOT, pads=True, bare_arm="", bare_leg=""):
     for s_ in (1, -1):
         L = "L" if s_ > 0 else "R"
-        o = tube([(0.13 * s_, -0.058, 1.43), (0.334 * s_, -0.056, 1.432), (0.54 * s_, -0.08, 1.432)], [0.088, 0.075, 0.068], UNIFORM, segs=18)
-        soft.append((o, [(0.11 * s_, -0.06, 1.42), (0.334 * s_, -0.056, 1.432), (0.568 * s_, -0.086, 1.432)], ["UpperArm." + L, "LowerArm." + L]))
+        apts = [(0.11 * s_, -0.06, 1.42), (0.334 * s_, -0.056, 1.432), (0.568 * s_, -0.086, 1.432)]
+        o = tube([(0.13 * s_, -0.058, 1.43), (0.334 * s_, -0.056, 1.432), (0.54 * s_, -0.08, 1.432)], [0.088, 0.075, 0.068], SKIN if bare_arm == L else UNIFORM, segs=18)
+        soft.append((o, apts, ["UpperArm." + L, "LowerArm." + L]))
+        if bare_arm == L:   # torn short sleeve, bandaged forearm
+            o = tube([(0.13 * s_, -0.058, 1.43), (0.37 * s_, -0.058, 1.432)], [0.098, 0.088], UNIFORM, segs=18, cap1=0.2)
+            soft.append((o, apts, ["UpperArm." + L, "LowerArm." + L]))
+            for k, (xx, dz) in enumerate(((0.375, -0.02), (0.405, 0.015), (0.385, 0.03))):
+                rbox((xx * s_, -0.06 - 0.03 * (k - 1), 1.432 - 0.078 + dz * 0.3), (0.035, 0.04, 0.03), UNIFORM, "UpperArm." + L, bevel=0.01)
+            for xx in (0.45, 0.49):
+                cyl((xx * s_, -0.068, 1.432), 0.074, 0.03, BANDAGE, "LowerArm." + L, rot=(0, math.pi / 2, 0.15 * s_), verts=20)
         ellipsoid((0.625 * s_, -0.095, 1.43), (0.088, 0.07, 0.066), mitts, "Hand." + L, seg=20, rings=12)      # mitt
         ellipsoid((0.598 * s_, -0.158, 1.422), (0.034, 0.038, 0.032), mitts, "Hand." + L)                       # thumb
         ring((0.548 * s_, -0.082, 1.432), 0.072, 0.072, 0.018, mitts, "LowerArm." + L) if False else None
-        o = tube([(0.115 * s_, -0.05, 0.98), (0.121 * s_, -0.087, 0.533), (0.121 * s_, -0.07, 0.17)], [0.108, 0.09, 0.084], PANTS, segs=18)
-        soft.append((o, [(0.121 * s_, -0.045, 1.05), (0.121 * s_, -0.045, 0.964), (0.121 * s_, -0.087, 0.533), (0.121 * s_, -0.062, 0.023)], ["Hips", "UpperLeg." + L, "LowerLeg." + L]))
+        lpts = [(0.121 * s_, -0.045, 1.05), (0.121 * s_, -0.045, 0.964), (0.121 * s_, -0.087, 0.533), (0.121 * s_, -0.062, 0.023)]
+        o = tube([(0.112 * s_, -0.05, 0.96), (0.121 * s_, -0.087, 0.533), (0.121 * s_, -0.07, 0.17)], [0.104, 0.09, 0.084], SKIN if bare_leg == L else PANTS, segs=18, cap0=0.5)
+        soft.append((o, lpts, ["Hips", "UpperLeg." + L, "LowerLeg." + L]))
+        if bare_leg == L:   # trouser leg torn off above the knee
+            o = tube([(0.112 * s_, -0.05, 0.96), (0.119 * s_, -0.075, 0.66)], [0.112, 0.10], PANTS, segs=18, cap0=0.5, cap1=0.15)
+            soft.append((o, lpts, ["Hips", "UpperLeg." + L, "LowerLeg." + L]))
+            for k in range(4):
+                a = k * math.pi / 2 + 0.4
+                rbox((0.119 * s_ + math.cos(a) * 0.09, -0.075 + math.sin(a) * 0.085, 0.645 - (k % 2) * 0.025), (0.04, 0.04, 0.04), PANTS, "UpperLeg." + L, bevel=0.012)
         if pads: ellipsoid((0.121 * s_, -0.165, 0.535), (0.062, 0.022, 0.068), PANTS, "LowerLeg." + L)
         if boots:
             rbox((0.121 * s_, -0.11, 0.085), (0.19, 0.34, 0.17), BOOT, "Foot." + L, bevel=0.08)
             ring((0.121 * s_, -0.075, 0.195), 0.092, 0.092, 0.03, BOOT, "LowerLeg." + L)                       # boot cuff
-        else:
+        elif bare_leg == L:
             ellipsoid((0.121 * s_, -0.10, 0.06), (0.09, 0.15, 0.065), SKIN, "Foot." + L)
+            for t in range(3):
+                ellipsoid(((0.121 + (t - 1) * 0.04) * s_, -0.235, 0.05), (0.022, 0.025, 0.022), SKIN, "Foot." + L)   # toes
+        else:   # one beaten-up sneaker
+            rbox((0.121 * s_, -0.11, 0.075), (0.18, 0.32, 0.14), SHOE, "Foot." + L, bevel=0.06)
+            rbox((0.121 * s_, -0.11, 0.022), (0.19, 0.33, 0.045), WHITE, "Foot." + L, bevel=0.02)
+            rbox((0.121 * s_, -0.20, 0.13), (0.08, 0.10, 0.02), WHITE, "Foot." + L, bevel=0.008)
 
 if STYLE == "soldier":
     head("cute"); body(); limbs()
@@ -292,30 +318,49 @@ if STYLE == "soldier":
     for s in (1, -1):
         cyl((0.098 * s, -0.285, HC - 0.005), 0.052, 0.025, LENS, "Head", "Gear_Mask", rot=(math.pi / 2, 0, 0), verts=24)
 elif STYLE == "swat":
-    head("cute", mouth=False)
+    head("cute", face=False)
     # black balaclava over the head with an eye opening (skin patch), helmet with the visor flipped up
     BALA = mat("Balaclava", (0.012, 0.012, 0.014, 1), 0.9)
     ellipsoid((0, FY + 0.004, HC - 0.02), (0.296, 0.284, 0.30), BALA, "Head", "Gear_Helmet", seg=32, rings=18)
-    ellipsoid((0, surf_y(0, HC) - 0.004, HC - 0.005), (0.19, 0.022, 0.072), SKIN, "Head", "Gear_Helmet")        # eye opening
-    for s in (1, -1):   # eyes again on top of the opening
-        x = 0.098 * s; z = HC - 0.01
-        ellipsoid((x, surf_y(x, z) - 0.02, z), (0.040, 0.014, 0.05), EYE, "Head", "Gear_Helmet")
-        ellipsoid((x + 0.014 * s, surf_y(x, z) - 0.032, z + 0.02), (0.012, 0.006, 0.012), WHITE, "Head", "Gear_Helmet")
+    BR = (0.268, 0.292, 0.062); BZ = HC - 0.025                                                               # eye slit (front half only)
+    o = ellipsoid((0, FY - 0.002, BZ), BR, SKIN, "Head", "Gear_Helmet", seg=32, rings=12)
+    bm = bmesh.new(); bm.from_mesh(o.data)
+    bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(0, -0.10 - (FY - 0.002), 0), plane_no=(0, 1, 0), clear_outer=True)
+    bm.to_mesh(o.data); bm.free()
+    def slit_y(x): return FY - 0.002 - BR[1] * math.sqrt(max(0.0, 1 - (x / BR[0]) ** 2))
+    for s in (1, -1):
+        x = 0.092 * s
+        ellipsoid((x, slit_y(x) + 0.004, BZ), (0.036, 0.014, 0.042), EYE, "Head", "Gear_Helmet")
+        ellipsoid((x + 0.012 * s, slit_y(x) - 0.009, BZ + 0.016), (0.011, 0.005, 0.011), WHITE, "Head", "Gear_Helmet")
+        xb = 0.10 * s
+        rbox((xb, slit_y(xb) + 0.002, BZ + 0.05), (0.06, 0.014, 0.012), BROW, "Head", "Gear_Helmet", bevel=0.005)
     dome((0, 0.0, HC + 0.08), (0.34, 0.35, 0.31), HC + 0.06, KIT, "Head", "Gear_Helmet")
     ring((0, 0.0, HC + 0.062), 0.343, 0.353, 0.026, KIT, "Head", "Gear_Helmet")
     VIS = mat("Visor2", (0.04, 0.06, 0.08, 1), 0.05)
     ellipsoid((0, -0.19, HC + 0.27), (0.25, 0.09, 0.06), VIS, "Head", "Gear_Helmet", seg=28, rings=10, rot=(-0.55, 0, 0))   # visor up
     body(vest=True, backpack=False, pouches=1)
-    rbox((0, -0.232, 1.30), (0.30, 0.014, 0.065), WHITE, "Chest", bevel=0.01)                                  # SWAT band
-    rbox((0.235, -0.07, 1.45), (0.07, 0.1, 0.11), KIT, "Chest", bevel=0.03)                                     # radio
+    rbox((0, 0.137, 1.22), (0.17, 0.012, 0.05), WHITE, "Torso", bevel=0.008)                                   # SWAT band (back)
+    rbox((-0.12, -0.212, 1.37), (0.06, 0.03, 0.08), KIT, "Chest", bevel=0.015)                                  # radio
     limbs()
 else:
     head("zombie")
     body(vest=False, backpack=False)
     for k in range(6):   # ragged shirt hem
         rbox((-0.19 + k * 0.076, -0.17 + abs(k - 2.5) * 0.004, 0.865 - (k % 2) * 0.02), (0.07, 0.05, 0.07), UNIFORM, "Hips", bevel=0.015)
-    ellipsoid((0.09, -0.185, 1.19), (0.055, 0.02, 0.045), SKIN, "Torso")                                        # hole in the shirt
-    limbs(boots=False, mitts=SKIN, pads=False)
+    o = tube([(0, -0.05, 0.875), (0, -0.05, 0.955)], None, PANTS, ell=[(0.205, 0.147), (0.214, 0.158)], segs=24, cap0=0.3, cap1=0.2)   # trouser seat
+    soft.append((o, [(0, -0.05, 0.85), (0, -0.05, 0.98)], ["Hips"]))
+    # torn hole with ribs showing
+    ellipsoid((0.09, -0.198, 1.17), (0.065, 0.02, 0.055), mat("ZDark", (0.10, 0.20, 0.07, 1)), "Torso")
+    for k in range(3):
+        rbox((0.09, -0.214, 1.135 + k * 0.032), (0.085 - abs(k - 1) * 0.02, 0.012, 0.012), WHITE, "Torso", bevel=0.005)
+    for (sx, sz, r) in ((-0.10, 1.05, 0.05), (-0.04, 1.27, 0.035), (0.15, 1.03, 0.03)):                     # stains
+        ellipsoid((sx, -0.05 - 0.163 * math.sqrt(max(0.0, 1 - (sx / 0.218) ** 2)) - 0.004, sz), (r, 0.01, r * 0.8), STAIN, "Torso")
+    ring((0, -0.045, 1.49), 0.155, 0.12, 0.028, UNIFORM, "Chest")                                               # stretched collar
+    ring((0, -0.05, 0.94), 0.222, 0.168, 0.018, ROPE, "Hips")                                                   # rope belt
+    rbox((-0.13, -0.215, 0.925), (0.035, 0.03, 0.06), ROPE, "Hips", bevel=0.012)                                # knot
+    for (px, pz, r) in ((0.30, 1.505, 0.035), (-0.50, 1.497, 0.03)):                                              # rot patches on arms
+        ellipsoid((px, -0.07, pz), (r, r * 0.8, 0.014), mat("ZPatch2", (0.14, 0.28, 0.10, 1)), "UpperArm.L" if px > 0 else "LowerArm.R")
+    limbs(boots=False, mitts=SKIN, pads=False, bare_arm="L", bare_leg="R")
 
 for o, pts, bones in soft:
     chain_weights(o, pts, bones)
