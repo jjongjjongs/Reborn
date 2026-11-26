@@ -196,6 +196,7 @@ func _physics_process(delta: float) -> void:
 			visible = true
 	# look
 	var l := Controls.consume_look()
+	if scope_k > 0.5: l *= Controls.scope_sens      # own sensitivity through the scope
 	aim_yaw -= l.x
 	var nade_now := Controls.nade_aiming and Controls.grenades > 0
 	if nade_now and not _nade_was:

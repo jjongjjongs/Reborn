@@ -4,6 +4,7 @@ extends CanvasLayer
 
 var _sheet: Control
 var _sens_val: Label
+var _ssens_val: Label
 
 func _ready() -> void:
 	layer = 95
@@ -62,7 +63,7 @@ func _build() -> void:
 	# sensitivity
 	var srow := VBoxContainer.new()
 	var sh := HBoxContainer.new()
-	var sl := Label.new(); sl.text = "조준 감도"; sl.add_theme_font_size_override("font_size", 24)
+	var sl := Label.new(); sl.text = "시점 감도"; sl.add_theme_font_size_override("font_size", 24)
 	sl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sh.add_child(sl)
 	_sens_val = Label.new(); _sens_val.add_theme_font_size_override("font_size", 24)
@@ -76,6 +77,23 @@ func _build() -> void:
 		Controls.look_sens = val; _sens_val.text = "%.1f×" % val; Controls.save_settings())
 	srow.add_child(slider)
 	v.add_child(srow)
+	# scope sensitivity (applies while looking through the sniper scope)
+	var srow2 := VBoxContainer.new()
+	var sh2 := HBoxContainer.new()
+	var sl2 := Label.new(); sl2.text = "조준경 감도"; sl2.add_theme_font_size_override("font_size", 24)
+	sl2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sh2.add_child(sl2)
+	_ssens_val = Label.new(); _ssens_val.add_theme_font_size_override("font_size", 24)
+	_ssens_val.add_theme_color_override("font_color", Color(1.0, 0.72, 0.38))
+	sh2.add_child(_ssens_val)
+	srow2.add_child(sh2)
+	var slider2 := HSlider.new()
+	slider2.min_value = 0.2; slider2.max_value = 1.5; slider2.step = 0.05; slider2.value = Controls.scope_sens
+	slider2.custom_minimum_size = Vector2(0, 34)
+	slider2.value_changed.connect(func(val: float) -> void:
+		Controls.scope_sens = val; _ssens_val.text = "%.2f×" % val; Controls.save_settings())
+	srow2.add_child(slider2)
+	v.add_child(srow2)
 	v.add_child(_sep())
 
 	var he := Button.new(); he.text = "HUD 버튼 편집  ›"; he.focus_mode = Control.FOCUS_NONE
@@ -103,6 +121,8 @@ func _open_hud_editor() -> void:
 func _sync() -> void:
 	if _sens_val:
 		_sens_val.text = "%.1f×" % Controls.look_sens
+	if _ssens_val:
+		_ssens_val.text = "%.2f×" % Controls.scope_sens
 
 func _toggle(title: String, sub: String, on: bool, cb: Callable) -> Control:
 	var row := HBoxContainer.new()

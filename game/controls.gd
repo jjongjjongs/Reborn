@@ -82,6 +82,7 @@ var best_time: float = 0.0
 var sfx_on: bool = true
 var vibrate_on: bool = true
 var look_sens: float = 1.0      # 0.4 .. 2.0 multiplier
+var scope_sens: float = 0.5     # 0.2 .. 1.5 extra multiplier while looking through a scope
 var left_handed: bool = false
 var hud_layout: Dictionary = {}
 # default button layout (fractions of the screen + size scale), taken from the
@@ -205,6 +206,7 @@ func _load_best() -> void:
 		sfx_on = bool(data.get("sfx_on", true))
 		vibrate_on = bool(data.get("vibrate_on", true))
 		look_sens = clampf(float(data.get("look_sens", 1.0)), 0.4, 2.0)
+		scope_sens = clampf(float(data.get("scope_sens", 0.5)), 0.2, 1.5)
 		left_handed = bool(data.get("left_handed", false))
 		var lo = data.get("loadout", [])
 		if typeof(lo) == TYPE_ARRAY and lo.size() == 3:
@@ -229,7 +231,7 @@ func _save_best() -> void:
 	f.store_string(JSON.stringify({
 		"best_wave": best_wave, "best_kills": best_kills, "best_time": best_time,
 		"sfx_on": sfx_on, "vibrate_on": vibrate_on,
-		"look_sens": look_sens, "left_handed": left_handed,
+		"look_sens": look_sens, "scope_sens": scope_sens, "left_handed": left_handed,
 		"hud_layout": hud_layout, "loadout": loadout,
 		"bot_diff": bot_diff, "sel_map": sel_map, "layout_v": 2,
 	}))

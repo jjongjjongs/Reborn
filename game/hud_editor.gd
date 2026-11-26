@@ -1,6 +1,7 @@
 extends Control
 ## HUD button layout editor. Grid overlay + drag to move + size slider.
-## Edits fire/jump/reload (move stick stays dynamic). Saves fractions to
+## Edits fire/jump/reload/crouch/nade/scope (move stick stays dynamic; the scope
+## key only shows in play with a scoped weapon, but is always placeable here). Saves fractions to
 ## Controls.hud_layout. Launched from Settings; returns to the menu.
 
 const BASE := {"fire": 100.0, "jump": 66.0, "reload": 66.0, "crouch": 58.0, "nade": 58.0, "scope": 54.0}
@@ -114,7 +115,7 @@ func _draw() -> void:
 		draw_line(Vector2(0, y), Vector2(size.x, y), gc, 1.0)
 		y += step
 	# buttons
-	for key in ["nade", "crouch", "reload", "jump", "fire"]:
+	for key in ["scope", "nade", "crouch", "reload", "jump", "fire"]:
 		var c := _center(key)
 		var r := _radius(key)
 		var tint := Color(1.0, 0.36, 0.22) if key == "fire" else Color(0.8, 0.85, 0.9)
