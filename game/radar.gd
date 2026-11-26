@@ -35,7 +35,7 @@ void fragment() {
 	vec2 q = vec2(c * p.x - s * p.y, s * p.x + c * p.y);
 	vec2 uv = center + q * span;
 	vec4 col = texture(map_tex, uv);
-	if (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) col = vec4(0.06, 0.07, 0.08, 1.0);
+	if (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) col = vec4(0.16, 0.18, 0.20, 1.0);
 	col.rgb = mix(col.rgb, vec3(0.05, 0.06, 0.07), 0.35);
 	COLOR = vec4(col.rgb, 0.9);
 }

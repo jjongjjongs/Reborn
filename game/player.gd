@@ -57,6 +57,7 @@ func _ready() -> void:
 	_build()
 	_spawn = global_position
 	face(Vector3.ZERO)
+	face_open.call_deferred()
 	Controls.hp = Controls.hp_max
 	for i in 3:
 		var id: String = Controls.loadout[i]
@@ -115,12 +116,32 @@ func face(target: Vector3) -> void:
 	aim_pitch = 0.0
 	rotation.y = deg_to_rad(aim_yaw)
 
+# look down the longest open line of sight (leaning toward the map centre), so a
+# spawn in a side street starts looking along the street, not into a wall
+func face_open() -> void:
+	if not is_inside_tree(): return
+	var space := get_world_3d().direct_space_state
+	var eye := global_position + Vector3(0, 0.6, 0)
+	var to_mid := Vector3(-global_position.x, 0, -global_position.z).normalized()
+	var best := -1e9; var best_d := Vector3.ZERO
+	for k in 16:
+		var a := TAU * float(k) / 16.0
+		var d := Vector3(sin(a), 0, cos(a))
+		var q := PhysicsRayQueryParameters3D.create(eye, eye + d * 40.0)
+		q.exclude = [get_rid()]
+		var h := space.intersect_ray(q)
+		var dist := 40.0 if h.is_empty() else eye.distance_to(h["position"])
+		var score := minf(dist, 30.0) + 6.0 * d.dot(to_mid)
+		if score > best: best = score; best_d = d
+	if best_d != Vector3.ZERO: face(global_position + best_d * 10.0)
+
 func respawn_at(pos: Vector3) -> void:
 	alive = true
 	invuln_t = INVULN
 	Controls.hp = Controls.hp_max
 	global_position = pos
 	face(Vector3.ZERO)
+	face_open()
 	velocity = Vector3.ZERO
 	visible = true
 	Controls.grenades = Controls.NADE_MAX

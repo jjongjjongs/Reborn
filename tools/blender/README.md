@@ -27,3 +27,12 @@ operations; `ascii_plan.py maps/<name>.txt` turns one into `game/assets/maps/<na
 (legend at the top of that file). Build in Blender with `PLAN_OVERRIDE = '<json>'`
 prepended to `build_quarter.py`, then export `<name>.glb`. Godot loads them all
 through `MapPlan` (themes: old, desert, prison, harbor, city, lab).
+
+## Detail pass + shared textures (v54)
+`build_quarter.py` now also emits visual-only meshes: `Detail` (plinths, doors, shop
+fronts, awnings, floor bands, cornices + parapets, roof AC units / tanks), `Windows`
+(framed windows with sills, some lit) and `Shadows` (alpha contact-shadow strips along
+wall bases). Small textures come from `gen_tex.py`. Maps are exported with
+`export_plan.py` as `.gltf + .bin` with every texture shared in `game/assets/maps/tex`.
+`run_map.sh <name>` builds, ray-casts (for analyze.py) and exports one map.
+Plan props (`L` lamp, `T` tree/palm, `V` car, `b` barrels) are placed by `MapPlan`.

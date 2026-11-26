@@ -24,7 +24,7 @@ func build_plan(file: String) -> Dictionary:
 	_bx = _hw; _bz = _hh
 	var e: Array = ENVS.get(String(plan.get("theme", "old")), ENVS["old"])
 	_env(e[0], e[1], 1.0, e[2], e[3], e[4], e[5], 0.006)
-	var model: Node3D = (load("res://assets/maps/%s.glb" % file) as PackedScene).instantiate()
+	var model: Node3D = (load("res://assets/maps/%s.gltf" % file) as PackedScene).instantiate()
 	nav.add_child(model)
 	for mi in model.find_children("*", "MeshInstance3D", true, false):
 		var m := mi as MeshInstance3D
@@ -40,6 +40,7 @@ func build_plan(file: String) -> Dictionary:
 	var w := _hw + 1.0; var h := _hh + 1.0
 	solid(-w, -h, w, -_hh, 30); solid(-w, _hh, w, h, 30)
 	solid(-w, -_hh, -_hw, _hh, 30); solid(_hw, -_hh, w, _hh, 30)
+	_plan_props()
 	var bomb := plan.has("siteA") and plan.has("siteB")
 	if bomb:
 		_site_mark("A", _wp(_centroid(plan["siteA"])) + Vector3(0, 0.06, 0), Vector2(0, 0))
@@ -59,6 +60,65 @@ func build_plan(file: String) -> Dictionary:
 		out["site_a"] = _rect_of(plan["siteA"]); out["site_b"] = _rect_of(plan["siteB"])
 		out["site_a_poly"] = _poly(plan["siteA"]); out["site_b_poly"] = _poly(plan["siteB"])
 	return out
+
+# floor height of the open space at a plan point (props stand on it)
+func _floor_at(x: float, y: float) -> float:
+	var z := 0.0
+	for sp in plan["spaces"]:
+		if sp[6] == null and x >= float(sp[1]) and x < float(sp[3]) and y >= float(sp[2]) and y < float(sp[4]):
+			z = float(sp[5])
+	return z
+
+const CARS := ["car-normalcar1", "car-normalcar2", "car-suv", "car-taxi", "car-sportscar"]
+
+func _plan_props() -> void:
+	var theme := String(plan.get("theme", "old"))
+	var k := 0
+	for pr in plan.get("props", []):
+		k += 1
+		var x := float(pr[1]); var y := float(pr[2])
+		var p := Vector3(x - _hw, _floor_at(x, y), y - _hh)
+		var to_mid := atan2(-p.x, -p.z)
+		match String(pr[0]):
+			"lamp":
+				if theme == "desert":
+					cyl(p + Vector3(0, 1.4, 0), 0.08, 2.8, Color(0.38, 0.27, 0.18))
+					box(p + Vector3(0, 2.9, 0), Vector3(0.34, 0.42, 0.34), Color(1.0, 0.86, 0.55), 0.0, false, false)
+				else:
+					piece("streetlight-single", p, rad_to_deg(snappedf(to_mid, PI * 0.5)))
+					solid(p.x - 0.15, p.z - 0.15, p.x + 0.15, p.z + 0.15, 4.0, p.y)
+			"tree":
+				if theme == "desert": _palm(p, k)
+				else:
+					_tree(p)
+					solid(p.x - 0.2, p.z - 0.2, p.x + 0.2, p.z + 0.2, 3.0, p.y)
+			"car":
+				var yaw := float(pr[3]) + (180.0 if k % 2 == 0 else 0.0)
+				piece(CARS[k % CARS.size()], p, yaw)
+				_car_col(p, yaw)
+			"barrel":
+				var cols := [Color(0.30, 0.42, 0.52), Color(0.62, 0.22, 0.16), Color(0.36, 0.44, 0.26)]
+				barrel(p + Vector3(-0.35, 0, -0.3), cols[k % 3])
+				barrel(p + Vector3(0.45, 0, 0.1), cols[(k + 1) % 3])
+				if k % 2 == 0: barrel(p + Vector3(-0.2, 0, 0.55), cols[(k + 2) % 3])
+
+func _palm(p: Vector3, k: int) -> void:
+	var lean := Vector3(0.35 * sin(k), 0, 0.35 * cos(k))
+	for i in 5:   # slightly bent trunk from short segments
+		var t := float(i) / 5.0
+		cyl(p + lean * t * t + Vector3(0, 0.45 + i * 0.9, 0), 0.17 - i * 0.015, 0.95, Color(0.52, 0.40, 0.26), false)
+	var top := p + lean + Vector3(0, 4.7, 0)
+	var leaf := StandardMaterial3D.new(); leaf.albedo_color = Color(0.32, 0.52, 0.22); leaf.roughness = 0.9
+	leaf.cull_mode = BaseMaterial3D.CULL_DISABLED
+	for i in 7:
+		var a := TAU * float(i) / 7.0 + float(k)
+		var mi := MeshInstance3D.new(); var pm := PlaneMesh.new(); pm.size = Vector2(0.7, 2.4); mi.mesh = pm
+		mi.material_override = leaf
+		mi.position = top + Vector3(sin(a), -0.25, cos(a)) * 1.1
+		mi.rotation = Vector3(0.45, a, 0)
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		nav.add_child(mi)
+	solid(p.x - 0.2, p.z - 0.2, p.x + 0.2, p.z + 0.2, 4.0, p.y)
 
 func _wedge(x0: float, y0: float, x1: float, y1: float, zl: float, zh: float, dir: String) -> void:
 	var a := Vector3(x0 - _hw, 0, y0 - _hh); var b := Vector3(x1 - _hw, 0, y1 - _hh)

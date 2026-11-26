@@ -34,7 +34,13 @@ func _env(bg: Color, ambient: Color, amb_e: float, sun_rot: Vector3, sun_col: Co
 	root.add_child(sun)
 	var we := WorldEnvironment.new()
 	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR; env.background_color = bg
+	# sky gradient instead of a flat colour (cheap: no radiance used for lighting)
+	var sky_mat := ProceduralSkyMaterial.new()
+	sky_mat.sky_top_color = bg.darkened(0.28); sky_mat.sky_horizon_color = bg.lightened(0.22)
+	sky_mat.ground_horizon_color = bg.lightened(0.15); sky_mat.ground_bottom_color = bg.darkened(0.4)
+	sky_mat.sun_angle_max = 20.0
+	var sky := Sky.new(); sky.sky_material = sky_mat; sky.radiance_size = Sky.RADIANCE_SIZE_32
+	env.background_mode = Environment.BG_SKY; env.sky = sky; env.background_color = bg
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = ambient; env.ambient_light_energy = amb_e
 	env.fog_enabled = fog_d > 0.0; env.fog_light_color = fog; env.fog_density = fog_d
