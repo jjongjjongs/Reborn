@@ -62,6 +62,8 @@ var _windup_t := -1.0
 var _nade_to := Vector3.ZERO
 
 func _ready() -> void:
+	# never inherit a 'platform' velocity from a body we stood on (e.g. another character that respawned far away)
+	platform_on_leave = CharacterBody3D.PLATFORM_ON_LEAVE_DO_NOTHING
 	add_to_group("combatant")
 	_soldier = Soldier.new()
 	add_child(_soldier)

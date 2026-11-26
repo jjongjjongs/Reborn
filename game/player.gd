@@ -51,6 +51,8 @@ var frozen := false        # round prep (bomb defusal): look around only
 var _nade_was := false
 
 func _ready() -> void:
+	# never inherit a 'platform' velocity from a body we stood on (e.g. another character that respawned far away)
+	platform_on_leave = CharacterBody3D.PLATFORM_ON_LEAVE_DO_NOTHING
 	add_to_group("combatant")
 	_build()
 	_spawn = global_position

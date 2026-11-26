@@ -1,0 +1,32 @@
+name: harbor
+theme: harbor
+mode: dm
+---
+####################################
+#.........p........................#
+#.p#############..###############p.#
+#..#ooooooooooo#.p##8888888######..#
+#..#ooooooooooo#..##8888888>>>>....#
+#..oooooooooooo#..##8888888>>>>....#
+#..oooooooooooo#..##8888888######..#
+#..#ooooooooooo#..##hhhhhhh######..#
+#..#ooooooooooo#..##hhhhhhh######..#
+#..###oo####oo##..##hhhphhh######..#
+#,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,#
+#,,,ccc,,,CCC,,,,,ccc,,,,,CCC,,,,,,#
+#,,,,,,,,,,,,,,x,,,,,,,,,,,,,,,c,,,#
+#,,,,,,,,p,,,,X,,,,,,,,,p,,,x,,c,,,#
+#,,,,,,c,,,,,CCC,,,,,C,,,,,X,,,c,,,#
+#,,,,,,c,,,,,ccc,,,,,C,,,ccc,,,,x,,#
+#,,CCC,c,,,,x,,,,,,,,C,,,,,,,,,,,,,#
+#,,,,,,,,,,,,,,,,,p,,,,,,,,,,,,,,,,#
+#,,,,,,,,xXX,,,,ccc,,,,,x,,,,ccc,,,#
+#,,,x,,,,,,,,,,,,,,,,,,,,,,,,,,,ddd#
+#aaa............................ddd#
+#aaa.......x............ccc.....ddd#
+#aaa..p............x........p...ddd#
+#aaa............................ddd#
+wwwwww..wwwwwwwwwwww..wwwwwwww..wwww
+wwwwww..wwwwwwwwwwww..wwwwwwww..wwww
+wwwwww..wwwwwwwwwwww..wwwwwwww..wwww
+wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww

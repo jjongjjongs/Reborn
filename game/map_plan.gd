@@ -1,23 +1,30 @@
-class_name MapQuarter
+class_name MapPlan
 extends MapOldTown
-## 구도심 (bomb defusal): a dense 110 x 100 m quarter built in Blender from
-## assets/maps/oldquarter.json with a multi-level column mesher (rooms inside
-## buildings, a tunnel under a street, a balcony over B, a catwalk over mid,
-## raised courtyard and docks). Here: load the model, add collisions, smooth
-## ramp colliders over the stepped stairs, spawns and sites.
+## Maps modelled in Blender from a plan (assets/maps/<id>.json, drawn as ASCII in
+## tools/blender/maps) by the multi-level column mesher: rooms inside buildings,
+## tunnels under streets, bridges/catwalks, raised floors, crates and containers.
+## Here: load the model, add collisions, smooth ramp colliders over the stepped
+## stairs, spawns (FFA / teams / bomb) and bomb sites when the plan has them.
 
-const GLB := "res://assets/maps/oldquarter.glb"
-const PLAN := "res://assets/maps/oldquarter.json"
+const ENVS := {   # theme -> sky, ambient, sun rotation, sun colour, sun energy, fog
+	"old": [Color(0.62, 0.72, 0.84), Color(0.80, 0.80, 0.82), Vector3(-52, -35, 0), Color(1.0, 0.94, 0.84), 1.2, Color(0.70, 0.74, 0.80)],
+	"desert": [Color(0.74, 0.78, 0.84), Color(0.86, 0.80, 0.72), Vector3(-58, -25, 0), Color(1.0, 0.90, 0.74), 1.35, Color(0.86, 0.80, 0.70)],
+	"prison": [Color(0.58, 0.64, 0.70), Color(0.74, 0.76, 0.78), Vector3(-48, 30, 0), Color(0.96, 0.96, 0.94), 1.1, Color(0.62, 0.66, 0.70)],
+	"harbor": [Color(0.60, 0.72, 0.84), Color(0.76, 0.80, 0.86), Vector3(-42, -60, 0), Color(1.0, 0.92, 0.82), 1.15, Color(0.66, 0.74, 0.82)],
+	"city": [Color(0.60, 0.70, 0.82), Color(0.78, 0.80, 0.84), Vector3(-55, 40, 0), Color(1.0, 0.95, 0.88), 1.2, Color(0.68, 0.72, 0.78)],
+	"lab": [Color(0.66, 0.72, 0.78), Color(0.80, 0.82, 0.84), Vector3(-60, -15, 0), Color(0.96, 0.97, 1.0), 1.15, Color(0.70, 0.74, 0.78)],
+}
 var plan := {}
 var _hw := 55.0
 var _hh := 50.0
 
-func build_quarter() -> Dictionary:
-	plan = JSON.parse_string(FileAccess.get_file_as_string(PLAN))
+func build_plan(file: String) -> Dictionary:
+	plan = JSON.parse_string(FileAccess.get_file_as_string("res://assets/maps/%s.json" % file))
 	_hw = float(plan["W"]) * 0.5; _hh = float(plan["H"]) * 0.5
 	_bx = _hw; _bz = _hh
-	_env(Color(0.62, 0.72, 0.84), Color(0.80, 0.80, 0.82), 1.0, Vector3(-52, -35, 0), Color(1.0, 0.94, 0.84), 1.2, Color(0.70, 0.74, 0.80), 0.006)
-	var model: Node3D = (load(GLB) as PackedScene).instantiate()
+	var e: Array = ENVS.get(String(plan.get("theme", "old")), ENVS["old"])
+	_env(e[0], e[1], 1.0, e[2], e[3], e[4], e[5], 0.006)
+	var model: Node3D = (load("res://assets/maps/%s.glb" % file) as PackedScene).instantiate()
 	nav.add_child(model)
 	for mi in model.find_children("*", "MeshInstance3D", true, false):
 		var m := mi as MeshInstance3D
@@ -33,18 +40,25 @@ func build_quarter() -> Dictionary:
 	var w := _hw + 1.0; var h := _hh + 1.0
 	solid(-w, -h, w, -_hh, 30); solid(-w, _hh, w, h, 30)
 	solid(-w, -_hh, -_hw, _hh, 30); solid(_hw, -_hh, w, _hh, 30)
-	_site_mark("A", _wp(_centroid(plan["siteA"])) + Vector3(0, 0.06, 0), Vector2(0, 0))
-	_site_mark("B", _wp(_centroid(plan["siteB"])) + Vector3(0, 0.06, 0), Vector2(0, 0))
+	var bomb := plan.has("siteA") and plan.has("siteB")
+	if bomb:
+		_site_mark("A", _wp(_centroid(plan["siteA"])) + Vector3(0, 0.06, 0), Vector2(0, 0))
+		_site_mark("B", _wp(_centroid(plan["siteB"])) + Vector3(0, 0.06, 0), Vector2(0, 0))
 	_bake_colliders()
 	var att: Array[Vector3] = []
 	for p in plan["att_spawns"]: att.append(_wp(p) + Vector3(0, 1.0, 0))
 	var def: Array[Vector3] = []
 	for p in plan["def_spawns"]: def.append(_wp(p) + Vector3(0, 1.0, 0))
-	return {"att": att, "def": def, "red": att, "blue": def, "ffa": att + def, "zombie": att + def,
-		"player": att[0], "bounds": Rect2(-_hw, -_hh, _hw * 2.0, _hh * 2.0),
-		"site_a": _rect_of(plan["siteA"]), "site_b": _rect_of(plan["siteB"]),
-		"site_a_poly": _poly(plan["siteA"]), "site_b_poly": _poly(plan["siteB"]),
+	var ffa: Array[Vector3] = []
+	for p in plan.get("ffa_spawns", []): ffa.append(_wp(p) + Vector3(0, 1.0, 0))
+	if ffa.is_empty(): ffa = att + def
+	var out := {"att": att, "def": def, "red": att, "blue": def, "ffa": ffa, "zombie": ffa,
+		"player": att[0] if bomb else ffa[0], "bounds": Rect2(-_hw, -_hh, _hw * 2.0, _hh * 2.0),
 		"mid": _wp(plan["mid"]) + Vector3(0, 0.5, 0)}
+	if bomb:
+		out["site_a"] = _rect_of(plan["siteA"]); out["site_b"] = _rect_of(plan["siteB"])
+		out["site_a_poly"] = _poly(plan["siteA"]); out["site_b_poly"] = _poly(plan["siteB"])
+	return out
 
 func _wedge(x0: float, y0: float, x1: float, y1: float, zl: float, zh: float, dir: String) -> void:
 	var a := Vector3(x0 - _hw, 0, y0 - _hh); var b := Vector3(x1 - _hw, 0, y1 - _hh)

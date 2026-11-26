@@ -6,7 +6,7 @@
 # column's solid differs from its neighbour's, then merged into long quads.
 import bpy, json, math
 
-PLAN = "/home/user/Reborn/game/assets/maps/oldquarter.json"
+PLAN = globals().get("PLAN_OVERRIDE", "/home/user/Reborn/game/assets/maps/oldquarter.json")
 TEX = "/home/user/Reborn/game/assets/city/tex/"
 OUT_NAME = "oldquarter"
 P = json.load(open(PLAN))
@@ -48,14 +48,49 @@ for x0, y0, x1, y1, zl, zh, d, ce in P["ramps"]:
         else:
             encl[j][i].append((z, z + ce, "stairs"))
 floor0 = [row[:] for row in sky]
-for bx, by, bw, bd, bh in P["blocks"]:
+for blk in P["blocks"]:
+    bx, by, bw, bd, bh = blk[:5]; bk = blk[5] if len(blk) > 5 else "crate"
     for i, j in cells_in(bx, by, bx + bw, by + bd):
         if floor0[j][i] is None: continue
-        sky[j][i] = max(sky[j][i], floor0[j][i] + bh); skind[j][i] = "crate"
+        sky[j][i] = max(sky[j][i], floor0[j][i] + bh); skind[j][i] = bk
 
+THEMES = {
+    # walls: (texture, tint) x6, floors: street/plaza (texture, tint), height: base, steps of 2 m
+    "old": dict(walls=[("T_RedBrick_BaseColor.png", (1, 1, 1, 1)), ("T_Concrete_BaseColor.png", (0.95, 0.88, 0.74, 1)),
+                       ("T_RedBrick_BaseColor.png", (0.80, 0.68, 0.60, 1)), ("T_Concrete_BaseColor.png", (0.72, 0.74, 0.78, 1)),
+                       ("T_RedBrick_BaseColor.png", (0.62, 0.48, 0.42, 1)), ("T_Trim_BaseColor.png", (1, 1, 1, 1))],
+                street=("T_Concrete_Asphalt_BaseColor.png", (0.86, 0.82, 0.76, 1)), plaza=("T_MarbleFloor_BaseColor.png", (0.74, 0.72, 0.68, 1)),
+                base=6.0, steps=5, crate=(0.52, 0.38, 0.22, 1)),
+    "desert": dict(walls=[("T_Concrete_BaseColor.png", (0.93, 0.80, 0.60, 1)), ("T_Concrete_BaseColor.png", (0.86, 0.70, 0.50, 1)),
+                          ("T_Dirt_BaseColor.png", (1.0, 0.86, 0.66, 1)), ("T_Concrete_BaseColor.png", (0.98, 0.90, 0.76, 1)),
+                          ("T_RedBrick_BaseColor.png", (0.95, 0.78, 0.60, 1)), ("T_Concrete_BaseColor.png", (0.80, 0.62, 0.46, 1))],
+                   street=("T_Dirt_BaseColor.png", (0.92, 0.80, 0.62, 1)), plaza=("T_Concrete_BaseColor.png", (0.90, 0.80, 0.64, 1)),
+                   base=4.0, steps=3, crate=(0.50, 0.36, 0.20, 1)),
+    "prison": dict(walls=[("T_Concrete_BaseColor.png", (0.70, 0.72, 0.74, 1)), ("T_MetalConcrete_BaseColor.png", (0.80, 0.80, 0.80, 1)),
+                          ("T_Concrete_BaseColor.png", (0.62, 0.66, 0.62, 1)), ("T_Concrete_BaseColor.png", (0.80, 0.78, 0.72, 1)),
+                          ("T_MetalConcrete_BaseColor.png", (0.66, 0.70, 0.74, 1)), ("T_RedBrick_BaseColor.png", (0.70, 0.66, 0.64, 1))],
+                   street=("T_Concrete_Asphalt_BaseColor.png", (0.70, 0.70, 0.70, 1)), plaza=("T_Concrete_BaseColor.png", (0.66, 0.70, 0.66, 1)),
+                   base=6.0, steps=2, crate=(0.40, 0.42, 0.44, 1)),
+    "harbor": dict(walls=[("T_MetalConcrete_BaseColor.png", (0.80, 0.82, 0.86, 1)), ("T_Concrete_BaseColor.png", (0.68, 0.72, 0.78, 1)),
+                          ("T_RedBrick_BaseColor.png", (0.72, 0.62, 0.58, 1)), ("T_MetalConcrete_BaseColor.png", (0.62, 0.66, 0.70, 1)),
+                          ("T_Concrete_BaseColor.png", (0.80, 0.78, 0.74, 1)), ("T_Trim_BaseColor.png", (0.9, 0.9, 0.95, 1))],
+                   street=("T_Concrete_Asphalt_BaseColor.png", (0.72, 0.74, 0.76, 1)), plaza=("T_Concrete_BaseColor.png", (0.70, 0.72, 0.74, 1)),
+                   base=6.0, steps=3, crate=(0.45, 0.33, 0.20, 1)),
+    "city": dict(walls=[("T_Trim_BaseColor.png", (1, 1, 1, 1)), ("T_Concrete_BaseColor.png", (0.82, 0.84, 0.88, 1)),
+                        ("T_RedBrick_BaseColor.png", (0.85, 0.75, 0.70, 1)), ("T_MetalConcrete_BaseColor.png", (0.78, 0.80, 0.84, 1)),
+                        ("T_Concrete_BaseColor.png", (0.92, 0.88, 0.80, 1)), ("T_RedBrick_BaseColor.png", (1, 1, 1, 1))],
+                 street=("T_Concrete_Asphalt_BaseColor.png", (0.62, 0.62, 0.64, 1)), plaza=("T_MarbleFloor_BaseColor.png", (0.80, 0.80, 0.80, 1)),
+                 base=10.0, steps=7, crate=(0.30, 0.34, 0.38, 1)),
+    "lab": dict(walls=[("T_MetalConcrete_BaseColor.png", (0.86, 0.88, 0.90, 1)), ("T_Concrete_BaseColor.png", (0.84, 0.86, 0.88, 1)),
+                       ("T_MetalConcrete_BaseColor.png", (0.70, 0.76, 0.80, 1)), ("T_Concrete_BaseColor.png", (0.76, 0.78, 0.74, 1)),
+                       ("T_Trim_BaseColor.png", (0.9, 0.92, 0.95, 1)), ("T_Concrete_BaseColor.png", (0.66, 0.68, 0.72, 1))],
+                street=("T_Concrete_BaseColor.png", (0.62, 0.64, 0.66, 1)), plaza=("T_MarbleFloor_BaseColor.png", (0.78, 0.80, 0.82, 1)),
+                base=6.0, steps=3, crate=(0.36, 0.40, 0.30, 1)),
+}
+TH = THEMES[P.get("theme", "old")]
 def parcel_top(i, j):
     pi, pj = int(i * S // 6), int(j * S // 6)
-    return 6.0 + int(hsh(pi, pj) * 5) * 2.0 + (2.0 if hsh(pi + 9, pj + 1) > 0.88 else 0.0)
+    return TH["base"] + int(hsh(pi, pj) * TH["steps"]) * 2.0 + (2.0 if hsh(pi + 9, pj + 1) > 0.88 else 0.0)
 def parcel_look(i, j):
     return int(hsh(int(i * S // 6) + 3, int(j * S // 6) + 7) * 6)
 
@@ -104,8 +139,8 @@ def mat_tex(name, img, tint=(1, 1, 1, 1), rough=0.9):
         bsdf.inputs["Base Color"].default_value = tint
     return m
 MATS = [
-    mat_tex("cobble", "T_Concrete_Asphalt_BaseColor.png", (0.86, 0.82, 0.76, 1)),
-    mat_tex("plaza", "T_MarbleFloor_BaseColor.png", (0.74, 0.72, 0.68, 1)),
+    mat_tex("cobble", *TH["street"]),
+    mat_tex("plaza", *TH["plaza"]),
     mat_tex("stairs", "T_Concrete_BaseColor.png", (0.80, 0.78, 0.74, 1)),
     mat_tex("room_floor", "T_MarbleFloor_BaseColor.png", (0.70, 0.66, 0.60, 1)),
     mat_tex("ceiling", "T_Concrete_BaseColor.png", (0.55, 0.55, 0.56, 1)),
@@ -114,21 +149,27 @@ MATS = [
     mat_tex("def", "T_Concrete_BaseColor.png", (0.58, 0.74, 0.95, 1)),
     mat_tex("siteA", "T_MarbleFloor_BaseColor.png", (0.80, 0.56, 0.36, 1)),
     mat_tex("siteB", "T_MarbleFloor_BaseColor.png", (0.80, 0.68, 0.42, 1)),
-    mat_tex("crate", None, (0.52, 0.38, 0.22, 1)),
+    mat_tex("crate", None, TH["crate"]),
+    mat_tex("cont0", "T_MetalConcrete_BaseColor.png", (0.75, 0.25, 0.18, 1)),
+    mat_tex("cont1", "T_MetalConcrete_BaseColor.png", (0.20, 0.42, 0.68, 1)),
+    mat_tex("cont2", "T_MetalConcrete_BaseColor.png", (0.25, 0.55, 0.32, 1)),
+    mat_tex("cont3", "T_MetalConcrete_BaseColor.png", (0.85, 0.62, 0.18, 1)),
+    mat_tex("water", "T_Concrete_BaseColor.png", (0.20, 0.34, 0.42, 1), 0.15),
     mat_tex("ledge", "T_Concrete_BaseColor.png", (0.74, 0.74, 0.76, 1)),
-    mat_tex("wall0", "T_RedBrick_BaseColor.png"),
-    mat_tex("wall1", "T_Concrete_BaseColor.png", (0.95, 0.88, 0.74, 1)),
-    mat_tex("wall2", "T_RedBrick_BaseColor.png", (0.80, 0.68, 0.60, 1)),
-    mat_tex("wall3", "T_Concrete_BaseColor.png", (0.72, 0.74, 0.78, 1)),
-    mat_tex("wall4", "T_RedBrick_BaseColor.png", (0.62, 0.48, 0.42, 1)),
-    mat_tex("wall5", "T_Trim_BaseColor.png"),
+    mat_tex("wall0", *TH["walls"][0]),
+    mat_tex("wall1", *TH["walls"][1]),
+    mat_tex("wall2", *TH["walls"][2]),
+    mat_tex("wall3", *TH["walls"][3]),
+    mat_tex("wall4", *TH["walls"][4]),
+    mat_tex("wall5", *TH["walls"][5]),
     mat_tex("roof", "T_Concrete_BaseColor.png", (0.40, 0.40, 0.42, 1)),
     mat_tex("window", "T_dark_interior.png", (0.75, 0.80, 0.90, 1), 0.25),
     mat_tex("trim", "T_Trim_BaseColor.png"),
 ]
 MI = {m.name: i for i, m in enumerate(MATS)}
 FLOOR = {"street": "cobble", "plaza": "plaza", "stairs": "stairs", "room": "room_floor", "tunnel": "tunnel",
-         "att": "att", "def": "def", "siteA": "siteA", "siteB": "siteB", "crate": "crate"}
+         "att": "att", "def": "def", "siteA": "siteA", "siteB": "siteB", "crate": "crate",
+         "cont0": "cont0", "cont1": "cont1", "cont2": "cont2", "cont3": "cont3", "water": "water", "barrier": "ledge"}
 
 class MB:
     def __init__(self): self.v = []; self.f = []; self.uv = []; self.m = []
@@ -183,7 +224,8 @@ for j in range(NY):
 # ---------------------------------------------------------------- vertical faces between neighbouring columns, merged along the edge
 def side_mat(i, j, z0, z1):
     if sky[j][i] is not None and z1 <= sky[j][i] + 1e-6:
-        return {"crate": "crate", "stairs": "stairs"}.get(skind[j][i], "ledge")
+        k = skind[j][i]
+        return k if (k == "crate" or k == "stairs" or (k or "").startswith("cont")) else "ledge"
     if any(k == "tunnel" for _, _, k in encl[j][i]) and z1 <= 0.01:
         return "tunnel"
     return "wall%d" % parcel_look(i, j)

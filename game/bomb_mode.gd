@@ -49,7 +49,7 @@ var _result: Control
 var _banner_t := 0.0
 
 func _ready() -> void:
-	if not Controls.sel_map in ["quarter", "oldtown2", "oldtown"]:
+	if not Controls.sel_map in ["quarter", "dockside", "facility", "oldtown"]:
 		Controls.sel_map = "quarter"
 	info = MapBuilder.build(Controls.sel_map, self)
 	player = PlayerBody.new()
@@ -75,7 +75,7 @@ func _make_bot(team: int, nm: String, tint: Color) -> void:
 	var b := BotPlayer.new()
 	b.team = team; b.bot_name = nm; b.tint = tint
 	b.engage_range = 22.0
-	b.position = Vector3(0, 1, 0)
+	b.position = Vector3(randf_range(-3, 3), 1, randf_range(-3, 3))
 	b.died.connect(_on_died.bind(b))
 	add_child(b)
 	bots.append(b)

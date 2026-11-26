@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://mek5at5kcmrg"
-path="res://.godot/imported/oldtown2.glb-c2ce05b17cd238b0ddd7da025550fc63.scn"
+uid="uid://cjc2wx0ofserg"
+path="res://.godot/imported/facility.glb-eef85b278edecd02c3664500d5eba8f4.scn"
 
 [deps]
 
-source_file="res://assets/maps/oldtown2.glb"
-dest_files=["res://.godot/imported/oldtown2.glb-c2ce05b17cd238b0ddd7da025550fc63.scn"]
+source_file="res://assets/maps/facility.glb"
+dest_files=["res://.godot/imported/facility.glb-eef85b278edecd02c3664500d5eba8f4.scn"]
 
 [params]
 

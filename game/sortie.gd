@@ -13,30 +13,37 @@ const FG := Color(0.92, 0.95, 0.97)
 const MUTED := Color(0.54, 0.60, 0.66)
 const SOFT := Color(0.65, 0.71, 0.75)
 
-# maps: only the training ground is built so far; the others are planned originals
-# bomb-defusal maps (only offered for 폭파미션)
+# maps drawn from their plan (assets/maps/<plan>.json) — see MapPlan
 const BOMB_MAPS := [
-	{"id": "quarter", "name": "구도심", "en": "OLD QUARTER", "size": "110×100m · 5 vs 5", "tag": "지하 통로 · 발코니 · 중앙 고지대", "ready": true,
-		"ground": Color("3a3d42"), "rects": [[3.6, 82, 92.7, 6, "8c8678"], [3.6, 38, 9.1, 44, "8c8678"], [3.6, 4, 92.7, 8, "8c8678"], [49.1, 38, 14.5, 20, "b9b2a6"], [3.6, 16, 23.6, 22, "ff7a1a"], [70.9, 18, 23.6, 24, "f2c14e"], [83.6, 52, 10.9, 30, "8c8678"], [52.7, 58, 5.5, 24, "8c8678"], [58.2, 66, 25.5, 4, "8c8678"], [69.1, 58, 3.6, 18, "1d4a63"], [38.2, 88, 25.5, 10, "f05a52"], [40, 12, 20, 8, "56a8ff"]]},
-	{"id": "oldtown2", "name": "구시가지", "en": "OLD TOWN", "size": "200×150m · 5 vs 5", "tag": "언덕 위 A · 시장 B · 운하 다리 4곳", "ready": true,
-		"ground": Color("3a3d42"), "rects": [[6, 25, 26, 22, "b9b2a6"], [64, 17, 30, 30, "6e5a48"], [12, 30, 12, 12, "ff7a1a"], [72, 25, 14, 12, "f2c14e"], [44, 20, 12, 60, "2a2d31"], [60, 65, 40, 5, "1d4a63"], [38, 88, 24, 11, "f05a52"], [38, 12, 24, 8, "56a8ff"]]},
-	{"id": "dockside", "name": "항만 창고", "en": "DOCKSIDE", "size": "대형 · 5 vs 5", "tag": "실내 창고 A · 컨테이너 B", "ready": false,
-		"ground": Color("30353b"), "rects": [[0, 0, 100, 8, "1d4a63"], [6, 20, 32, 30, "3d362f"], [64, 20, 30, 30, "a2482f"], [38, 50, 26, 10, "3a3430"]]},
-	{"id": "facility", "name": "연구 시설", "en": "FACILITY", "size": "대형 · 5 vs 5", "tag": "반응로실 A · 하역장 B", "ready": false,
-		"ground": Color("2a2e33"), "rects": [[4, 17, 34, 38, "3d362f"], [62, 17, 34, 33, "3d362f"], [42, 55, 16, 20, "3b3f45"]]},
+	{"id": "quarter", "plan": "oldquarter", "name": "구도심", "en": "OLD QUARTER", "size": "110×100m · 5 vs 5", "tag": "지하 통로 · 발코니 · 중앙 고지대", "ready": true, "ground": Color("2a2d31")},
+	{"id": "dockside", "plan": "dockside", "name": "항만 창고", "en": "DOCKSIDE", "size": "108×96m · 5 vs 5", "tag": "창고 마당 A · 부두 B · 배수로", "ready": true, "ground": Color("2a2d31")},
+	{"id": "facility", "plan": "facility", "name": "연구 시설", "en": "FACILITY", "size": "108×96m · 5 vs 5", "tag": "반응로실 A · 하역장 B · 실내 복도", "ready": true, "ground": Color("2a2d31")},
 ]
 const MAPS := [
-	{"id": "downtown", "name": "다운타운", "en": "DOWNTOWN", "size": "중형 · 4–8명", "tag": "대로 + 뒷골목, 옥상 2곳", "ready": true,
-		"ground": Color("3a3d42"), "rects": [[0, 44, 100, 12, "23262a"], [0, 60, 22, 40, "8a4a3a"], [78, 0, 22, 40, "8a4a3a"], [29, 14, 20, 24, "b9b2a6"], [51, 60, 20, 24, "b9b2a6"], [54, 14, 21, 24, "7a3b2e"], [25, 60, 21, 24, "7a3b2e"], [10, 46, 6, 6, "d6c63a"], [62, 48, 6, 6, "3a6fd6"]]},
+	{"id": "downtown", "plan": "downtown", "name": "다운타운", "en": "DOWNTOWN", "size": "72×60m · 4–8명", "tag": "대로 · 지하철 · 주차장 2층", "ready": true, "ground": Color("2a2d31")},
+	{"id": "bazaar", "plan": "bazaar", "name": "사막 시장", "en": "BAZAAR", "size": "68×60m · 4–8명", "tag": "광장 · 실내 시장 · 지붕 테라스", "ready": true, "ground": Color("3a3226")},
+	{"id": "cell", "plan": "cell", "name": "교도소", "en": "CELLBLOCK", "size": "64×56m · 4–8명", "tag": "감방 복도 · 감시탑 · 운동장 통로", "ready": true, "ground": Color("2a2e33")},
+	{"id": "harbor", "plan": "harbor", "name": "컨테이너 항구", "en": "HARBOR", "size": "72×56m · 4–8명", "tag": "컨테이너 미로 · 사무동 옥상", "ready": true, "ground": Color("263038")},
 	{"id": "range", "name": "훈련장", "en": "TRAINING", "size": "소형 · 2–8명", "tag": "상자 엄폐 기본 맵", "ready": true,
 		"ground": Color("27303a"), "rects": [[8, 14, 12, 18, "46505b"], [78, 14, 12, 18, "46505b"], [42, 36, 16, 26, "55606c"], [14, 66, 12, 18, "46505b"], [74, 66, 12, 18, "46505b"]]},
-	{"id": "bazaar", "name": "사막 시장", "en": "BAZAAR", "size": "중형 · 4–8명", "tag": "골목 + 광장, 지붕 저격", "ready": true,
-		"ground": Color("7a6646"), "rects": [[0, 0, 30, 26, "a58b62"], [36, 0, 26, 18, "b39a6f"], [70, 0, 30, 30, "a58b62"], [0, 38, 22, 26, "b39a6f"], [40, 40, 20, 18, "5d4b30"], [78, 42, 22, 22, "b39a6f"], [0, 74, 34, 26, "a58b62"], [44, 76, 18, 24, "b39a6f"], [70, 74, 30, 26, "a58b62"]]},
-	{"id": "cell", "name": "교도소", "en": "CELLBLOCK", "size": "중형 · 4–8명", "tag": "감방 복도 근접전", "ready": true,
-		"ground": Color("3b4047"), "rects": [[6, 6, 88, 10, "5c636c"], [6, 22, 8, 22, "6b737c"], [18, 22, 8, 22, "6b737c"], [30, 22, 8, 22, "6b737c"], [62, 22, 8, 22, "6b737c"], [74, 22, 8, 22, "6b737c"], [86, 22, 8, 22, "6b737c"], [6, 56, 40, 38, "4e6b4a"], [56, 56, 38, 38, "555c64"]]},
-	{"id": "harbor", "name": "컨테이너 항구", "en": "HARBOR", "size": "대형 · 6–8명", "tag": "장거리 시야, 저격 유리", "ready": true,
-		"ground": Color("34404a"), "rects": [[0, 0, 100, 14, "1f4a66"], [10, 24, 24, 9, "a2482f"], [10, 36, 24, 9, "2f6f8f"], [46, 30, 9, 30, "4f7a3e"], [66, 22, 24, 9, "c38a2c"], [66, 50, 24, 9, "a2482f"], [14, 66, 30, 9, "4f7a3e"], [56, 74, 30, 9, "2f6f8f"]]},
 ]
+const KIND_COL := {"street": "8c8678", "plaza": "b9b2a6", "siteA": "ff7a1a", "siteB": "f2c14e", "att": "f05a52", "def": "56a8ff",
+	"room": "5f5a52", "tunnel": "1d4a63", "water": "1d4a63"}
+
+static func _thumb_rects(m: Dictionary) -> Array:
+	if not m.has("plan"): return m["rects"]
+	var p = JSON.parse_string(FileAccess.get_file_as_string("res://assets/maps/%s.json" % m["plan"]))
+	if p == null: return []
+	var sx := 100.0 / float(p["W"]); var sy := 100.0 / float(p["H"])
+	var out := []
+	for sp in p["spaces"]:
+		if sp[6] != null and sp[0] == "street": continue   # passages under bridges
+		var k := String(sp[0])
+		if not KIND_COL.has(k): continue
+		out.append([float(sp[1]) * sx, float(sp[2]) * sy, (float(sp[3]) - float(sp[1])) * sx, (float(sp[4]) - float(sp[2])) * sy, KIND_COL[k]])
+	for r in p["ramps"]:
+		out.append([float(r[0]) * sx, float(r[1]) * sy, (float(r[2]) - float(r[0])) * sx, (float(r[3]) - float(r[1])) * sy, "a09a8c"])
+	return out
 
 var title := ""
 var subtitle := ""
@@ -223,7 +230,7 @@ func _map_card(m: Dictionary) -> Button:
 	th.position = Vector2(2, 2); th.size = Vector2(249, 92); th.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	th.clip_contents = true
 	b.add_child(th)
-	for r in m["rects"]:
+	for r in _thumb_rects(m):
 		var rr := ColorRect.new(); rr.color = Color(str(r[4])); rr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		rr.position = Vector2(float(r[0]) * 2.49, float(r[1]) * 0.92)
 		rr.size = Vector2(float(r[2]) * 2.49, float(r[3]) * 0.92)

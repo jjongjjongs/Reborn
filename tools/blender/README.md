@@ -20,3 +20,10 @@ and meshes every 0.5 m column as a stack of solid intervals, so rooms, a tunnel
 under a street, balconies and catwalks are possible. Stair steps go to a separate
 visual-only `Steps` mesh; Godot (`map_quarter.gd`) walks on smooth wedge colliders
 built from the same `ramps` list. Export with `export_quarter.py`.
+
+## All maps from ASCII plans
+`maps/paint.py` paints every map (`maps/*.txt`, 1 char = 2 m) from rectangle
+operations; `ascii_plan.py maps/<name>.txt` turns one into `game/assets/maps/<name>.json`
+(legend at the top of that file). Build in Blender with `PLAN_OVERRIDE = '<json>'`
+prepended to `build_quarter.py`, then export `<name>.glb`. Godot loads them all
+through `MapPlan` (themes: old, desert, prison, harbor, city, lab).
