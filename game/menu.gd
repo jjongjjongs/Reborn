@@ -75,9 +75,8 @@ func _top_bar() -> void:
 
 # ---- logo (left) ----
 func _logo() -> void:
-	var k1 := _label("SPECIAL", 58, FG, true); k1.position = Vector2(72, 232); add_child(k1)
-	var k2 := _label("SOLDIER", 58, ACCENT, true); k2.position = Vector2(72, 296); add_child(k2)
-	var sub := _label("리본", 30, FG, true); sub.position = Vector2(76, 372); add_child(sub)
+	var k1 := _label("MINI", 58, FG, true); k1.position = Vector2(72, 268); add_child(k1)
+	var k2 := _label("SOLDIER", 58, ACCENT, true); k2.position = Vector2(72, 332); add_child(k2)
 	var dog := _label("OFFLINE · SOLO OPS", 18, DIM, true); dog.position = Vector2(78, 420); add_child(dog)
 	var rec := _label("최고 웨이브 %d · 처치 %d" % [Controls.best_wave, Controls.best_kills], 18, MUTED, false)
 	rec.position = Vector2(78, 452); add_child(rec)

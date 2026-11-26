@@ -125,7 +125,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: game-latest
-          name: "리본 게임 · v${{ env.CODE }} (${{ env.VER }})"
+          name: "Mini Soldier · v${{ env.CODE }} (${{ env.VER }})"
           body: "Godot 4.3 · 오프라인. 최신: ${{ env.APK }} 설치. 메뉴에서 PvE 서바이벌 / 데스매치 선택. (파일명 버전 숫자가 클수록 최신)"
           files: game/build/${{ env.APK }}
           fail_on_unmatched_files: true

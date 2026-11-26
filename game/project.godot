@@ -1,11 +1,11 @@
-; Special Soldier Reborn — Godot 4.3 project (MVP: offline PvE wave survival)
+; Mini Soldier — Godot 4.3 project (MVP: offline PvE wave survival)
 config_version=5
 
 [application]
 
-config/name="스페셜솔져 리본"
-config/version="6.3"
-config/build_code=64
+config/name="Mini Soldier"
+config/version="6.4"
+config/build_code=65
 run/main_scene="res://Menu.tscn"
 config/icon="res://icon.svg"
 config/quit_on_go_back=false
