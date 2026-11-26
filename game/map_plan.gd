@@ -12,6 +12,7 @@ const ENVS := {   # theme -> sky, ambient, sun rotation, sun colour, sun energy,
 	"prison": [Color(0.58, 0.64, 0.70), Color(0.74, 0.76, 0.78), Vector3(-48, 30, 0), Color(0.96, 0.96, 0.94), 1.1, Color(0.62, 0.66, 0.70)],
 	"harbor": [Color(0.60, 0.72, 0.84), Color(0.76, 0.80, 0.86), Vector3(-42, -60, 0), Color(1.0, 0.92, 0.82), 1.15, Color(0.66, 0.74, 0.82)],
 	"city": [Color(0.60, 0.70, 0.82), Color(0.78, 0.80, 0.84), Vector3(-55, 40, 0), Color(1.0, 0.95, 0.88), 1.2, Color(0.68, 0.72, 0.78)],
+	"base": [Color(0.64, 0.72, 0.80), Color(0.82, 0.80, 0.76), Vector3(-50, -50, 0), Color(1.0, 0.94, 0.84), 1.2, Color(0.74, 0.76, 0.76)],
 	"lab": [Color(0.66, 0.72, 0.78), Color(0.80, 0.82, 0.84), Vector3(-60, -15, 0), Color(0.96, 0.97, 1.0), 1.15, Color(0.70, 0.74, 0.78)],
 }
 var plan := {}

@@ -24,8 +24,7 @@ const MAPS := [
 	{"id": "bazaar", "plan": "bazaar", "name": "사막 시장", "en": "BAZAAR", "size": "68×60m · 4–8명", "tag": "광장 · 실내 시장 · 지붕 테라스", "ready": true, "ground": Color("3a3226")},
 	{"id": "cell", "plan": "cell", "name": "교도소", "en": "CELLBLOCK", "size": "64×56m · 4–8명", "tag": "감방 복도 · 감시탑 · 운동장 통로", "ready": true, "ground": Color("2a2e33")},
 	{"id": "harbor", "plan": "harbor", "name": "컨테이너 항구", "en": "HARBOR", "size": "72×56m · 4–8명", "tag": "컨테이너 미로 · 사무동 옥상", "ready": true, "ground": Color("263038")},
-	{"id": "range", "name": "훈련장", "en": "TRAINING", "size": "소형 · 2–8명", "tag": "상자 엄폐 기본 맵", "ready": true,
-		"ground": Color("27303a"), "rects": [[8, 14, 12, 18, "46505b"], [78, 14, 12, 18, "46505b"], [42, 36, 16, 26, "55606c"], [14, 66, 12, 18, "46505b"], [74, 66, 12, 18, "46505b"]]},
+	{"id": "range", "plan": "training", "name": "훈련장", "en": "TRAINING", "size": "60×52m · 2–8명", "tag": "연병장 · 실내 사격장 · 장애물 코스", "ready": true, "ground": Color("2a2d31")},
 ]
 const KIND_COL := {"street": "8c8678", "plaza": "b9b2a6", "siteA": "ff7a1a", "siteB": "f2c14e", "att": "f05a52", "def": "56a8ff",
 	"room": "5f5a52", "tunnel": "1d4a63", "water": "1d4a63"}

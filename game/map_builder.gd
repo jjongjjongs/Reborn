@@ -1,8 +1,8 @@
 class_name MapBuilder
 extends RefCounted
 ## Builds the selected map. Every playable map is now modelled in Blender from a
-## plan (see MapPlan / tools/blender/maps); only the training ground (range) and
-## the old code-built Old Town are still made here.
+## plan (see MapPlan / tools/blender/maps); only the old code-built Old Town is
+## still made here.
 ## build() returns spawn lists: {"ffa", "red", "blue", "zombie": Array[Vector3], "player": Vector3}
 
 var root: Node3D
@@ -15,15 +15,17 @@ static func build(id: String, parent: Node3D) -> Dictionary:
 	b.root = parent
 	Radar.overview = null      # plan maps set their drawn overview; others are baked by the radar
 	match id:
-		"quarter", "dockside", "facility", "downtown", "bazaar", "cell", "harbor":
+		"quarter", "dockside", "facility", "downtown", "bazaar", "cell", "harbor", "range":
 			var m := MapPlan.new()
 			m.root = parent
-			return m.build_plan("oldquarter" if id == "quarter" else id)
+			return m.build_plan({"quarter": "oldquarter", "range": "training"}.get(id, id))
 		"oldtown":
 			var o := MapOldTown.new()
 			o.root = parent
 			return o.build_oldtown()
-	return b._range()
+	var t := MapPlan.new()
+	t.root = parent
+	return t.build_plan("training")
 
 # ------------------------------------------------------------------ helpers
 func _env(bg: Color, ambient: Color, amb_e: float, sun_rot: Vector3, sun_col: Color, sun_e: float, fog: Color, fog_d: float) -> void:
@@ -157,21 +159,6 @@ static func _spawns(pts: Array) -> Array[Vector3]:
 	return out
 
 # ------------------------------------------------------------------ 훈련장
-func _range() -> Dictionary:
-	_env(Color(0.06, 0.08, 0.10), Color(0.45, 0.5, 0.55), 0.7, Vector3(-55, -40, 0), Color.WHITE, 1.1, Color(0.07, 0.1, 0.12), 0.01)
-	box(Vector3(0, -0.5, 0), Vector3(70, 1, 70), Color(0.12, 0.14, 0.13), 0.0, true, false)
-	for p in [Vector3(8, 1.5, 4), Vector3(-9, 1.5, -3), Vector3(4, 1.5, -10), Vector3(-6, 1.5, 9),
-			Vector3(11, 1.5, -6), Vector3(-11, 1.5, 7), Vector3(0, 1.5, 0)]:
-		box(p, Vector3(3, 3, 3), Color(0.2, 0.22, 0.25), 0.0, true, false)
-	_bake()
-	var ffa := _spawns([[16, 0], [-16, 0], [0, -18], [0, 18], [14, -14], [-14, 14], [14, 14], [-14, -14]])
-	return {"ffa": ffa,
-		"red": _spawns([[-16, 0], [-14, -9], [-14, 9], [-10, 0]]),
-		"blue": _spawns([[16, 0], [14, -9], [14, 9], [10, 0]]),
-		"zombie": _spawns([[17, 0], [-17, 0], [0, -19], [0, 19], [15, -15], [-15, 15]]),
-		"player": Vector3(0, 1.5, 0), "bounds": Rect2(-35, -35, 70, 70)}
-
-# ------------------------------------------------------------------ 사막 시장
 func _stall(p: Vector3, cloth: Color, yaw: float) -> void:
 	var wood := Color(0.45, 0.32, 0.20)
 	box(p + Vector3(0, 0.45, 0), Vector3(2.2, 0.9, 1.0), wood, yaw)
