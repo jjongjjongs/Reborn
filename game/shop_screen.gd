@@ -112,7 +112,7 @@ func _rebuild_preview() -> void:
 		_gun_pv.add_child(g); g.scale = Vector3.ONE * sc; g.position = -ab.get_center() * sc
 		Profile.apply_finish(g, "fin_gold" if _sel.begins_with("gold:") else (_sel if String(Profile.item(_sel).get("cat", "")) == "finish" else ""), wid2)
 	else:
-		_cam.fov = 34.0; _cam.position = Vector3(-1.5, 1.25, -2.6); _cam.look_at_from_position(_cam.position, Vector3(0.0, 0.95, -0.1))
+		_cam.fov = 34.0; _cam.position = Vector3(-1.7, 1.35, -3.3); _cam.look_at_from_position(_cam.position, Vector3(0.0, 1.05, -0.1))   # whole soldier incl. the mini's big helmet
 	if _soldier: _soldier.queue_free()
 	var suit := Profile.suit_color(); var kit := Profile.kit_color(); var fin := Profile.equipped("finish")
 	var bd := Profile.equipped("body").substr(5); var gr := Profile.equipped("gear").substr(5)
@@ -203,7 +203,7 @@ func _card(it: Dictionary) -> Control:
 	var c: Color = it.get("col", Color(0, 0, 0, 0))
 	if cat == "title":
 		sw.color = Color(0.09, 0.11, 0.13)
-		var tl := _lbl("「%s」" % it["name"], 18, rar[1]); tl.position = Vector2(8, 16); sw.add_child(tl)
+		var tl := _lbl(String(it["name"]), 20, rar[1]); tl.position = Vector2(8, 16); sw.add_child(tl)
 	elif cat == "body" or cat == "gear":
 		sw.color = Color(0.10, 0.13, 0.16)
 		var sub: String = {"body_mini": "기본 · 큰 머리 장난감 병정", "body_swat": "실사 비율 특수부대", "gear_helmet": "고글 올린 전투 헬멧",
