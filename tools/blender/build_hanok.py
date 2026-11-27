@@ -3,16 +3,22 @@
 # the corners, ridge with raised ends, tile rows. blender -b --python build_hanok.py -- OUT.blend [bays] [depth_bays]
 import bpy, bmesh, math, sys
 from mathutils import Vector
-a = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
+# can also be exec()'d by another builder with ARGS = [...] and EMBED = True: then the scene is kept,
+# nothing is saved and the joined object is left in RESULT
+EMBED = globals().get("EMBED", False)
+a = globals().get("ARGS") or (sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else [])
 OUT = a[0] if a else "/tmp/gbg/hall.blend"; NB = int(a[1]) if len(a) > 1 else 5; ND = int(a[2]) if len(a) > 2 else 3
-PAV = len(a) > 3 and a[3] == "pavilion"     # 경회루-style: stone pillars over water, open wooden upper floor
-bpy.ops.wm.read_factory_settings(use_empty=True)
+PAV = len(a) > 3 and a[3] == "pavilion"
+GATE = len(a) > 3 and a[3] == "gate"       # open gate / corridor: columns + roof only
+FLH = float(a[4]) if len(a) > 4 else 4.0    # pavilion: upper floor height     # 경회루-style: stone pillars over water, open wooden upper floor
+if not EMBED: bpy.ops.wm.read_factory_settings(use_empty=True)
 def lin(c): return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
 def mat(n, rgb, r=0.7, m=0.0):
+    if n in bpy.data.materials: return bpy.data.materials[n]
     x = bpy.data.materials.new(n); x.use_nodes = True; b = x.node_tree.nodes["Principled BSDF"]
     b.inputs["Base Color"].default_value = (lin(rgb[0]), lin(rgb[1]), lin(rgb[2]), 1); b.inputs["Roughness"].default_value = r; b.inputs["Metallic"].default_value = m
     return x
-STONE = mat("H_Stone", (0.72, 0.70, 0.65), 0.85); STONE2 = mat("H_Stone2", (0.6, 0.58, 0.54), 0.9)
+STONE = mat("H_Stone", (0.55, 0.53, 0.49), 0.85); STONE2 = mat("H_Stone2", (0.46, 0.44, 0.41), 0.9)
 COL = mat("H_Column", (0.62, 0.17, 0.12), 0.6); BEAM = mat("H_Beam", (0.22, 0.48, 0.40), 0.6)
 DAN1 = mat("H_Dan1", (0.85, 0.35, 0.18), 0.6); DAN2 = mat("H_Dan2", (0.95, 0.85, 0.55), 0.6); DAN3 = mat("H_Dan3", (0.25, 0.38, 0.62), 0.6)
 TILE = mat("H_Tile", (0.24, 0.25, 0.27), 0.55); TILE2 = mat("H_Tile2", (0.16, 0.17, 0.18), 0.5)
@@ -34,7 +40,7 @@ BAY = 3.2; W = NB * BAY; D = ND * BAY; CH = 3.6      # column height
 BAY = 3.2; W = NB * BAY; D = ND * BAY
 xs = [-W / 2 + i * BAY for i in range(NB + 1)]; ys = [-D / 2 + j * BAY for j in range(ND + 1)]
 if PAV:
-    FL = 4.0; CH = 3.4                                   # upper floor height, upper column height
+    FL = FLH; CH = 3.4                                   # upper floor height, upper column height
     for x in xs:                                          # square stone pillars (ground floor forest)
         for y in ys: box((x, y, FL / 2), (0.62, 0.62, FL), STONE, 0.06)
     box((0, 0, FL + 0.18), (W + 1.6, D + 1.6, 0.36), DOOR, 0.04)          # wooden floor deck
@@ -52,8 +58,9 @@ if PAV:
             cyl((x, y, FL + 0.36 + CH / 2), 0.2, CH, COL, 16, 0.18)
     top = FL + 0.36 + CH
     # water + stone embankment so the render reads as a pond
-    bpy.ops.mesh.primitive_plane_add(size=1, location=(0, 0, 0.35)); o = bpy.context.active_object; o.scale = (W * 2.6, D * 3.2, 1)
-    bpy.ops.object.transform_apply(scale=True); fin(o, mat("H_Water", (0.25, 0.45, 0.52), 0.08))
+    if not EMBED:
+        bpy.ops.mesh.primitive_plane_add(size=1, location=(0, 0, 0.35)); o = bpy.context.active_object; o.scale = (W * 2.6, D * 3.2, 1)
+        bpy.ops.object.transform_apply(scale=True); fin(o, mat("H_Water", (0.25, 0.45, 0.52), 0.08))
 else:
     # stone platform (기단) with steps
     box((0, 0, 0.45), (W + 3.0, D + 3.0, 0.9), STONE, 0.05)
@@ -66,15 +73,15 @@ else:
             if x not in (xs[0], xs[-1]) and y not in (ys[0], ys[-1]): continue
             cyl((x, y, 1.0), 0.32, 0.18, STONE2, 16, 0.3)
             cyl((x, y, 0.96 + CH / 2 + 0.08), 0.21, CH, COL, 16, 0.19)
-    # front doors (꽃살문) + side walls
-    for i in range(NB):
+    # front doors (꽃살문) + side walls (gates / corridors stay open)
+    for i in (range(NB) if not GATE else []):
         cx = (xs[i] + xs[i + 1]) / 2
         box((cx, -D / 2 + 0.05, 0.96 + CH * 0.45), (BAY - 0.45, 0.08, CH * 0.85), DOOR, 0.02)
         for k in range(3):
             box((cx - BAY * 0.27 + k * BAY * 0.27, -D / 2 - 0.0, 0.96 + CH * 0.5), (BAY * 0.22, 0.09, CH * 0.62), PAPER, 0.01)
-    for x in (xs[0], xs[-1]):
+    for x in ((xs[0], xs[-1]) if not GATE else []):
         box((x, 0, 0.96 + CH * 0.45), (0.12, D - 0.4, CH * 0.85), WALL, 0.02)
-    box((0, D / 2, 0.96 + CH * 0.45), (W - 0.4, 0.12, CH * 0.85), WALL, 0.02)
+    if not GATE: box((0, D / 2, 0.96 + CH * 0.45), (W - 0.4, 0.12, CH * 0.85), WALL, 0.02)
 
     top = 0.96 + CH
 # beams + dancheong bands (창방 / 평방), brackets (공포) as stacked blocks
@@ -98,7 +105,7 @@ RW = W / 2 + OV; RD = D / 2 + OV; RIDGE = EAVE + 3.4; RL = W / 2 - D * 0.25
 def roof_z(x, y):
     u = min(1.0, abs(x) / RW); v = min(1.0, abs(y) / RD)
     tx = max(0.0, (abs(x) - RL) / (RW - RL))
-    t = max(v, tx)                                     # 0 on the ridge line .. 1 at the eave (hip roof)
+    t = min(1.0, max(v, tx))                           # 0 on the ridge line .. 1 at the eave (hip roof)
     f = 1.0 - (1.0 - t) ** 1.7                         # concave: steep near the ridge, flatter at the eave
     z = RIDGE - (RIDGE - EAVE) * f
     lift = (max(u, 0.0) ** 6) * (v ** 6)               # gentle upturn only right at the corners
@@ -150,5 +157,7 @@ for x in bpy.context.selected_objects: x.select_set(False)
 for o in OB: o.select_set(True)
 bpy.context.view_layer.objects.active = OB[0]; bpy.ops.object.join()
 h = bpy.context.active_object; h.name = "Hall"
-bpy.ops.wm.save_as_mainfile(filepath=OUT)
-print("HALL faces", len(h.data.polygons))
+RESULT = h
+if not EMBED:
+    bpy.ops.wm.save_as_mainfile(filepath=OUT)
+    print("HALL faces", len(h.data.polygons))
