@@ -89,7 +89,9 @@ var cosmetic := false              # the player's own soldier: wear the shop fin
 var body := "mini"                 # "mini" (default toy soldier) or "swat" (shop), same skeleton
 var gun_k := 1.0                   # weapon size multiplier (the chunky mini holds bigger guns)
 static var test_body := ""
-var cheap := false                 # crowd LOD: retarget every other frame
+var cheap := false
+var pocket_off := Vector3.ZERO     # long guns: shift the shoulder pocket (bulky bodies)
+var hand_back := 0.08              # wrist this far behind the grip point (big gloves: less)                 # crowd LOD: retarget every other frame
 const BODIES := {"mini": "res://assets/soldier/MiniV3.glb", "swat": "res://assets/soldier/MiniSwat.glb",
 	"zombie": "res://assets/soldier/MiniZombie.glb", "rookie": "res://assets/soldier/Rookie.glb",
 	"rookie_t": "res://assets/soldier/RookieT.glb"}   # all built on the SWAT skeleton (tools/blender/build_minis.py)
@@ -101,6 +103,8 @@ func setup(team_color: Color, kit: Color = Color(0, 0, 0, 0)) -> void:
 	# visible body (SWAT, or the Mini Soldier test body built on the same skeleton)
 	if test_body != "": body = test_body
 	gun_k = 1.35 if body == "rookie_t" else (1.15 if BODIES.has(body) else 1.0)      # chibi Tripo body: bigger guns
+	pocket_off = Vector3(0.04, 0.0, -0.15) if body == "rookie_t" else Vector3.ZERO    # thick vest: rifle in front of it
+	hand_back = 0.0 if body == "rookie_t" else 0.08
 	var path: String = BODIES.get(body, "")
 	var swat: Node3D = (load(path) as PackedScene).instantiate() if path != "" else SWAT.instantiate()
 	var gears := swat.find_children("Gear_*", "", true, false)
@@ -469,7 +473,7 @@ func _pose_weapon() -> void:
 	if kind == "long":
 		var pitch := deg_to_rad(lerpf(-READY_PITCH, 0.0, k) + 4.0 * _kick)
 		var basis := Basis(Vector3.RIGHT, pitch)
-		var pocket := sh_r + Vector3(-0.06, lerpf(-0.05, -0.01, k), -0.04) + Vector3(0, 0, 0.04 * _kick)
+		var pocket := sh_r + Vector3(-0.06, lerpf(-0.05, -0.01, k), -0.04) + pocket_off + Vector3(0, 0, 0.04 * _kick)
 		_gun_s = Transform3D(basis, pocket - basis * _anchor("butt"))
 		# strong hand wraps the pistol grip (palm on its right side, knuckles forward-down);
 		# support hand cradles the handguard from below, palm up
@@ -501,7 +505,7 @@ func _hand(side: String, contact: Vector3, f_g: Vector3, n_g: Vector3, pad: floa
 	var n := gb * n_g
 	n = (n - f * n.dot(f)).normalized()
 	var c := _gun_s * contact
-	var wrist := c - n * pad - f * 0.08
+	var wrist := c - n * pad - f * hand_back
 	_ik_hand(side, wrist, pole)
 	var h: int = _arm["Hand." + side]
 	var mi := _tgt.find_bone("Middle2." + side)
