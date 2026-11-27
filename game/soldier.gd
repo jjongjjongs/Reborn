@@ -752,8 +752,21 @@ func _all(n: Node) -> Array:
 	return o
 
 ## thin coloured outline round the whole body (inverted hull: back faces pushed out along the normals)
-## col.a == 0 removes it. through_walls: drawn over geometry too (allies)
+## col.a == 0 removes it. through_walls: an extra rim pass drawn over walls too (allies)
+const XRAY := """
+shader_type spatial;
+render_mode unshaded, depth_test_disabled, depth_draw_never, cull_back, blend_mix;
+uniform vec4 col : source_color = vec4(0.3, 0.6, 1.0, 0.85);
+void fragment() {
+	float r = 1.0 - abs(dot(normalize(NORMAL), normalize(VIEW)));
+	ALBEDO = col.rgb;
+	ALPHA = smoothstep(0.5, 0.85, r) * col.a;
+}
+"""
+static var _xray_sh: Shader
+var outline_col := Color(0, 0, 0, 0)
 func set_outline(col: Color, width := 0.014, through_walls := false) -> void:
+	outline_col = col
 	var m: StandardMaterial3D = null
 	if col.a > 0.0:
 		m = StandardMaterial3D.new()
@@ -762,7 +775,11 @@ func set_outline(col: Color, width := 0.014, through_walls := false) -> void:
 		m.grow = true; m.grow_amount = width
 		m.albedo_color = col
 		m.disable_receive_shadows = true
-		if through_walls: m.no_depth_test = true; m.render_priority = -1
+		if through_walls:
+			if _xray_sh == null: _xray_sh = Shader.new(); _xray_sh.code = XRAY
+			var x := ShaderMaterial.new(); x.shader = _xray_sh; x.set_shader_parameter("col", Color(col.r, col.g, col.b, 0.85))
+			x.render_priority = 10
+			m.next_pass = x
 	for mi in find_children("*", "MeshInstance3D", true, false):
 		var g := mi as MeshInstance3D
 		if _gun and _gun.is_ancestor_of(g): continue          # body only, not the gun

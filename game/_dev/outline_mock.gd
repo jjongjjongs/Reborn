@@ -23,12 +23,11 @@ func _run() -> void:
 	for s in spots:
 		var b: Node3D = s[0]; b.global_position = base + s[1]
 		b.look_at(base + Vector3(0, 0, s[1].z * 0.2), Vector3.UP) if b.team != pl.team else b.look_at(base + s[1] + fwd * 5.0, Vector3.UP)
-	for t in sc.find_children("*", "TeamTags", true, false): t.queue_free()     # 시안: no head markers
-	for i in 20: await process_frame
-	_shot("none")
-	for b in bots:
-		b._soldier.set_outline(Color(0.3, 0.6, 1.0) if b.team == pl.team else Color(1.0, 0.18, 0.15))
-	for i in 10: await process_frame
+	# real path: the radar's TeamTags puts the outlines on; an ally behind the building on the left
+	allies[1].global_position = base + Vector3(7.0, 0, -9.0)
+	for i in 40: await process_frame
+	var tt = sc.find_children("*", "TeamTags", true, false)
+	print("OL tags=", tt.size(), " ally=", allies[0]._soldier.outline_col, " enemy=", enemies[0]._soldier.outline_col)
 	_shot("tp")
 	C.view_fp = true
 	for i in 30: await process_frame
