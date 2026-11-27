@@ -31,6 +31,7 @@ var act_progress: float = 0.0            # camera shake amount (decays)
 var loadout: Array = ["m4", "pistol", "knife"]
 var bot_diff: String = "reg"      # 출격 준비: bot difficulty (persisted)
 var team_size: int = 5            # 출격 준비: players per team in 팀 데스매치 / 폭파미션 (3..6, persisted)
+var lock_primary: String = ""     # 스나전 map: everyone's primary is this (not saved)
 var dm_count: int = 8             # 출격 준비: players in 데스매치 incl. you (6..12, persisted)
 var sel_map: String = "downtown"     # 출격 준비: map (persisted)
 var slot: int = 0                 # active slot (HUD chip)

@@ -20,7 +20,7 @@ static func build(id: String, parent: Node3D) -> Dictionary:
 			var tr := MapTraining.new()
 			tr.root = parent
 			return tr.build_training()
-		"quarter", "dockside", "facility", "downtown", "bazaar", "cell", "harbor", "reststop":
+		"quarter", "dockside", "facility", "downtown", "bazaar", "cell", "harbor", "reststop", "snipe":
 			var m := MapPlan.new()
 			m.root = parent
 			return m.build_plan({"quarter": "oldquarter", "range": "training", "reststop": "zombie_reststop",

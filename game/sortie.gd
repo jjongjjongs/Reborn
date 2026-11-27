@@ -23,6 +23,7 @@ const MAPS := [
 	{"id": "downtown", "plan": "downtown_v3", "name": "다운타운", "en": "DOWNTOWN", "size": "82×67m · 6–12명", "tag": "주차 데크 · 실내 로비 · 지하철 터널", "ready": true, "ground": Color("2a2d31")},
 	{"id": "bazaar", "plan": "bazaar_v3", "name": "사막 시장", "en": "BAZAAR", "size": "82×67m · 6–12명", "tag": "덮인 시장 · 분수 광장 테라스 · 수로", "ready": true, "ground": Color("3a3226")},
 	{"id": "cell", "plan": "cell_v3", "name": "교도소", "en": "CELLBLOCK", "size": "82×67m · 6–12명", "tag": "감방 복도 · 감시탑 운동장 · 탈옥 터널", "ready": true, "ground": Color("2a2e33")},
+	{"id": "snipe", "plan": "snipe", "name": "협곡 전초기지 · 스나전", "en": "CANYON OUTPOST", "size": "106×72m · 저격총 전용", "tag": "저격 발코니 · 절벽 능선 · 모래 언덕 · 지하 터널", "ready": true, "ground": Color("3a3226")},
 	{"id": "harbor", "plan": "harbor_v3", "name": "컨테이너 항구", "en": "HARBOR", "size": "82×67m · 6–12명", "tag": "창고 실내 · 컨테이너 야적장 · 크레인 부두", "ready": true, "ground": Color("263038")},
 ]
 const ZOMBIE_MAPS := [

@@ -102,6 +102,8 @@ func _card(id: String, slot: int) -> Control:
 	return b
 
 func _pick(id: String, slot: int) -> void:
+	if slot == 0 and Controls.lock_primary != "" and id != Controls.lock_primary:
+		Sfx.play("ui"); return                 # 스나전: primary stays the sniper rifle
 	Sfx.play("ui")
 	Controls.loadout[slot] = id
 	Controls.save_settings()

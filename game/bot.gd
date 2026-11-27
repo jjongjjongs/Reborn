@@ -372,6 +372,7 @@ func _ready() -> void:
 	_soldier.skin = Profile.skin_mats(Profile.skins_of(_soldier.body).pick_random())
 	_soldier.setup(tint)
 	loadout = [Weapons.ORDER_PRIMARY.pick_random(), Weapons.ORDER_SECONDARY.pick_random(), "knife"]
+	if Controls.lock_primary != "": loadout[0] = Controls.lock_primary     # 스나전
 	rusher = randf() < (0.6 if loadout[0] in ["shotgun", "mp5"] else 0.25) * D("tactics")
 	_refill()
 	_equip(loadout[0])

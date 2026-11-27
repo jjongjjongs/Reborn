@@ -25,7 +25,13 @@ var _top_lbl: Label
 var _respawn_lbl: Label
 var _result: Control
 
+var _saved_primary := ""
+
 func _ready() -> void:
+	# 스나전 map: sniper rifles only (player and bots); the saved loadout comes back afterwards
+	Controls.lock_primary = "sniper" if Controls.sel_map == "snipe" else ""
+	if Controls.lock_primary != "":
+		_saved_primary = Controls.loadout[0]; Controls.loadout[0] = Controls.lock_primary
 	_build_world()
 	player = PlayerBody.new()
 	player.team = RED
@@ -202,3 +208,7 @@ func _build_result(layer: CanvasLayer) -> void:
 	v.add_child(mb)
 	_result.visible = false
 	layer.add_child(_result)
+
+func _exit_tree() -> void:
+	if _saved_primary != "": Controls.loadout[0] = _saved_primary
+	Controls.lock_primary = ""
