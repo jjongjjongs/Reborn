@@ -11,6 +11,7 @@ const PATH := "user://profile.json"
 const CATS := [["body", "캐릭터"], ["gear", "머리 장비"], ["suit", "병사 위장복"], ["kit", "헬멧·조끼 색"], ["finish", "무기 도색"], ["title", "칭호"]]
 const ITEMS := [
 	# body: the soldier model (same skeleton / animations)
+	{"id": "body_rookie", "cat": "body", "name": "루키 어썰트", "price": 0},
 	{"id": "body_mini", "cat": "body", "name": "꼬마 병사", "price": 0},
 	{"id": "body_swat", "cat": "body", "name": "꼬마 SWAT", "price": 300},
 	# gear: head gear on the mini
@@ -54,7 +55,7 @@ const ITEMS := [
 	{"id": "tt_ghost", "cat": "title", "name": "그림자", "price": 200},
 	{"id": "tt_legend", "cat": "title", "name": "전설의 병사", "price": 300},
 ]
-const DEFAULT_EQUIP := {"body": "body_mini", "gear": "gear_helmet", "suit": "suit_orange", "kit": "kit_brown", "finish": "fin_none", "title": "tt_rookie"}
+const DEFAULT_EQUIP := {"body": "body_rookie", "gear": "gear_helmet", "suit": "suit_orange", "kit": "kit_brown", "finish": "fin_none", "title": "tt_rookie"}
 
 static var _d := {}
 static var _loaded := false
@@ -72,6 +73,8 @@ static func _load() -> void:
 		if not _d["equip"].has(k): _d["equip"][k] = DEFAULT_EQUIP[k]
 	if not _d.has("stats"): _d["stats"] = {}
 	if not _d.has("recent"): _d["recent"] = []
+	if not _d.get("rookie_default", false):      # v98: Rookie Assault becomes the default body (once, for existing saves too)
+		_d["rookie_default"] = true; _d["equip"]["body"] = "body_rookie"; save()
 
 ## nickname (main menu, top left); 2..12 characters
 static func nick() -> String:
