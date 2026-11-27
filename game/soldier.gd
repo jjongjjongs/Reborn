@@ -132,6 +132,12 @@ func setup(team_color: Color, kit: Color = Color(0, 0, 0, 0)) -> void:
 	for n in _all(swat):
 		if n is Skeleton3D: _tgt = n
 		elif n is MeshInstance3D: _team_tint(n)
+	if lod:          # bots: the 21-part body casts no shadow; one capsule draws it instead (draw calls on phones)
+		for n in _all(swat):
+			if n is MeshInstance3D: (n as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_shadow_proxy = MeshInstance3D.new(); var cm := CapsuleMesh.new(); cm.radius = 0.28; cm.height = 1.5; cm.radial_segments = 8; cm.rings = 2
+		_shadow_proxy.mesh = cm; _shadow_proxy.position = Vector3(0, 0.78, 0)
+		_shadow_proxy.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY; add_child(_shadow_proxy)
 	# hidden animation driver
 	var anim := ANIM.instantiate()
 	anim.rotation.y = yaw_offset
@@ -250,6 +256,7 @@ func shoot() -> void:
 func set_dead(d: bool) -> void:
 	if d == _dead: return
 	_dead = d; _oneshot = 0.0; _base = "?"
+	if _shadow_proxy: _shadow_proxy.visible = not d
 	if _ap:
 		_ap.play("Death01" if d else "Idle", 0.12)
 		if d: _base = "Death01"
@@ -763,6 +770,8 @@ void fragment() { ALBEDO = col.rgb; ALPHA = col.a; }
 static var _xray_sh: Shader
 var outline_col := Color(0, 0, 0, 0)
 var _xray_on := false
+var _shadow_proxy: MeshInstance3D
+static var _hull_cache := {}         # body mesh -> one-surface copy for the outline (1 draw call instead of 21)
 var _xray_mats: Array = []          # [hull material, xray material] per mesh
 
 func set_outline(col: Color, width := 0.014, _through_walls := false) -> void:
@@ -771,7 +780,12 @@ func set_outline(col: Color, width := 0.014, _through_walls := false) -> void:
 	for mi in find_children("*", "MeshInstance3D", true, false):
 		var g := mi as MeshInstance3D
 		if _gun and _gun.is_ancestor_of(g): continue          # body only, not the gun
-		if col.a <= 0.0: g.material_overlay = null; continue
+		if g.name == "OutlineHull" or g == _shadow_proxy: continue
+		var hull := g.get_node_or_null("OutlineHull") as MeshInstance3D
+		if col.a <= 0.0:
+			g.material_overlay = null
+			if hull: hull.visible = false
+			continue
 		# grow is in the mesh's own units (the rigged bodies carry a 100x armature scale): convert metres
 		var k := g.global_transform.basis.get_scale().x / maxf(global_transform.basis.get_scale().x, 0.0001)
 		var m := StandardMaterial3D.new()
@@ -781,8 +795,36 @@ func set_outline(col: Color, width := 0.014, _through_walls := false) -> void:
 		var x := ShaderMaterial.new(); x.shader = _xray_sh; x.set_shader_parameter("col", Color(col.r, col.g, col.b, 0.45))
 		x.render_priority = 10
 		if _xray_on: m.next_pass = x
-		g.material_overlay = m
+		var merged := _hull_mesh(g.mesh) if g.skin != null and g.mesh.get_surface_count() > 1 else null
+		if merged:
+			if hull == null:
+				hull = MeshInstance3D.new(); hull.name = "OutlineHull"; hull.mesh = merged; hull.skin = g.skin
+				hull.skeleton = NodePath("../" + String(g.skeleton)); hull.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				hull.extra_cull_margin = g.extra_cull_margin; g.add_child(hull)
+			hull.visible = true; hull.material_override = m; g.material_overlay = null
+		else:
+			g.material_overlay = m
 		_xray_mats.append([m, x])
+
+## every surface of a skinned body in one surface (positions, normals, bones, weights): the outline hull
+static func _hull_mesh(src: Mesh) -> ArrayMesh:
+	if _hull_cache.has(src): return _hull_cache[src]
+	var V := PackedVector3Array(); var N := PackedVector3Array(); var Bn := PackedInt32Array(); var Wt := PackedFloat32Array(); var I := PackedInt32Array()
+	var fl := -1
+	for si in src.get_surface_count():
+		var a := src.surface_get_arrays(si)
+		var f := int(src.surface_get_format(si)) & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS
+		if fl == -1: fl = f
+		if f != fl or a[Mesh.ARRAY_BONES] == null or a[Mesh.ARRAY_INDEX] == null: _hull_cache[src] = null; return null
+		var base := V.size()
+		V.append_array(a[Mesh.ARRAY_VERTEX]); N.append_array(a[Mesh.ARRAY_NORMAL])
+		Bn.append_array(a[Mesh.ARRAY_BONES]); Wt.append_array(a[Mesh.ARRAY_WEIGHTS])
+		for k in (a[Mesh.ARRAY_INDEX] as PackedInt32Array): I.append(k + base)
+	var arr := []; arr.resize(Mesh.ARRAY_MAX)
+	arr[Mesh.ARRAY_VERTEX] = V; arr[Mesh.ARRAY_NORMAL] = N; arr[Mesh.ARRAY_BONES] = Bn; arr[Mesh.ARRAY_WEIGHTS] = Wt; arr[Mesh.ARRAY_INDEX] = I
+	var am := ArrayMesh.new(); am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr, [], {}, fl)
+	_hull_cache[src] = am
+	return am
 
 func set_xray(on: bool) -> void:
 	if on == _xray_on: return

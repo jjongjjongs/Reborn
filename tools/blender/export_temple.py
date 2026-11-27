@@ -12,7 +12,7 @@ D = np.load("/tmp/gbg/temple_hm.npz"); HM = D["h"]; RES = float(D["res"]); MG = 
 def hat(x, y):
     i = int(round((x + MG) * RES)); j = int(round((y + MG) * RES)); return float(HM[j, i])
 OUTDIR = "/home/user/Reborn/game/assets/maps"
-groups = {"Col_Terrain": [], "Col_Walls": [], "Col_Buildings": [], "Col_Stone": [], "Col_Rocks": [], "Vis_Steps": [], "Vis_Water": []}
+groups = {"Col_Terrain": [], "Col_Walls": [], "Col_Buildings": [], "Col_Stone": [], "Col_Rocks": [], "Vis_Steps": [], "Vis_Water": [], "Vis_Cave": []}
 trees = []
 for o in list(bpy.data.objects):
     if o.type != "MESH": continue
@@ -23,7 +23,7 @@ for o in list(bpy.data.objects):
     if o.location.z < -50: bpy.data.objects.remove(o); continue           # tree prototypes
     key = ("Col_Terrain" if n.startswith("Terrain") else "Col_Walls" if n.startswith("Walls") else
            "Col_Buildings" if n.startswith("Bld_") else "Vis_Steps" if n.startswith("Step") else
-           "Vis_Water" if n.startswith(("Pond", "Stream")) else "Col_Rocks" if n.startswith("Rock") else "Col_Stone")
+           "Vis_Water" if n.startswith(("Pond", "Stream")) else "Vis_Cave" if n.startswith("CaveRock") else "Col_Rocks" if n.startswith("Rock") else "Col_Stone")
     groups[key].append(o)
 for key, objs in groups.items():
     if not objs: continue
@@ -57,7 +57,8 @@ data = {"bounds": [-70, -60, 140, 120], "att": att, "def": dfn,
         "site_a": poly_c(SITE_A, 11, 8), "site_b": poly_c(SITE_B, 13, 10),
         "site_a_c": G(*SITE_A, 0.0), "site_b_c": [SITE_B[0] - 70, GH_BASE, SITE_B[1] - 60],
         "mid": G(80, 72, 0.5), "outline": [[x - 70, y - 60] for x, y in OUTLINE],
-        "trunks": inside_trees}
+        "trunks": inside_trees,
+        "cave": [[r[0][0] - 70, r[0][2], r[0][1] - 60, r[1][0] - 70, r[1][2], r[1][1] - 60, r[2]] for r in RAMPS if r[3] == "cave"]}
 json.dump(data, open(OUTDIR + "/temple.json", "w"))
 # radar overview: orthographic top render covering the bounds exactly
 sc = bpy.context.scene

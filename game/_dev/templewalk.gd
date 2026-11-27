@@ -39,13 +39,24 @@ func _run() -> void:
 	for i in 10: await process_frame
 	for i in 420: await physics_frame        # prep ends and the round start moves everyone first
 	await _walk("manseru", [Vector2(30, 3), Vector2(30, -14)], 7.2)
-	await _walk("main", [Vector2(2, 48), Vector2(-6, 42), Vector2(-6, 30), Vector2(12, 12), Vector2(14, 1.5), Vector2(30, 0), Vector2(30, -14), Vector2(32, -20)], 7.2)
+	await _walk("main", [Vector2(2, 48), Vector2(-6, 42), Vector2(-6, 30), Vector2(12, 12), Vector2(14, 1.5), Vector2(30, 0), Vector2(30, -14), Vector2(29, -18)], 7.2)
 	_shot("a_yard")
 	await _walk("cave", [Vector2(-19, 18), Vector2(9, -7.5)], 7.2)
 	await _walk("valley", [Vector2(-36, 48), Vector2(-42, 30), Vector2(-44, 14), Vector2(-45, -2), Vector2(-39.5, -8.5)], 4.8)
 	await _walk("to_B", [Vector2(-38.3, -10.2), Vector2(-35.6, -20.7), Vector2(-36.5, -23.5)], 4.8)
 	_shot("b_bridge")
-	await _walk("gh_stair", [Vector2(-54.0, -27.2), Vector2(-43.5, -24.6), Vector2(-42.3, -24.3), Vector2(-41.8, -27.5)], 9.56)
+	await _walk("tun_cross", [Vector2(-9.8, -1.0), Vector2(0.8, 11.0)], 2.4)       # must NOT get over the tunnel (expect STUCK, y ~2.4..3)
+	await _walk("tun_back", [Vector2(14.0, -11.5), Vector2(9.0, -7.0), Vector2(0.0, 1.0)], 5.6)   # into the top mouth: inside, not on the roof
+	await _walk("meadow", [Vector2(-20, -2), Vector2(-14, 4), Vector2(0, -6), Vector2(-10, -12)], 2.4)
+	await _walk("cave_out", [Vector2(-20.2, 19.0), Vector2(-18, 17), Vector2(9, -7), Vector2(13, -10.5), Vector2(20, -14)], 7.2)
+	await _walk("ridge_out", [Vector2(57, 12), Vector2(55, -8), Vector2(54.5, -11), Vector2(50, -16)], 7.2)
+	await _walk("north_st", [Vector2(-21, -33), Vector2(-18.5, -35.4), Vector2(-2.9, -45.2), Vector2(0, -47)], 7.2)
+	await _walk("stair4", [Vector2(-33, 9), Vector2(-26, -6), Vector2(-27, -10)], 4.8)
+	await _walk("stream1", [Vector2(-60, 15), Vector2(-51, 14)], 0.0)
+	await _walk("stream1b", [Vector2(-51, 14), Vector2(-60, 15)], 0.0)
+	await _walk("stream2", [Vector2(-58, 35), Vector2(-44, 36)], 0.0)
+	await _walk("stream2b", [Vector2(-44, 36), Vector2(-58, 35)], 0.0)
+	await _walk("gh_stair", [Vector2(-53.43, -27.87), Vector2(-53.26, -26.07), Vector2(-43.75, -23.70), Vector2(-42.66, -23.95), Vector2(-42.00, -26.57)], 9.56)
 	pl.aim_yaw += 160.0; pl.aim_pitch = -12.0
 	for i in 20: await process_frame
 	_shot("deck")

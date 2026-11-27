@@ -79,7 +79,7 @@ def near_ramp(x, y, pad=0.6):
     for (x0, y0, h0), (x1, y1, h1), w, k in RAMPS:
         dx, dy = x1 - x0, y1 - y0; L = math.hypot(dx, dy); ux, uy = dx / L, dy / L
         t = ((x - x0) * ux + (y - y0) * uy) / L; s = abs(-(x - x0) * uy + (y - y0) * ux)
-        if -0.05 <= t <= 1.05 and s <= w / 2 + pad: return True
+        if -(RAMP_PAD + 0.5) / L <= t <= 1 + (RAMP_PAD + 0.5) / L and s <= w / 2 + pad: return True
     return False
 wv = []; wf = []; wc = []
 def wall_seg(p0, p1, top, bot, th=0.55):
@@ -103,7 +103,7 @@ for poly, lv in TERRACES + [(POND, 4.8)]:
         ho = min(hat(m[0] + out.x * 1.2, m[1] + out.y * 1.2), hat(m[0] - out.x * 1.2, m[1] - out.y * 1.2))
         if poly is POND: ho = POND_BED; top = 4.95
         else: top = lv + 0.35
-        if lv - ho < 0.6 or near_ramp(*m): continue
+        if lv - ho < 0.6 or near_ramp(*m) or (poly is POND and shore(*m) < 3.5): continue
         # split into stones ~1.2 m long with tiny height jitter (hand-laid look)
         L = math.hypot(p1[0] - p0[0], p1[1] - p0[1]); n = max(1, int(L / 1.2))
         for k in range(n):
@@ -151,13 +151,13 @@ ang = math.atan2(-(cy1 - cy0), cx1 - cx0)
 for s in range(n + 1):
     t = s / n; x = cx0 + (cx1 - cx0) * t; y = cy0 + (cy1 - cy0) * t; z = ch0 + (ch1 - ch0) * t
     p = B(x, y)
-    for a in range(9):                                  # arch of rough rocks
-        th = math.pi * a / 8
-        r = cw / 2 + 0.6 + random.uniform(-0.15, 0.25)
+    for a in range(11):                                 # arch of rough rocks (inside clear ~3.4 m: room for the camera)
+        th = math.pi * a / 10
+        r = cw / 2 + 1.3 + random.uniform(-0.1, 0.2)
         off = Vector((-math.sin(ang), -math.cos(ang), 0)) * 0
-        q = Vector((p.x, p.y, z)) + Vector((-math.sin(ang) * math.cos(th) * r, math.cos(ang) * math.cos(th) * r, math.sin(th) * 3.2 + 0.1))
+        q = Vector((p.x, p.y, z)) + Vector((-math.sin(ang) * math.cos(th) * r, math.cos(ang) * math.cos(th) * r, math.sin(th) * 4.0 + 0.1))
         bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=random.uniform(0.7, 1.0), location=q)
-        o = bpy.context.active_object; o.name = "Rock"; o.scale = (random.uniform(0.8, 1.3), random.uniform(0.8, 1.3), random.uniform(0.6, 1.0)); o.data.materials.append(ROCKM)
+        o = bpy.context.active_object; o.name = "CaveRock"; o.scale = (random.uniform(0.8, 1.3), random.uniform(0.8, 1.3), random.uniform(0.6, 1.0)); o.data.materials.append(ROCKM)
 for t, label in ((0.0, "in"), (1.0, "out")):           # glow at the cave mouths
     x = cx0 + (cx1 - cx0) * t; y = cy0 + (cy1 - cy0) * t
 # ---------------------------------------------------------------- buildings
@@ -170,8 +170,24 @@ def building(kind, x, y, rot, args):
     z = GH_BASE if (x, y) == (31, 28) else hat(x, y)
     if kind == "pavilion" and (x, y) != (31, 28): z = hat(x, y + 4)     # 만세루: stands at the foot of the stairs
     p = B(x, y); o.location = (p.x, p.y, z - (0.0 if kind in ("pavilion",) else 0.15)); o.rotation_euler.z = -math.radians(rot)
+    if kind == "gate":                                    # open gate: sink the thin sill to the lowest ground under it (no lip to trip on)
+        bpy.context.view_layer.update(); lz = min(v.co.z for v in o.data.vertices)
+        fp = [v.co for v in o.data.vertices if v.co.z < lz + 0.05]
+        xs_ = [c.x for c in fp]; ys_ = [c.y for c in fp]
+        pts = [o.matrix_world @ Vector((xx, yy, lz)) for xx in (min(xs_), 0.0, max(xs_)) for yy in (min(ys_), 0.0, max(ys_))]
+        o.location.z = min(hat(70 + c.x, 60 - c.y) for c in pts) - 0.13
+    elif kind != "pavilion":                              # stone plinth down to the lowest ground under the footprint:
+        bpy.context.view_layer.update(); lz = min(v.co.z for v in o.data.vertices)        # no crawl space where a floor hangs over a terrace edge
+        fp = [v.co for v in o.data.vertices if v.co.z < lz + 0.4]
+        x0 = min(c.x for c in fp); x1 = max(c.x for c in fp); y0 = min(c.y for c in fp); y1 = max(c.y for c in fp)
+        top = o.location.z + lz
+        cs = [o.matrix_world @ Vector((xx, yy, lz)) for xx in (x0, x1) for yy in (y0, y1)]
+        low = min(hat(70 + c.x, 60 - c.y) for c in cs + [o.matrix_world @ Vector(((x0 + x1) / 2, (y0 + y1) / 2, lz))])
+        if low < top - 0.3:
+            cc = o.matrix_world @ Vector(((x0 + x1) / 2, (y0 + y1) / 2, lz))
+            box((cc.x, cc.y, (top + low - 1.0) / 2), (x1 - x0, y1 - y0, top - low + 1.0), STONEM, rot=-math.radians(rot), bev=0.04)
     if kind == "bell":
-        bpy.ops.mesh.primitive_cone_add(vertices=24, radius1=0.75, radius2=0.5, depth=1.6, location=(p.x, p.y, z + 2.8)); b = bpy.context.active_object; b.name = "Stone_bell"; b.data.materials.append(BRONZE)
+        bpy.ops.mesh.primitive_cone_add(vertices=24, radius1=0.75, radius2=0.5, depth=1.6, location=(p.x, p.y, z + 2.8)); b = bpy.context.active_object; b.name = "CaveRock_bell"; b.data.materials.append(BRONZE)
     return o
 for kind, x, y, rot, args in BUILDINGS: building(kind, x, y, rot, args)
 # ---------------------------------------------------------------- pagoda + lanterns at A
@@ -193,8 +209,8 @@ for dx in (-8, 8):
 # ---------------------------------------------------------------- bridges
 (lx0, ly0), (lx1, ly1) = GH_LANDING                              # stair landing: stone slab on two posts, deck height
 lc = B((lx0 + lx1) / 2, (ly0 + ly1) / 2); lang = math.atan2(-(ly1 - ly0), lx1 - lx0); lL = math.hypot(lx1 - lx0, ly1 - ly0)
-box((lc.x, lc.y, GH_DECK - 0.2), (lL, 1.6, 0.4), STEPM, rot=lang, bev=0.03)
-box((lc.x, lc.y, (GH_BASE - 0.2 + GH_DECK - 0.4) / 2), (lL, 1.7, GH_DECK - 0.2 - GH_BASE), STONEM, rot=lang, bev=0.04)   # solid stone pier under the landing
+box((lc.x, lc.y, GH_DECK - 0.2), (lL, GH_LAND_W, 0.4), STEPM, rot=lang, bev=0.03)
+box((lc.x, lc.y, (GH_BASE - 0.2 + GH_DECK - 0.4) / 2), (lL, GH_LAND_W, GH_DECK - 0.2 - GH_BASE), STONEM, rot=lang, bev=0.04)   # solid stone pier under the landing
 isl = [B(x, y) for x, y in GH_ISLAND[:-1]]                     # 경회루 stone island (cut stone, a step above the water)
 mesh_obj("Stone_island", [(q.x, q.y, GH_BASE - 1.5) for q in isl] + [(q.x, q.y, GH_BASE) for q in isl],
     [(0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7), (4, 5, 6, 7)], STONEM)
@@ -209,7 +225,7 @@ print("nature")
 def pine_proto():
     bpy.ops.mesh.primitive_cylinder_add(vertices=8, radius=0.22, depth=7, location=(0, 0, 3.5)); t = bpy.context.active_object; t.data.materials.append(BARK)
     parts = [t]
-    for k in range(4):
+    for k in range(3):
         bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=1.0, location=(random.uniform(-0.8, 0.8), random.uniform(-0.8, 0.8), 4.6 + k * 1.0))
         c = bpy.context.active_object; c.scale = (2.2 - k * 0.35, 2.0 - k * 0.3, 0.75); c.data.materials.append(PINE if k % 2 else PINE2); parts.append(c)
     for x in bpy.context.selected_objects: x.select_set(False)
@@ -238,7 +254,7 @@ def free_spot(x, y, r=3.0):
         if math.hypot(bx - x, by - y) < 9: return False
     return True
 count = 0
-for i in range(900):
+for i in range(520):
     x = random.uniform(-20, 160); y = random.uniform(-20, 140)
     ins = inside((x, y), OUTLINE)
     if ins and (not free_spot(x, y) or random.random() < 0.55): continue

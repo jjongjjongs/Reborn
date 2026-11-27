@@ -21,6 +21,8 @@ TERRACES = [
 ]
 POND = cr([(16, 28), (22, 18), (36, 16), (48, 22), (50, 34), (44, 44), (30, 48), (18, 44), (14, 36), (16, 28)], 8)
 POND_SURF, POND_BED = 4.25, 3.4
+POND_SHORES = [(44, 44), (18, 44), (48, 22), (22, 18)]     # gentle stone beaches: a way out of the water (no wall)
+def shore(x, y): return min(math.hypot(x - a, y - b) for a, b in POND_SHORES)
 STREAM = cr([(16, 46), (14, 58), (20, 74), (16, 90), (24, 104), (36, 117)], 10)
 GYEONGHOERU = (31.0, 28.0, 14.0)          # centre x, y, rotation (deg)
 GH_BASE = 4.8; GH_FL = 4.4; GH_DECK = GH_BASE + GH_FL + 0.36   # stone island level, upper floor height, deck top
@@ -30,8 +32,9 @@ def gh(lx, ly):
     X = (cx - 70) + lx * math.cos(a) - ly * math.sin(a); Y = (60 - cy) + lx * math.sin(a) + ly * math.cos(a)
     return (X + 70, 60 - Y)
 GH_ISLAND = [gh(-14.0, -10.2), gh(12.5, -10.2), gh(12.5, 9.8), gh(-14.0, 9.8), gh(-14.0, -10.2)]
-GH_STAIR = (gh(-12.2, -8.3), gh(-2.6, -8.3))   # along the front edge, up to the deck
-GH_LANDING = (gh(-2.6, -8.3), gh(-0.6, -8.3))   # flat landing at deck height; the railing opens right beside it
+GH_STAIR = (gh(-12.2, -9.2), gh(-2.6, -9.2))     # outer edge flush with the island edge (no trap strip)   # along the front edge, up to the deck
+GH_LANDING = (gh(-2.6, -8.7), gh(-0.6, -8.7)); GH_LAND_W = 2.7   # landing spans from the island edge to the deck   # flat landing at deck height; the railing opens right beside it
+RAMP_PAD = 4.0               # flat landing beyond each ramp end where the ground falls away (no dead-end drops)
 GH_GAP = (-1.6, 2.0)          # between the deck columns at x -3.2 and 0                           # railing opening: centre x, width (pavilion local)
 # ramps / stairs: (x0, y0, h0) -> (x1, y1, h1), width, kind ("stairs" | "path" | "cave")
 RAMPS = [
@@ -47,14 +50,13 @@ RAMPS = [
     ((120, 92, 1.2), (127, 72, 3.6), 3.5, "path"),
     ((127, 72, 3.6), (125, 52, 7.2), 3.5, "stairs"),
     ((52, 77, 2.4), (79, 53, 7.2), 3.2, "cave"),            # 석굴 -> A 서쪽 (지하)
-    ((54, 23, 4.8), (62, 18, 7.2), 4.0, "stairs"),          # 연못 단 -> 북쪽 (수정전)
+    ((51.5, 24.6, 4.8), (62, 18, 7.2), 4.0, "stairs"),          # 연못 단 -> 북쪽 (수정전)
     ((GH_STAIR[0][0], GH_STAIR[0][1], GH_BASE), (GH_STAIR[1][0], GH_STAIR[1][1], GH_DECK), 1.6, "stairs"),   # 경회루 2층
-    ((GH_LANDING[0][0], GH_LANDING[0][1], GH_DECK), (GH_LANDING[1][0], GH_LANDING[1][1], GH_DECK), 1.6, "bridge"),   # 계단참
+    ((GH_LANDING[0][0], GH_LANDING[0][1], GH_DECK), (GH_LANDING[1][0], GH_LANDING[1][1], GH_DECK), 2.9, "bridge"),   # 계단참
 ]
 # bridges over the pond / stream: (x0,y0) -> (x1,y1), height, width
 BRIDGES = [(gh(12.5, -3.0), gh(21.5, -3.0), 4.8, 3.0), (gh(12.5, 3.0), gh(21.5, 3.0), 4.8, 3.0),   # 경회루 동쪽 다리 2
-           (gh(6.0, -10.2), gh(6.0, -21.0), 4.8, 3.0), (gh(-5.0, 9.8), gh(-5.0, 15.5), 4.8, 3.0),      # 남쪽 · 북쪽 다리
-           ((14, 75), (24, 74), 2.4, 3.0), ((14, 95), (24, 96), 0.4, 3.0)]
+           (gh(6.0, -10.2), gh(6.0, -21.0), 4.8, 3.0), (gh(-5.0, 9.8), gh(-5.0, 15.5), 4.8, 3.0)]      # 남쪽 · 북쪽 다리
 for (x0, y0), (x1, y1), hz, w in BRIDGES:                   # bridges are walkable strips too
     RAMPS.append(((x0, y0, hz), (x1, y1, hz), w, "bridge"))
 SITE_A = (102, 40); SITE_B = (31, 28)
@@ -72,7 +74,7 @@ BUILDINGS = [
     ("hall", 86, 86, 3, [2, 2]),
     ("gate", 64, 86.5, 0, [3, 1, "gate"]),         # 천왕문 (top of the first stairs)
     ("gate", 64, 106, 0, [1, 1, "gate"]),          # 일주문 (in line with the stairs)
-    ("gate", 60, 22, 6, [5, 1, "gate"]),           # 수정전 회랑
+    ("gate", 64.1, 16.7, 58, [3, 1, "gate"]),       # 수정전 문: straddles the top of the pond-terrace stairs
     ("hall", 80, 14, 0, [3, 2]),                   # 산신각 (수비)
 ]
 def inside(pt, poly):

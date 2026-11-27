@@ -13,4 +13,11 @@ func _run() -> void:
 	while Time.get_ticks_msec() - t0 < 4000: await process_frame; n += 1
 	print("FPS spawn %.1f  draw calls %d  objects %d" % [n / 4.0, RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME), RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_OBJECTS_IN_FRAME)])
 	root.get_viewport().get_texture().get_image().save_png("/tmp/spawnfps.png")
+	for b in sc.get_tree().get_nodes_in_group("bots"): b.visible = false
+	for i in 5: await process_frame
+	print("no bots: draw calls %d" % RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME))
+	var sun = sc.find_children("*", "DirectionalLight3D", true, false)
+	for l in sun: l.shadow_enabled = false
+	for i in 5: await process_frame
+	print("no bots, no shadows: draw calls %d" % RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME))
 	quit()

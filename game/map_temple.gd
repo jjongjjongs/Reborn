@@ -32,6 +32,24 @@ func build_temple() -> Dictionary:
 	for t in d["trunks"]:
 		var sb := StaticBody3D.new(); var cs := CollisionShape3D.new(); var cy := CylinderShape3D.new(); cy.radius = 0.35; cy.height = 8.0
 		cs.shape = cy; sb.add_child(cs); sb.position = Vector3(t[0], float(t[1]) + 4.0, t[2]); nav.add_child(sb)
+	# the rock tunnel is visual only: solid side walls plus a steep (50 deg) tent roof, so nobody walks on the arch
+	for c in d.get("cave", []):
+		var p0 := Vector3(c[0], c[1], c[2]); var p1 := Vector3(c[3], c[4], c[5]); var hw := float(c[6]) * 0.5
+		var flat := Vector3(p1.x - p0.x, 0, p1.z - p0.z); var L := flat.length(); var yaw := atan2(-flat.z, flat.x)
+		var n := int(ceil(L / 1.5))
+		for k in n:
+			var t := (k + 0.5) / n; var q := p0.lerp(p1, t)
+			var basis := Basis(Vector3.UP, yaw)
+			var side := basis * Vector3(0, 0, 1)
+			for sg in [-1.0, 1.0]:
+				var parts := [[Vector3(L / n + 0.2, 3.2, 0.5), side * sg * (hw + 0.35) + Vector3(0, 1.1, 0), 0.0]]
+				var run := hw + 2.2; var ang := deg_to_rad(50.0); var sl := run / cos(ang)
+				parts.append([Vector3(L / n + 0.2, 0.4, sl), side * sg * (run * 0.5) + Vector3(0, -0.3 + run * tan(ang) * 0.5, 0), sg * ang])
+				parts.append([Vector3(L / n + 0.2, 8.0, run - hw), side * sg * ((run + hw) * 0.5) + Vector3(0, -4.2, 0), 0.0])   # solid bank under the eaves: no crawl space where the tunnel climbs above the meadow
+				for pt in parts:
+					var sb := StaticBody3D.new(); var cs := CollisionShape3D.new(); var bx := BoxShape3D.new(); bx.size = pt[0]
+					cs.shape = bx; sb.add_child(cs); sb.position = q + pt[1]
+					sb.basis = basis * Basis(Vector3(1, 0, 0), pt[2]); nav.add_child(sb)
 	# keep everyone in the valley: invisible walls along the outline, a little outside it
 	var ol: Array = d["outline"]
 	for i in ol.size() - 1:
@@ -76,4 +94,5 @@ func _batch_trees(model: Node3D) -> void:
 		var mm := MultiMesh.new(); mm.transform_format = MultiMesh.TRANSFORM_3D; mm.mesh = mesh; mm.instance_count = xs.size()
 		for i in xs.size(): mm.set_instance_transform(i, xs[i])
 		var mmi := MultiMeshInstance3D.new(); mmi.multimesh = mm
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF      # ~500 trees in the shadow pass were the start-area lag
 		nav.add_child(mmi)
