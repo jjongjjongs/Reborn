@@ -67,7 +67,10 @@ func _ready() -> void:
 	var mid_w := vs.x - 28 - 220 - 16 - 16 - right_w - 28
 	var h := vs.y - 96 - 20
 	var cp := _panel(Vector2(28, 96), Vector2(220, h))
-	_cats_box = VBoxContainer.new(); _cats_box.add_theme_constant_override("separation", 8); cp.add_child(_cats_box)
+	var csc := ScrollContainer.new(); csc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; cp.add_child(csc)
+	fat_scrollbar(csc)
+	_cats_box = VBoxContainer.new(); _cats_box.add_theme_constant_override("separation", 8)
+	_cats_box.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN; csc.add_child(_cats_box)   # buttons stop short of the scroll bar
 	var gp := _panel(Vector2(264, 96), Vector2(mid_w, h))
 	var sc := ScrollContainer.new(); sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; gp.add_child(sc)
 	fat_scrollbar(sc)
@@ -147,7 +150,7 @@ func _refresh() -> void:
 	for c in [["today", "오늘의 상점"]] + Profile.CATS:
 		var on: bool = c[0] == _cat
 		var b := Button.new(); b.text = c[1]; b.alignment = HORIZONTAL_ALIGNMENT_LEFT; b.focus_mode = Control.FOCUS_NONE
-		b.custom_minimum_size = Vector2(190, 56); b.add_theme_font_size_override("font_size", 19)
+		b.custom_minimum_size = Vector2(150, 56); b.add_theme_font_size_override("font_size", 19)
 		for k in ["normal", "hover", "pressed"]: b.add_theme_stylebox_override(k, _sb(Color(0.118, 0.086, 0.051) if on else CARD, ACCENT if on else LINE, 2 if on else 1))
 		var cid: String = c[0]
 		b.pressed.connect(func() -> void: Sfx.play("ui"); _cat = cid; _sel = Profile.offers()[0] if cid == "today" else Profile.equipped(cid); _refresh())
