@@ -93,6 +93,11 @@ static func _load() -> void:
 			refund += int(KIT_PRICE.get(id, 0)); _d["owned"].erase(id)
 	if refund > 0:
 		Missions.earn(refund); _d["kit_refund"] = refund; save()
+	if not _d.has("gold_kept"):                    # v119: primaries now need 250 kills; golds already earned stay
+		var kept := []
+		for w in Weapons.ORDER_PRIMARY:
+			if int(_d["stats"].get("k_" + w, 0)) >= MASTERY: kept.append(w)
+		_d["gold_kept"] = kept; save()
 	if not owns(String(_d["equip"]["body"])):           # v108: only the Rookie is free; the others are bought in the shop
 		_d["equip"]["body"] = "body_rookie"; save()
 
@@ -204,10 +209,15 @@ static func apply_finish(model: Node, fin_id := "", wid := "") -> void:
 		(mi as MeshInstance3D).material_override = m
 
 # ---------------------------------------------------------------- weapon mastery (gold)
-const MASTERY := 50          # kills with a weapon for its gold finish (knife: 15)
+const MASTERY := 50          # kills with a sidearm for its gold finish (knife: 15)
+const MASTERY_PRIMARY := 250 # kills with a primary weapon for its gold finish (v119: was 50)
 static func mastery_goal(wid: String) -> int:
-	return 15 if wid == "knife" else MASTERY
+	if wid == "knife": return 15
+	if wid in Weapons.ORDER_SECONDARY: return MASTERY          # sidearms stay at 50
+	return MASTERY_PRIMARY                                     # rifles / SMG / shotgun / sniper / LMG: 250
 static func mastered(wid: String) -> bool:
+	_load()
+	if wid in _d.get("gold_kept", []): return true             # unlocked under the old 50-kill rule: keep it
 	return stat("k_" + wid) >= mastery_goal(wid)
 static func mastered_count() -> int:
 	var n := 0
