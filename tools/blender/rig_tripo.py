@@ -153,6 +153,9 @@ for v in mesh.data.vertices:
     p = v.co
     # above the neck everything follows the head (the big helmet must not ride on the arms)
     cand = head_segs if p.z > neck_z + 0.02 else body_segs
+    # torso core (incl. vest / back pack): spine bones only, so arm motion never drags it
+    if OWN and abs(p.x) < shoulder_x * 1.05 and crotch + 0.05 < p.z <= neck_z + 0.02:
+        cand = [x for x in segs if x[0] in ("Hips", "Abdomen", "Torso", "Chest", "Neck")]
     if p.z > neck_z + 0.09: cand = [x for x in segs if x[0] == "Head"] + [x for x in segs if x[0] == "Head"]
     ds = sorted(((seg_d(p, a, c), n) for n, a, c in cand))
     d0, n0 = ds[0]; d1, n1 = ds[1]
