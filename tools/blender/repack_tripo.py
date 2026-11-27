@@ -8,7 +8,7 @@ import numpy as np
 from mathutils import Vector
 a = sys.argv[sys.argv.index("--") + 1:]
 NAME = a[0]; mn = Vector(map(float, a[1:4])); mx = Vector(map(float, a[4:7]))
-SRC = "/tmp/tripo_out/s.glb"
+SRC = "/tmp/tripo_out/a.glb" if len(a) > 7 and a[7] == "full" else "/tmp/tripo_out/s.glb"
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=SRC)
 o = [x for x in bpy.data.objects if x.type == "MESH"][0]

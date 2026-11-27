@@ -12,9 +12,9 @@ def mat(name, col, rough):
     m = bpy.data.materials.new(name); m.use_nodes = True
     b = m.node_tree.nodes["Principled BSDF"]; b.inputs["Base Color"].default_value = col; b.inputs["Roughness"].default_value = rough
     return m
-GLOVE = mat("FP_Glove", srgb(0.22, 0.22, 0.23), 0.8)
-PAD = mat("FP_Pad", srgb(0.10, 0.10, 0.11), 0.6)
-CUFF = mat("FP_Cuff", srgb(0.16, 0.16, 0.17), 0.85)
+GLOVE = mat("FP_Glove", srgb(0.36, 0.32, 0.26), 0.85)   # coyote tan: reads against black guns
+PAD = mat("FP_Pad", srgb(0.20, 0.19, 0.18), 0.6)
+CUFF = mat("FP_Cuff", srgb(0.20, 0.19, 0.17), 0.85)
 parts = []
 def tube(pts, r, m, segs=10):
     pts = [Vector(p) for p in pts]

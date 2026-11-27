@@ -90,6 +90,8 @@ var body := "mini"                 # "mini" (default toy soldier) or "swat" (sho
 var gun_k := 1.0                   # weapon size multiplier (the chunky mini holds bigger guns)
 static var test_body := ""
 var cheap := false
+var fp_gun := false                # first-person arms: the gun pose comes from the view model (fp_gun_xf, soldier space)
+var fp_gun_xf := Transform3D()
 var pocket_off := Vector3.ZERO     # long guns: shift the shoulder pocket (bulky bodies)
 var hand_back := 0.08              # wrist this far behind the grip point (big gloves: less)                 # crowd LOD: retarget every other frame
 const BODIES := {"mini": "res://assets/soldier/MiniV3.glb", "swat": "res://assets/soldier/MiniSwat.glb",
@@ -374,7 +376,7 @@ func _team_tint(mi: MeshInstance3D) -> void:
 # as a fraction of length above the model's centre].
 const WEAPONS := {
 	"ak":       {"len": 0.88, "kind": "long",   "butt": [0.01, 0.03],  "grip": [0.29, 0.0],   "fore": [0.66, 0.07]},
-	"m4":       {"len": 0.84, "kind": "long",   "butt": [0.01, 0.04],  "grip": [0.30, -0.10], "fore": [0.70, -0.05], "fp": 0.78, "vfore": true},   # AR-9R (concept): vertical foregrip
+	"m4":       {"len": 0.84, "kind": "long",   "butt": [0.01, 0.04],  "grip": [0.30, -0.10], "fore": [0.70, -0.05], "fp": 0.78, "vfore": true, "fp_fore": [0.70, -0.06]},   # AR-9R (concept): vertical foregrip
 	"mp5":      {"len": 0.66, "kind": "long",   "butt": [0.01, 0.06],  "grip": [0.42, -0.01], "fore": [0.76, 0.09]},
 	"shotgun":  {"len": 1.00, "kind": "long",   "butt": [0.01, -0.03], "grip": [0.27, 0.01],  "fore": [0.70, 0.02]},
 	"sniper":   {"len": 1.15, "kind": "long",   "butt": [0.01, -0.03], "grip": [0.26, -0.01], "fore": [0.48, 0.01]},
@@ -449,7 +451,7 @@ func _update_gun() -> void:
 	_kick = move_toward(_kick, 0.0, dt * (4.0 if _wdef.get("kind", "") == "knife" else 9.0))
 	var throwing := _windup or _throw_t > 0.0
 	var show := not _dead and not throwing
-	_gun.visible = visible and show
+	_gun.visible = visible and show and not fp_gun
 	if show:
 		_pose_weapon()
 		_gun.global_transform = global_transform * _gun_s
@@ -462,6 +464,10 @@ func _update_gun() -> void:
 
 func _pose_weapon() -> void:
 	var kind: String = _wdef["kind"]
+	if fp_gun:
+		_gun_s = fp_gun_xf
+		_place_hands(kind, _bone_s(_arm["UpperArm.L"]))
+		return
 	if kind == "long":
 		# bladed stance: turn the torso, keep the head facing the target
 		_turn_bone(_arm["Torso"], TWIST)
@@ -475,10 +481,6 @@ func _pose_weapon() -> void:
 		var basis := Basis(Vector3.RIGHT, pitch)
 		var pocket := sh_r + Vector3(-0.06, lerpf(-0.05, -0.01, k), -0.04) + pocket_off + Vector3(0, 0, 0.04 * _kick)
 		_gun_s = Transform3D(basis, pocket - basis * _anchor("butt"))
-		# strong hand wraps the pistol grip (palm on its right side, knuckles forward-down);
-		# support hand cradles the handguard from below, palm up
-		_hand("R", _anchor("grip"), Vector3(-0.45, -0.35, -0.82), Vector3(-1, 0, 0), 0.03, 62.0, Vector3(0.6, -1.0, 0.3))
-		_hand("L", _anchor("fore"), Vector3(0.45, 0.25, -0.85), Vector3(0.2, 1, 0), 0.035, 48.0, Vector3(-0.5, -1.0, 0.1))
 	elif kind == "pistol":
 		var mid := (sh_r + sh_l) * 0.5
 		var ready_p := mid + Vector3(0.0, -0.17, -0.26)      # compressed ready
@@ -486,16 +488,74 @@ func _pose_weapon() -> void:
 		var gp := ready_p.lerp(aim_p, k)
 		var basis := Basis(Vector3.RIGHT, deg_to_rad(9.0 * _kick))
 		_gun_s = Transform3D(basis, gp - basis * _anchor("grip") + Vector3(0, 0, 0.03 * _kick))
-		# strong hand high on the grip; support hand wraps over its fingers from the left
-		_hand("R", _anchor("grip"), Vector3(-0.3, -0.5, -0.8), Vector3(-1, 0, 0), 0.02, 66.0, Vector3(0.8, -1.0, 0.2))
-		_hand("L", _anchor("grip"), Vector3(0.3, -0.5, -0.8), Vector3(1, 0, 0), 0.05, 60.0, Vector3(-0.8, -1.0, 0.2))
 	else:   # knife: hammer grip, blade forward, guard hand up
 		var gp := sh_r + Vector3(-0.08, -0.17, -0.30 - 0.32 * sin(PI * (1.0 - _kick)))
 		var basis := Basis(Vector3.RIGHT, deg_to_rad(12.0))
 		_gun_s = Transform3D(basis, gp - basis * _anchor("grip"))
+	_place_hands(kind, sh_l)
+
+func _place_hands(kind: String, sh_l: Vector3) -> void:
+	if kind == "long":
+		# strong hand wraps the pistol grip (palm on its right side, knuckles forward-down);
+		# support hand cradles the handguard from below, palm up (or wraps a vertical foregrip)
+		_hand("R", _anchor("grip"), Vector3(-0.45, -0.35, -0.82), Vector3(-1, 0, 0), 0.03, 62.0, Vector3(0.6, -1.0, 0.3))
+		if bool(_wdef.get("vfore", false)):
+			_hand("L", _anchor("fore"), Vector3(0.35, -0.55, -0.75), Vector3(1, 0, 0), 0.03, 70.0, Vector3(-0.6, -1.0, 0.2))
+		else:
+			_hand("L", _anchor("fore"), Vector3(0.45, 0.25, -0.85), Vector3(0.2, 1, 0), 0.035, 48.0, Vector3(-0.5, -1.0, 0.1))
+	elif kind == "pistol":
+		# strong hand high on the grip; support hand wraps over its fingers from the left
+		_hand("R", _anchor("grip"), Vector3(-0.3, -0.5, -0.8), Vector3(-1, 0, 0), 0.02, 66.0, Vector3(0.8, -1.0, 0.2))
+		_hand("L", _anchor("grip"), Vector3(0.3, -0.5, -0.8), Vector3(1, 0, 0), 0.05, 60.0, Vector3(-0.8, -1.0, 0.2))
+	else:   # knife: hammer grip; guard hand open, palm toward the target, in front of the chest
 		_hand("R", _anchor("grip"), Vector3(-0.1, -0.75, -0.65), Vector3(-1, 0, 0.2), 0.02, 72.0, Vector3(0.7, -1.0, 0.4))
-		# guard hand: open, palm toward the target, in front of the chest
 		_hand("L", _gun_s.affine_inverse() * (sh_l + Vector3(0.14, -0.10, -0.30)), Vector3(0.1, 1.0, -0.2), Vector3(0.3, 0, -1), 0.0, 12.0, Vector3(-0.6, -1.0, 0.0))
+
+## first-person arms: keep only the triangles skinned to the arm / hand bones (any body)
+const ARM_BONES := ["Shoulder", "UpperArm", "LowerArm", "Hand", "Thumb", "Index", "Middle", "Ring", "Pinky"]
+func arms_only() -> void:
+	for mi in find_children("*", "MeshInstance3D", true, false):
+		var m := mi as MeshInstance3D
+		if m.skin == null or not (m.mesh is ArrayMesh) or not m.visible:
+			m.visible = false; continue
+		var skel := m.get_node_or_null(m.skeleton) as Skeleton3D
+		var am := ArrayMesh.new()
+		for si in m.mesh.get_surface_count():
+			var arr: Array = m.mesh.surface_get_arrays(si)
+			var bones = arr[Mesh.ARRAY_BONES]; var wts = arr[Mesh.ARRAY_WEIGHTS]; var idx = arr[Mesh.ARRAY_INDEX]
+			if bones == null or idx == null: continue
+			var nv: int = (arr[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()
+			var per := int((bones as PackedInt32Array).size() / max(nv, 1))
+			var is_arm := PackedByteArray(); is_arm.resize(nv)
+			var name_ok := {}
+			for v in nv:
+				var bi := 0; var bw := -1.0
+				for j in per:
+					var w: float = wts[v * per + j]
+					if w > bw: bw = w; bi = bones[v * per + j]
+				if not name_ok.has(bi):
+					var nm := m.skin.get_bind_name(bi)
+					if nm == "" and skel: nm = skel.get_bone_name(m.skin.get_bind_bone(bi))
+					var ok := false
+					for p in ARM_BONES:
+						if nm.begins_with(p): ok = true
+					name_ok[bi] = ok
+				is_arm[v] = 1 if name_ok[bi] else 0
+			var keep := PackedInt32Array()
+			for t in range(0, (idx as PackedInt32Array).size(), 3):
+				if is_arm[idx[t]] and is_arm[idx[t + 1]] and is_arm[idx[t + 2]]:
+					keep.append(idx[t]); keep.append(idx[t + 1]); keep.append(idx[t + 2])
+			if keep.is_empty(): continue
+			arr[Mesh.ARRAY_INDEX] = keep
+			var fl: int = int(m.mesh.surface_get_format(si)) & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS
+			am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr, [], {}, fl)
+			var mat := m.get_active_material(si)
+			am.surface_set_material(am.get_surface_count() - 1, mat)
+		if am.get_surface_count() == 0:
+			m.visible = false; continue
+		m.mesh = am
+		for si in am.get_surface_count(): m.set_surface_override_material(si, null)
+		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 # place one hand on the weapon. contact/f/n are in gun space: f = wrist->knuckles
 # direction, n = palm normal (toward the part being held), pad = palm thickness
