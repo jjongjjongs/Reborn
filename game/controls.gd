@@ -48,6 +48,7 @@ var hp_max: int = 100
 
 # --- run stats ---
 var hits: int = 0
+var shots: int = 0          # rounds fired (training accuracy)
 var kills: int = 0
 var headshots: int = 0
 var points: int = 0
@@ -197,7 +198,7 @@ func reset() -> void:
 	slot = 0; weapon_id = str(loadout[0]); swapping = false; _swap_to = -1
 	scoped = false; _scope = false; mag_bonus = 0
 	hp = 100; hp_max = 100
-	hits = 0; kills = 0; headshots = 0; points = 0; run_time = 0.0
+	hits = 0; shots = 0; kills = 0; headshots = 0; points = 0; run_time = 0.0
 	wave = 0; zombies_left = 0; prep_left = -1.0; cleared = false
 	dmg_mult = 1.0; speed_mult = 1.0; reload_mult = 1.0
 	atk_lv = 0; spd_lv = 0; hp_lv = 0; wp_lv = 0; shop_open = false

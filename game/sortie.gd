@@ -29,7 +29,8 @@ const ZOMBIE_MAPS := [
 	{"id": "reststop", "plan": "zombie_reststop", "name": "폐휴게소", "en": "REST STOP", "size": "64×56m · 좀비 전용", "tag": "편의점 농성 · 주유소 지붕 · 모텔 · 주차장 순환로", "ready": true, "ground": Color("2b2a2e")},
 ]
 const TRAIN_MAPS := [
-	{"id": "range", "plan": "training", "name": "훈련장", "en": "TRAINING", "size": "60×52m · 혼자", "tag": "사격 레인 · 킬하우스 · 장애물 코스", "ready": true, "ground": Color("2a2d31")},
+	{"id": "range", "name": "훈련장", "en": "TRAINING", "size": "64×54m · 혼자", "tag": "사격장 · 더미 · 무기 보관대 · 킬하우스 · 이동 코스",
+		"rects": [[27, 2, 46, 48, "8c8678"], [27, 54, 46, 17, "5f5a52"], [2, 22, 26, 34, "b9b2a6"], [74, 20, 22, 30, "b9b2a6"], [74, 60, 22, 22, "a09a8c"], [32, 88, 36, 8, "f05a52"]], "ready": true, "ground": Color("2a2d31")},
 ]
 const KIND_COL := {"street": "8c8678", "plaza": "b9b2a6", "siteA": "ff7a1a", "siteB": "f2c14e", "att": "f05a52", "def": "56a8ff",
 	"room": "5f5a52", "tunnel": "1d4a63", "water": "1d4a63"}
@@ -197,14 +198,14 @@ func _refresh() -> void:
 	for c in _diff_box.get_children(): c.queue_free()
 	for c in _detail.get_children(): c.queue_free()
 	if kind == "training":
-		for r in [["사격 레인", "10–30m 거리 표적 6개"], ["킬하우스", "방·복도 근접 표적 5개"], ["연병장·장애물", "상자 사이·감시탑 표적 7개"],
-				["정비장", "격납고 주변 표적 3개"]]:
+		for r in [["사격장", "10–30m 종이 표적 · 철판 · 이동 표적"], ["더미 구역", "피해 숫자 · 정지 / 좌우 이동 / 앉음"], ["무기 보관대", "다가가서 버튼으로 바로 교체"],
+				["킬하우스 · 이동 코스", "START 발판부터 기록 측정"]]:
 			var card := Panel.new(); card.custom_minimum_size = Vector2(268, 64)
 			card.add_theme_stylebox_override("panel", _sb(CARD, LINE2, 1, 10))
 			var n := _label(r[0], 18, FG); n.position = Vector2(14, 6); card.add_child(n)
 			var sh := _label(r[1], 13, SOFT); sh.position = Vector2(14, 36); card.add_child(sh)
 			_diff_box.add_child(card)
-		for r in [["표적 체력", "100"], ["헤드샷", "머리 부분"], ["다시 일어섬", "2.5초 후"], ["나가기", "일시정지 메뉴"]]:
+		for r in [["표적 체력", "100"], ["헤드샷", "머리 부분"], ["민간인 사격", "+3초"], ["나가기", "일시정지 메뉴"]]:
 			var a := _label(r[0], 14, MUTED); a.custom_minimum_size = Vector2(134, 0); _detail.add_child(a)
 			var v := _label(r[1], 14, FG); v.custom_minimum_size = Vector2(134, 0)
 			v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT; _detail.add_child(v)
@@ -262,7 +263,7 @@ func _refresh() -> void:
 	var mname := ""
 	for m in _maps():
 		if m["id"] == Controls.sel_map: mname = m["name"]
-	var who := "혼자 · 표적 21개" if kind == "training" else "웨이브 5" if surv else ("3 vs 3" if kind == "team" else ("5 vs 5 · 7승" if kind == "bomb" else "개인전 6명"))
+	var who := "혼자 · 사격장 · 더미 · 기록 측정" if kind == "training" else "웨이브 5" if surv else ("3 vs 3" if kind == "team" else ("5 vs 5 · 7승" if kind == "bomb" else "개인전 6명"))
 	_summary.text = ("%s · %s" % [mname, who]) if kind == "training" else ("%s · %s · %s" % [mname, Difficulty.cur()["name"], who])
 
 func _map_card(m: Dictionary) -> Button:

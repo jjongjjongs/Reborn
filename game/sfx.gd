@@ -27,6 +27,7 @@ func _ready() -> void:
 	_bank["armed"] = _make_tone(1200.0, 0.32, 1.6)      # rising chirp: bomb planted
 	_bank["defuse"] = _make_click()                     # wire / tool clicks while defusing
 	_bank["defused"] = _make_tone(900.0, 0.35, -0.6)    # falling tone: defused
+	_bank["ding"] = _make_ding()                        # steel plate hit
 	for i in 8:
 		var p := AudioStreamPlayer.new()
 		p.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -44,7 +45,7 @@ func play(name: String, vol_db: float = 0.0) -> void:
 ## (gunshots carry far, footsteps only nearby, the bomb beeps across a site)
 const RANGE := {"shot": [9.0, 90.0], "boom": [14.0, 120.0], "step": [2.2, 24.0], "step2": [2.2, 24.0],
 	"jump": [2.5, 24.0], "land": [2.5, 26.0], "key": [2.0, 30.0], "beep": [4.0, 70.0], "armed": [5.0, 80.0],
-	"defuse": [2.0, 26.0], "defused": [5.0, 70.0]}
+	"defuse": [2.0, 26.0], "defused": [5.0, 70.0], "ding": [8.0, 80.0]}
 func play_at(name: String, pos: Vector3, vol_db: float = 0.0) -> void:
 	if not Controls.sfx_on or not _bank.has(name):
 		return
@@ -199,6 +200,14 @@ func _make_tone(f: float, dur: float, glide: float) -> AudioStreamWAV:   # elect
 		ph += TAU * f * pow(2.0, glide * t / dur) / RATE
 		var env := minf(1.0, t * 300.0) * minf(1.0, (dur - t) * 60.0)
 		s[i] = (sin(ph) * 0.7 + sin(ph * 2.0) * 0.15) * env * 0.6
+	return _wav(s)
+
+func _make_ding() -> AudioStreamWAV:            # struck steel: inharmonic partials, long ring
+	var n := _n(0.7)
+	var s := PackedFloat32Array(); s.resize(n)
+	for i in n:
+		var t := float(i) / RATE
+		s[i] = (sin(TAU * 1180.0 * t) * 0.5 + sin(TAU * 2950.0 * t) * 0.3 * exp(-t * 6.0) + sin(TAU * 4410.0 * t) * 0.15 * exp(-t * 10.0)) * exp(-t * 5.0) * 0.7
 	return _wav(s)
 
 func _make_click() -> AudioStreamWAV:

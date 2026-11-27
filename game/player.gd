@@ -358,6 +358,7 @@ func _shoot(w: Dictionary) -> void:
 	_ammo[_wid()] = int(_ammo[_wid()]) - 1
 	_sync_hud()
 	Sfx.play("shot", -3.0)
+	Controls.shots += 1
 	BotPlayer.noise(global_position, self)
 	if _soldier: _soldier.shoot()
 	_bloom = minf(_bloom + float(w["bloom"]), float(w["spread"][1]))

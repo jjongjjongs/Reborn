@@ -16,7 +16,11 @@ static func build(id: String, parent: Node3D) -> Dictionary:
 	b.root = parent
 	Radar.overview = null      # plan maps set their drawn overview; others are baked by the radar
 	match id:
-		"quarter", "dockside", "facility", "downtown", "bazaar", "cell", "harbor", "range", "reststop":
+		"range":
+			var tr := MapTraining.new()
+			tr.root = parent
+			return tr.build_training()
+		"quarter", "dockside", "facility", "downtown", "bazaar", "cell", "harbor", "reststop":
 			var m := MapPlan.new()
 			m.root = parent
 			return m.build_plan({"quarter": "oldquarter", "range": "training", "reststop": "zombie_reststop",
@@ -25,9 +29,9 @@ static func build(id: String, parent: Node3D) -> Dictionary:
 			var o := MapOldTown.new()
 			o.root = parent
 			return o.build_oldtown()
-	var t := MapPlan.new()
+	var t := MapTraining.new()
 	t.root = parent
-	return t.build_plan("training")
+	return t.build_training()
 
 # ------------------------------------------------------------------ helpers
 func _env(bg: Color, ambient: Color, amb_e: float, sun_rot: Vector3, sun_col: Color, sun_e: float, fog: Color, fog_d: float) -> void:
