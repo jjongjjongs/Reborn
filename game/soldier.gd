@@ -384,12 +384,12 @@ func _team_tint(mi: MeshInstance3D) -> void:
 # Anchors are measured on the model side views: [fraction from the butt, height
 # as a fraction of length above the model's centre].
 const WEAPONS := {
-	"ak":       {"len": 0.88, "kind": "long",   "butt": [0.01, 0.03],  "grip": [0.29, 0.0],   "fore": [0.66, 0.07]},
+	"ak":       {"len": 0.80, "kind": "long",   "butt": [0.01, 0.01],  "grip": [0.30, -0.07], "fore": [0.71, -0.06], "vfore": true, "fp": 0.8},   # SC-7 (concept)
 	"m4":       {"len": 0.84, "kind": "long",   "butt": [0.01, 0.04],  "grip": [0.30, -0.10], "fore": [0.70, -0.05], "fp": 0.78, "vfore": true, "fp_fore": [0.70, -0.06]},   # AR-9R (concept): vertical foregrip
-	"mp5":      {"len": 0.66, "kind": "long",   "butt": [0.01, 0.06],  "grip": [0.42, -0.01], "fore": [0.76, 0.09]},
+	"mp5":      {"len": 0.62, "kind": "long",   "butt": [0.00, 0.03],  "grip": [0.32, -0.08], "fore": [0.75, -0.06], "vfore": true, "fp": 0.85},   # SM-7 (concept)
 	"shotgun":  {"len": 1.00, "kind": "long",   "butt": [0.01, -0.03], "grip": [0.27, 0.01],  "fore": [0.70, 0.02]},
-	"sniper":   {"len": 1.15, "kind": "long",   "butt": [0.01, -0.03], "grip": [0.26, -0.01], "fore": [0.48, 0.01]},
-	"rpk":      {"len": 1.04, "kind": "long",   "butt": [0.01, 0.01],  "grip": [0.31, -0.02], "fore": [0.64, 0.08]},
+	"sniper":   {"len": 1.15, "kind": "long",   "butt": [0.01, -0.01], "grip": [0.17, -0.05], "fore": [0.46, -0.02], "fp": 0.8},   # SR-7L (concept)
+	"rpk":      {"len": 1.00, "kind": "long",   "butt": [0.00, 0.00],  "grip": [0.21, -0.07], "fore": [0.67, -0.01], "fp": 0.8},   # LMG-76 (concept)
 	"pistol":   {"len": 0.20, "kind": "pistol", "grip": [0.17, -0.07]},
 	"revolver": {"len": 0.26, "kind": "pistol", "grip": [0.13, -0.09]},
 	"knife":    {"len": 0.30, "kind": "knife",  "grip": [0.17, 0.0]},
