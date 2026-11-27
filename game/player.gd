@@ -27,7 +27,8 @@ var aim_pitch := 0.0   # degrees (camera only)
 var _bloom := 0.0
 var _ammo := {}            # weapon id -> rounds in the mag
 var _swap_t := 0.0
-var _fire_was := false     # for semi-auto (one shot per press)
+var _fire_was := false
+var _steps := Footsteps.new()     # for semi-auto (one shot per press)
 var scope_k := 0.0         # 0..1 scope blend (modes read it for the camera)
 var _fire_cd := 0.0
 var _reload_t := 0.0
@@ -231,10 +232,13 @@ func _physics_process(delta: float) -> void:
 	if is_on_floor():
 		if Controls.consume_jump() and not frozen:
 			if crouched: _set_crouch(false)     # jump while crouched = stand up
-			else: velocity.y = JUMP_VELOCITY
+			else:
+				velocity.y = JUMP_VELOCITY
+				_steps.jumped(self, true)
 	else:
 		velocity.y -= GRAVITY * delta
 	move_and_slide()
+	_steps.update(self, delta, true)
 
 	# weapon swap (HUD chip) / scope toggle
 	var sw := Controls.consume_swap()

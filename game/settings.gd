@@ -31,6 +31,7 @@ func _build() -> void:
 	var panel := PanelContainer.new()
 	panel.anchor_left = 0.5; panel.anchor_right = 0.5; panel.anchor_top = 0.5; panel.anchor_bottom = 0.5
 	panel.offset_left = -280; panel.offset_right = 280; panel.offset_top = -230; panel.offset_bottom = 230
+	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH; panel.grow_vertical = Control.GROW_DIRECTION_BOTH   # taller content stays centred
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.09, 0.12, 0.15); sb.set_border_width_all(1); sb.border_color = Color(0.18, 0.22, 0.26)
 	sb.set_corner_radius_all(16); sb.set_content_margin_all(22)

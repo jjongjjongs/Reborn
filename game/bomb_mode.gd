@@ -32,6 +32,16 @@ var bomb_pos := Vector3.ZERO
 var bomb_t := 0.0
 var plant_prog := 0.0
 var defuse_prog := 0.0
+var _beep_t := 0.0
+var _spec_fire_was := false
+var _key_t := 0.0
+
+# keypad presses while planting / tool clicks while defusing, at the person doing it
+func _key_sounds(dt: float, who: Node3D, snd := "key") -> void:
+	_key_t -= dt
+	if _key_t <= 0.0:
+		_key_t = randf_range(0.22, 0.38)
+		Sfx.play_at(snd, who.global_position + Vector3(0, 0.6, 0))
 var defuser: Node3D = null
 var plan_site := "A"
 var _bomb_vis: Node3D
@@ -169,6 +179,7 @@ func _live(dt: float) -> void:
 					if carrier is BotPlayer: carrier.busy = false
 					carrier = player; plant_prog = 0.0
 				plant_prog += dt / PLANT
+				_key_sounds(dt, player)
 			elif carrier == player:
 				carrier = null; plant_prog = 0.0
 		if carrier == null:
@@ -177,11 +188,17 @@ func _live(dt: float) -> void:
 					carrier = b; b.busy = true; plant_prog = 0.0; break
 		elif carrier is BotPlayer:
 			plant_prog += dt / PLANT
+			_key_sounds(dt, carrier)
 		if carrier != null and plant_prog >= 1.0:
 			_plant(_site_at(carrier.global_position))
 	# defuse
 	if bomb_state == "planted":
 		bomb_t -= dt
+		# ticking: once a second, faster and faster in the last 10 s (positional: louder up close)
+		_beep_t -= dt
+		if _beep_t <= 0.0:
+			Sfx.play_at("beep", bomb_pos + Vector3(0, 0.3, 0))
+			_beep_t = clampf(bomb_t / 10.0, 0.12, 1.0)
 		_bomb_light.visible = fmod(bomb_t, 1.0 if bomb_t > 10.0 else 0.35) < 0.15
 		if defuser != null and (not defuser.alive or defuser.global_position.distance_to(bomb_pos) > 2.0):
 			if defuser is BotPlayer: defuser.busy = false
@@ -190,6 +207,7 @@ func _live(dt: float) -> void:
 			Controls.act_label = "해체"
 			if Controls.act_held and Controls.move.length() < 0.2:
 				defuser = player; defuse_prog += dt / DEFUSE
+				_key_sounds(dt, player, "defuse")
 			elif defuser == player:
 				defuser = null; defuse_prog = 0.0
 		if defuser == null:
@@ -198,10 +216,12 @@ func _live(dt: float) -> void:
 					defuser = b; b.busy = true; break
 		elif defuser is BotPlayer:
 			defuse_prog += dt / DEFUSE
+			_key_sounds(dt, defuser, "defuse")
 		if defuse_prog >= 1.0:
 			if defuser == player: Missions.add("defuse")
 			_bomb_light.visible = false
 			bomb_state = "gone"
+			Sfx.play_at("defused", bomb_pos + Vector3(0, 0.3, 0))
 			_end_round(def_team, "폭탄 해체")
 			return
 		if bomb_t <= 0.0:
@@ -239,7 +259,8 @@ func _plant(site: String) -> void:
 	if carrier is BotPlayer: carrier.busy = false
 	_place_bomb(true)
 	_show_banner("폭탄 설치됨 — %s 사이트" % site, 2.5)
-	Sfx.play("reload")
+	Sfx.play_at("armed", bomb_pos + Vector3(0, 0.3, 0))
+	_beep_t = 0.6
 	_assign_objectives()
 
 func _explode() -> void:
@@ -340,10 +361,16 @@ func _camera() -> void:
 		_spec = null
 		CamRig.follow(cam, player)
 		return
+	var mates := _alive(RED)
 	if _spec == null or not _spec.alive:
-		_spec = null
-		for n in _alive(RED):
-			_spec = n; break
+		_spec = mates[0] if not mates.is_empty() else null
+	# fire button: watch the next living teammate
+	var press := Controls.fire_held and not _spec_fire_was
+	_spec_fire_was = Controls.fire_held
+	if press and mates.size() > 1:
+		var i := mates.find(_spec)
+		_spec = mates[(i + 1) % mates.size()]
+		Sfx.play("ui")
 	var focus: Node3D = _spec if _spec else player
 	var back := focus.global_transform.basis.z
 	var want := focus.global_position + back * 3.8 + Vector3(0, 2.4, 0)
@@ -373,7 +400,8 @@ func _hud(dt: float) -> void:
 	if bomb_state == "carried" and att_team == RED and player.alive:
 		_carry_lbl.text = "%s · 폭탄 보유 — A·B 사이트 안에서 '설치'를 누르고 있기" % role
 	elif not player.alive and state == "live":
-		_carry_lbl.text = "관전 중 — 다음 라운드에 부활"
+		var who: String = _spec.bot_name if _spec != null and "bot_name" in _spec else ""
+		_carry_lbl.text = ("관전 중: %s · 사격 버튼으로 교체" % who) if who != "" else "관전 중 — 다음 라운드에 부활"
 	else:
 		_carry_lbl.text = role + (" · 폭탄을 해체하세요" if bomb_state == "planted" and att_team != RED else "")
 	if _banner_t > 0.0:

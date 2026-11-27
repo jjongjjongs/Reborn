@@ -249,6 +249,7 @@ var _retreat_t := 0.0
 var _retreated := false
 var _strafe := 1.0
 var _hit_t := 99.0
+var _steps := Footsteps.new()
 var _strafe_t := 0.0
 
 func _fight(delta: float, to: Vector3, dist: float) -> void:
@@ -515,6 +516,7 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y -= GRAVITY * delta
 	move_and_slide()
+	_steps.update(self, delta)
 
 	if _soldier:
 		var hs := Vector2(velocity.x, velocity.z).length()

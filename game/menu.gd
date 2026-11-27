@@ -43,7 +43,7 @@ func _ready() -> void:
 func _top_bar() -> void:
 	var ava := _panel(Vector2(36, 26), Vector2(58, 58), PANEL2, ACCENT, 2, 10)
 	add_child(ava)
-	var ai := Label.new(); ai.text = "R"
+	var ai := Label.new(); ai.text = Profile.nick().left(1).to_upper()
 	ai.add_theme_font_size_override("font_size", 30)
 	ai.add_theme_color_override("font_color", ACCENT)
 	ai.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -51,7 +51,13 @@ func _top_bar() -> void:
 	ai.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	ava.add_child(ai)
 
-	var nm := _label("SOLDIER_01", 26, FG, false); nm.position = Vector2(108, 26); add_child(nm)
+	var nm := _label(Profile.nick() + "  ›", 26, FG, false); nm.position = Vector2(108, 26); add_child(nm)
+	# tap the name (or the avatar) to change it
+	for target in [nm, ava]:
+		target.mouse_filter = Control.MOUSE_FILTER_STOP
+		target.gui_input.connect(func(ev: InputEvent) -> void:
+			if (ev is InputEventMouseButton or ev is InputEventScreenTouch) and not ev.pressed:
+				_nick_dialog(nm, ai))
 	var lv := _label(Profile.title(), 18, ACCENT.lerp(FG, 0.3), false); lv.position = Vector2(110, 58); add_child(lv)
 
 	# gold pill (상점 경제는 2단계 — 자리만)
@@ -239,6 +245,35 @@ func _bottom_nav() -> void:
 		bar.add_child(b)
 
 # ---- helpers ----
+func _nick_dialog(nm: Label, ai: Label) -> void:
+	Sfx.play("ui")
+	var sheet := Control.new(); sheet.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); add_child(sheet)
+	var bg := ColorRect.new(); bg.color = Color(0, 0, 0, 0.6); bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_STOP; sheet.add_child(bg)
+	var p := _panel(Vector2.ZERO, Vector2(520, 250), Color(0.09, 0.12, 0.15), LINE, 1, 16)
+	p.anchor_left = 0.5; p.anchor_right = 0.5; p.anchor_top = 0.28; p.anchor_bottom = 0.28   # high: keyboard below
+	p.offset_left = -260; p.offset_right = 260; p.offset_top = -40; p.offset_bottom = 210
+	sheet.add_child(p)
+	var t := _label("닉네임", 28, ACCENT, true); t.position = Vector2(24, 18); p.add_child(t)
+	var hint := _label("2~12자", 16, DIM, false); hint.position = Vector2(130, 28); p.add_child(hint)
+	var le := LineEdit.new(); le.text = Profile.nick(); le.max_length = 12
+	le.position = Vector2(24, 76); le.size = Vector2(472, 58); le.add_theme_font_size_override("font_size", 26)
+	le.select_all_on_focus = true
+	p.add_child(le)
+	var close := func() -> void: sheet.queue_free()
+	var save := func(_x = null) -> void:
+		if Profile.set_nick(le.text):
+			nm.text = Profile.nick() + "  ›"; ai.text = Profile.nick().left(1).to_upper()
+			Sfx.play("ui"); sheet.queue_free()
+		else:
+			hint.text = "2~12자로 입력하세요"; hint.add_theme_color_override("font_color", Color(1.0, 0.45, 0.4))
+	le.text_submitted.connect(save)
+	for b in [["취소", 24.0, close], ["확인", 264.0, save]]:
+		var bt := Button.new(); bt.text = b[0]; bt.position = Vector2(b[1], 160); bt.size = Vector2(232, 62)
+		bt.add_theme_font_size_override("font_size", 24); bt.focus_mode = Control.FOCUS_NONE
+		bt.pressed.connect(b[2]); p.add_child(bt)
+	le.grab_focus.call_deferred()
+
 func _label(txt: String, size: int, col: Color, bold: bool) -> Label:
 	var l := Label.new(); l.text = txt
 	l.add_theme_font_size_override("font_size", size)

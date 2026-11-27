@@ -18,6 +18,15 @@ func _ready() -> void:
 	_bank["ui"] = _make_ui()
 	_bank["boom"] = _make_boom()
 	_bank["throw"] = _make_throw()
+	_bank["step"] = _make_step(0)
+	_bank["step2"] = _make_step(1)
+	_bank["jump"] = _make_jump()
+	_bank["land"] = _make_land()
+	_bank["key"] = _make_tone(1480.0, 0.07, 0.0)        # bomb keypad while planting
+	_bank["beep"] = _make_tone(2200.0, 0.11, 0.0)       # planted bomb tick
+	_bank["armed"] = _make_tone(1200.0, 0.32, 1.6)      # rising chirp: bomb planted
+	_bank["defuse"] = _make_click()                     # wire / tool clicks while defusing
+	_bank["defused"] = _make_tone(900.0, 0.35, -0.6)    # falling tone: defused
 	for i in 8:
 		var p := AudioStreamPlayer.new()
 		p.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -31,15 +40,24 @@ func play(name: String, vol_db: float = 0.0) -> void:
 	_pi = (_pi + 1) % _pool.size()
 	p.stream = _bank[name]; p.volume_db = vol_db; p.play()
 
+## positional: full volume within `unit` metres, fading with distance, silent past `max_d`
+## (gunshots carry far, footsteps only nearby, the bomb beeps across a site)
+const RANGE := {"shot": [9.0, 90.0], "boom": [14.0, 120.0], "step": [2.2, 24.0], "step2": [2.2, 24.0],
+	"jump": [2.5, 24.0], "land": [2.5, 26.0], "key": [2.0, 30.0], "beep": [4.0, 70.0], "armed": [5.0, 80.0],
+	"defuse": [2.0, 26.0], "defused": [5.0, 70.0]}
 func play_at(name: String, pos: Vector3, vol_db: float = 0.0) -> void:
 	if not Controls.sfx_on or not _bank.has(name):
 		return
 	var tree := get_tree()
 	if tree == null or tree.current_scene == null:
 		return
+	var r: Array = RANGE.get(name, [8.0, 60.0])
+	var cam := tree.root.get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(pos) > float(r[1]): return
 	var p := AudioStreamPlayer3D.new()
 	p.stream = _bank[name]; p.volume_db = vol_db
-	p.unit_size = 8.0; p.max_distance = 60.0
+	p.unit_size = float(r[0]); p.max_distance = float(r[1])
+	p.attenuation_model = AudioStreamPlayer3D.ATTENUATION_INVERSE_DISTANCE
 	tree.current_scene.add_child(p)
 	p.global_position = pos
 	p.play()
@@ -140,6 +158,55 @@ func _make_boom() -> AudioStreamWAV:
 		var crack := noise * exp(-t * 30.0)
 		var thump := sin(t * TAU * (55.0 - t * 25.0)) * exp(-t * 4.0)
 		s[i] = clampf((lp * 2.2 + crack * 0.7 + thump * 0.9) * exp(-t * 2.6), -1.0, 1.0)
+	return _wav(s)
+
+func _make_step(v: int) -> AudioStreamWAV:      # soft scuff + low thud (two variants)
+	var n := _n(0.09)
+	var s := PackedFloat32Array(); s.resize(n)
+	var lp := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		lp = lerpf(lp, randf_range(-1.0, 1.0), 0.18 if v == 0 else 0.25)
+		s[i] = (lp * 1.6 + sin(t * TAU * (70.0 + v * 15.0)) * 0.5) * exp(-t * 48.0) * 0.7
+	return _wav(s)
+
+func _make_jump() -> AudioStreamWAV:            # cloth whoosh
+	var n := _n(0.18)
+	var s := PackedFloat32Array(); s.resize(n)
+	var lp := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		lp = lerpf(lp, randf_range(-1.0, 1.0), 0.08 + t * 0.6)
+		s[i] = lp * 1.8 * sin(PI * t / 0.18) * 0.6
+	return _wav(s)
+
+func _make_land() -> AudioStreamWAV:            # heavier thud
+	var n := _n(0.16)
+	var s := PackedFloat32Array(); s.resize(n)
+	var lp := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		lp = lerpf(lp, randf_range(-1.0, 1.0), 0.12)
+		s[i] = (lp * 1.4 + sin(t * TAU * 55.0) * 0.9) * exp(-t * 30.0) * 0.8
+	return _wav(s)
+
+func _make_tone(f: float, dur: float, glide: float) -> AudioStreamWAV:   # electronic beep (glide: octaves over the tone)
+	var n := _n(dur)
+	var s := PackedFloat32Array(); s.resize(n)
+	var ph := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		ph += TAU * f * pow(2.0, glide * t / dur) / RATE
+		var env := minf(1.0, t * 300.0) * minf(1.0, (dur - t) * 60.0)
+		s[i] = (sin(ph) * 0.7 + sin(ph * 2.0) * 0.15) * env * 0.6
+	return _wav(s)
+
+func _make_click() -> AudioStreamWAV:
+	var n := _n(0.05)
+	var s := PackedFloat32Array(); s.resize(n)
+	for i in n:
+		var t := float(i) / RATE
+		s[i] = (randf_range(-1.0, 1.0) * 0.6 + sin(t * TAU * 3200.0) * 0.4) * exp(-t * 120.0)
 	return _wav(s)
 
 func _make_throw() -> AudioStreamWAV:

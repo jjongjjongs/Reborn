@@ -73,6 +73,17 @@ static func _load() -> void:
 	if not _d.has("stats"): _d["stats"] = {}
 	if not _d.has("recent"): _d["recent"] = []
 
+## nickname (main menu, top left); 2..12 characters
+static func nick() -> String:
+	_load()
+	return String(_d.get("nick", "SOLDIER_01"))
+
+static func set_nick(n: String) -> bool:
+	n = n.strip_edges()
+	if n.length() < 2 or n.length() > 12: return false
+	_load(); _d["nick"] = n; save()
+	return true
+
 static func save() -> void:
 	_load()
 	var f := FileAccess.open(PATH, FileAccess.WRITE)
