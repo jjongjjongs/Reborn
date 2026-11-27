@@ -1,12 +1,13 @@
 # Concept-sheet guns built in Blender (blender -b --python this.py -- NAME):
 #   lmg76 (LMG-76, Heavy Gunner) / sr7 (SR-7L, Shadow Sniper) / sm7 (SM-7, Swift Scout) / sc7 (SC-7, Tech Support)
+#   ar9 (AR-9R, Rookie Assault)
 # Game convention: length along +X (muzzle at +X), up +Z in Blender (= +Y in glTF), centred later by the game.
 # Every block gets wide multi-segment bevels (no sharp, boxy look). Prints GRIP / FORE / BUTT anchors as
 # [fraction from the butt, height fraction of the length above the centre] for soldier.gd WEAPONS.
 import bpy, bmesh, math, sys
 from mathutils import Vector
 NAME = sys.argv[sys.argv.index("--") + 1]
-OUT = {"lmg76": "rpk", "sr7": "sniper", "sm7": "mp5", "sc7": "ak"}[NAME]
+OUT = {"lmg76": "rpk", "sr7": "sniper", "sm7": "mp5", "sc7": "ak", "ar9": "m4"}[NAME]
 bpy.ops.wm.read_factory_settings(use_empty=True)
 def lin(c): return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
 MATS = {}
@@ -24,7 +25,8 @@ OLV = mat("G_Olive", (0.36, 0.38, 0.27), 0.7)
 BRASS = mat("G_Brass", (0.82, 0.63, 0.30), 0.3, 0.9)
 GLASS = mat("G_Lens", (0.25, 0.3, 0.45), 0.08, 0.3)
 ACC = {"lmg76": mat("G_Red", (0.70, 0.16, 0.13), 0.5), "sr7": mat("G_Purple", (0.45, 0.35, 0.85), 0.3),
-       "sm7": mat("G_Teal", (0.15, 0.55, 0.58), 0.4), "sc7": mat("G_Orange", (0.95, 0.52, 0.10), 0.45)}[NAME]
+       "sm7": mat("G_Teal", (0.15, 0.55, 0.58), 0.4), "sc7": mat("G_Orange", (0.95, 0.52, 0.10), 0.45),
+       "ar9": mat("G_Blue", (0.20, 0.45, 0.85), 0.4)}[NAME]
 OBJS = []
 def fin(o, m):
     o.data.materials.clear(); o.data.materials.append(m)
@@ -145,6 +147,35 @@ elif NAME == "sm7":           # compact SMG: short receiver, tan side panel, lon
     box((-0.225, 0, -0.022), (0.014, 0.03, 0.07), BLK)
     A["butt"] = Vector((-0.23, 0, -0.02))
     A["fore"] = Vector((0.12, 0, -0.06))
+elif NAME == "ar9":          # rookie carbine: black upper + quad rail, tan stock / grip, compact scope, vertical grip, curved mag
+    box((0.0, 0, 0.012), (0.20, 0.05, 0.045), BLK)                                   # upper receiver
+    box((-0.01, 0, -0.024), (0.15, 0.044, 0.04), DGR)                                # lower receiver
+    box((0.02, -0.026, 0.014), (0.05, 0.004, 0.016), DGR, bev=0.002)                 # ejection port
+    box((-0.03, 0.026, -0.022), (0.03, 0.004, 0.012), ACC, bev=0.002)                # blue selector plate
+    box((0.20, 0, 0.008), (0.21, 0.054, 0.054), BLK)                                 # quad-rail handguard
+    slots(0.11, 0.29, 0.0, -0.028, 6, DGR); slots(0.11, 0.29, 0.0, 0.028, 6, DGR)
+    for zz in (-0.012, 0.022):                                                       # side rail ribs
+        box((0.20, -0.029, zz), (0.19, 0.004, 0.006), DGR, bev=0.002); box((0.20, 0.029, zz), (0.19, 0.004, 0.006), DGR, bev=0.002)
+    rail(-0.09, 0.30, 0.038, BLK)
+    cyl((0.345, 0, 0.008), 0.011, 0.08, BLK)                                         # barrel
+    cyl((0.395, 0, 0.008), 0.016, 0.045, BLK)                                        # flash hider
+    for k in range(3): box((0.39 + k * 0.012, 0, 0.022), (0.005, 0.034, 0.006), DGR, bev=0.002)
+    box((0.285, 0, 0.056), (0.012, 0.012, 0.026), BLK, bev=0.004)                    # folded front sight
+    box((-0.075, 0, 0.056), (0.016, 0.03, 0.022), BLK)                               # rear sight
+    box((-0.085, 0, 0.034), (0.03, 0.02, 0.012), BLK, bev=0.004)                     # charging handle
+    cyl((0.02, 0, 0.082), 0.017, 0.13, BLK, verts=40)                                # compact scope
+    cyl((0.095, 0, 0.082), 0.024, 0.035, BLK, verts=40); cyl((0.1135, 0, 0.082), 0.02, 0.004, GLASS, verts=40)
+    cyl((-0.05, 0, 0.082), 0.021, 0.035, BLK, verts=40)
+    cyl((0.025, 0, 0.106), 0.01, 0.018, BLK, axis="z"); cyl((0.025, 0.024, 0.082), 0.01, 0.016, BLK, axis="y")
+    cyl((0.025, 0, 0.116), 0.0105, 0.004, ACC, axis="z")                             # blue turret cap
+    for x in (-0.02, 0.07): box((x, 0, 0.056), (0.02, 0.03, 0.026), BLK)             # scope mounts
+    box((0.035, 0, -0.085), (0.036, 0.026, 0.10), BLK, rot=(0, 0.20, 0))             # curved mag
+    box((0.025, 0, -0.14), (0.042, 0.03, 0.012), ACC, bev=0.004, rot=(0, 0.20, 0))
+    A["grip"] = grip(-0.06, -0.035, TAN); trigger_guard(-0.035, -0.038)
+    box((0.21, 0, -0.06), (0.026, 0.026, 0.07), BLK)                                 # vertical foregrip
+    box((0.21, -0.0135, -0.05), (0.008, 0.002, 0.03), ACC, bev=0.001)
+    A["butt"] = stock_ar(-0.10, 0.008, TAN, 0.19)
+    A["fore"] = Vector((0.21, 0, -0.065))
 else:                        # sc7: support carbine, tan stock + handguard with orange accents, holo sight, vertical grip
     box((0.0, 0, 0.0), (0.18, 0.048, 0.06), BLK)
     box((0.0, 0, -0.012), (0.13, 0.044, 0.03), DGR)

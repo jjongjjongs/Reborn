@@ -385,7 +385,7 @@ func _team_tint(mi: MeshInstance3D) -> void:
 # as a fraction of length above the model's centre].
 const WEAPONS := {
 	"ak":       {"len": 0.80, "kind": "long",   "butt": [0.01, 0.01],  "grip": [0.30, -0.07], "fore": [0.71, -0.06], "vfore": true, "fp": 0.8},   # SC-7 (concept)
-	"m4":       {"len": 0.84, "kind": "long",   "butt": [0.01, 0.04],  "grip": [0.30, -0.10], "fore": [0.70, -0.05], "fp": 0.78, "vfore": true, "fp_fore": [0.70, -0.06]},   # AR-9R (concept): vertical foregrip
+	"m4":       {"len": 0.82, "kind": "long",   "butt": [0.01, 0.01],  "grip": [0.31, -0.09], "fore": [0.71, -0.07], "vfore": true, "fp": 0.8},   # AR-9R (concept, Blender like the others)
 	"mp5":      {"len": 0.62, "kind": "long",   "butt": [0.00, 0.03],  "grip": [0.32, -0.08], "fore": [0.75, -0.06], "vfore": true, "fp": 0.85},   # SM-7 (concept)
 	"shotgun":  {"len": 1.00, "kind": "long",   "butt": [0.01, -0.03], "grip": [0.27, 0.01],  "fore": [0.70, 0.02]},
 	"sniper":   {"len": 1.15, "kind": "long",   "butt": [0.01, -0.01], "grip": [0.17, -0.05], "fore": [0.46, -0.02], "fp": 0.8},   # SR-7L (concept)
