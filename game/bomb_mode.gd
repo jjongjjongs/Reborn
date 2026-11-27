@@ -47,6 +47,15 @@ var plan_site := "A"
 var _bomb_vis: Node3D
 var _bomb_light: OmniLight3D
 var _bomb_screen: Label3D
+var _bomb_model: Node3D
+var _bomb_skin := "bomb_base"      # the planter's bomb skin (the player's shop pick; bots: base)
+
+func _set_bomb_model(skin: String) -> void:
+	if is_instance_valid(_bomb_model): _bomb_model.queue_free()
+	_bomb_model = (load("res://assets/bomb/bomb.glb") as PackedScene).instantiate()
+	_bomb_model.scale = Vector3.ONE * 1.25; _bomb_vis.add_child(_bomb_model)
+	Profile.apply_bomb_skin(_bomb_model, skin)
+	if _bomb_screen: _bomb_screen.set_meta("col", Profile.bomb_screen_col(skin))
 var _bomb_tag: Label3D
 var _spec: Node3D = null
 # hud
@@ -215,7 +224,7 @@ func _live(dt: float) -> void:
 		if _bomb_screen:
 			var bt := maxf(bomb_t, 0.0)
 			_bomb_screen.text = "%02d:%02d" % [int(bt) / 60, int(bt) % 60]
-			_bomb_screen.modulate = Color(1.0, 0.3, 0.25) if bt < 10.0 else Color(0.55, 1.0, 0.6)
+			_bomb_screen.modulate = Color(1.0, 0.3, 0.25) if bt < 10.0 else (_bomb_screen.get_meta("col", Color(0.55, 1.0, 0.6)) as Color).lightened(0.2)
 		if defuser != null and (not defuser.alive or defuser.global_position.distance_to(bomb_pos) > 2.0):
 			if defuser is BotPlayer: defuser.busy = false
 			defuser = null; defuse_prog = 0.0
@@ -272,6 +281,7 @@ func _plant(site: String) -> void:
 	bomb_state = "planted"; bomb_t = FUSE; plant_prog = 0.0
 	if carrier == player: Missions.add("plant")
 	bomb_pos = carrier.global_position
+	_bomb_skin = Profile.equipped("bomb") if carrier == player else "bomb_base"
 	if carrier is BotPlayer: carrier.busy = false
 	_place_bomb(true)
 	_show_banner("폭탄 설치됨 — %s 사이트" % site, 2.5)
@@ -350,12 +360,12 @@ func _on_died(attacker, victim) -> void:
 func _build_bomb() -> void:
 	_bomb_vis = Node3D.new(); add_child(_bomb_vis)
 	# charge pack (tools/blender/build_bomb.py): blocks, tape, control unit with a live countdown on its screen
-	var model: Node3D = (load("res://assets/bomb/bomb.glb") as PackedScene).instantiate()
-	model.scale = Vector3.ONE * 1.25; _bomb_vis.add_child(model)
+	_set_bomb_model("bomb_base")
 	_bomb_screen = Label3D.new(); _bomb_screen.font_size = 64; _bomb_screen.pixel_size = 0.0006
 	_bomb_screen.modulate = Color(0.55, 1.0, 0.6); _bomb_screen.outline_size = 0; _bomb_screen.double_sided = false
 	_bomb_screen.position = Vector3(0.02, 0.195, 0.0925) * 1.25; _bomb_screen.text = "--:--"
 	_bomb_vis.add_child(_bomb_screen)
+	_bomb_screen.set_meta("col", Profile.bomb_screen_col("bomb_base"))
 	_bomb_light = OmniLight3D.new(); _bomb_light.light_color = Color(1, 0.2, 0.1); _bomb_light.light_energy = 3.0
 	_bomb_light.omni_range = 4.0; _bomb_light.position.y = 0.5; _bomb_vis.add_child(_bomb_light)
 	_bomb_tag = Label3D.new(); _bomb_tag.text = "폭탄"; _bomb_tag.font_size = 28; _bomb_tag.pixel_size = 0.0012
@@ -372,6 +382,7 @@ func _place_bomb(planted: bool) -> void:
 	_bomb_vis.global_position = Vector3(bomb_pos.x, gy, bomb_pos.z)
 	if _bomb_screen: _bomb_screen.text = "%02d:%02d" % [int(FUSE) / 60, int(FUSE) % 60] if planted else "--:--"
 	_bomb_vis.visible = true
+	_set_bomb_model(_bomb_skin if planted else "bomb_base")
 	_bomb_tag.visible = true
 	_bomb_tag.text = "설치된 폭탄" if planted else "폭탄"
 	_bomb_light.visible = planted

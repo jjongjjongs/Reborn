@@ -101,6 +101,16 @@ func _close() -> void:
 # try-on soldier: equipped look, with the previewed item swapped in
 func _rebuild_preview() -> void:
 	# weapon finishes: close-up on the gun; everything else: the whole soldier
+	if _cat == "bomb" or String(Profile.item(_sel).get("cat", "")) == "bomb":
+		# bomb skins: the bomb on its own, slowly turning
+		if _gun_pv: _gun_pv.queue_free(); _gun_pv = null
+		if _soldier: _soldier.queue_free(); _soldier = null
+		_cam.fov = 30.0; _cam.look_at_from_position(Vector3(0.9, 11.4, 2.6), Vector3(0, 10.25, 0))
+		_gun_pv = Node3D.new(); _gun_pv.position = Vector3(0, 10.0, 0); _vp.add_child(_gun_pv)
+		var bm: Node3D = (load("res://assets/bomb/bomb.glb") as PackedScene).instantiate()
+		bm.scale = Vector3.ONE * 2.2; _gun_pv.add_child(bm)
+		Profile.apply_bomb_skin(bm, _sel if String(Profile.item(_sel).get("cat", "")) == "bomb" else Profile.equipped("bomb"))
+		return
 	var gun_view := _cat == "finish" or _sel.begins_with("gold:") or String(Profile.item(_sel).get("cat", "")) == "finish"
 	if _gun_pv: _gun_pv.queue_free(); _gun_pv = null
 	if gun_view:

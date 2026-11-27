@@ -8,7 +8,7 @@ extends RefCounted
 const PATH := "user://profile.json"
 
 # ---------------------------------------------------------------- catalogue
-const CATS := [["body", "캐릭터"], ["skin", "캐릭터 스킨"], ["killfx", "킬 이펙트"], ["tracer", "탄환 효과"], ["wfx", "무기 효과"], ["cfx", "캐릭터 효과"], ["suit", "완장 색"], ["finish", "무기 도색"], ["title", "칭호"]]
+const CATS := [["body", "캐릭터"], ["skin", "캐릭터 스킨"], ["killfx", "킬 이펙트"], ["tracer", "탄환 효과"], ["wfx", "무기 효과"], ["cfx", "캐릭터 효과"], ["bomb", "폭탄 스킨"], ["suit", "완장 색"], ["finish", "무기 도색"], ["title", "칭호"]]
 const ITEMS := [
 	# body: the soldier model (same skeleton / animations)
 	# the five concept-sheet characters, all built in Blender (tools/blender/build_mini_v3.py -- CLASS)
@@ -42,6 +42,12 @@ const ITEMS := [
 	{"id": "cfx_aura", "cat": "cfx", "name": "푸른 오라", "price": 300, "col": Color(0.3, 0.7, 1.0), "col2": Color(0.7, 0.9, 1.0), "pat": 5},
 	{"id": "cfx_petal", "cat": "cfx", "name": "꽃잎", "price": 300, "col": Color(1.0, 0.55, 0.75), "col2": Color(1.0, 0.85, 0.9), "pat": 5},
 	{"id": "cfx_shadow", "cat": "cfx", "name": "그림자 연기", "price": 350, "col": Color(0.35, 0.1, 0.6), "col2": Color(0.75, 0.45, 1.0), "pat": 5},
+	# bomb: your bomb's look in 폭파미션 (material -> colour; tools/blender/build_bomb.py material names)
+	{"id": "bomb_base", "cat": "bomb", "name": "기본", "price": 0, "col": Color("5a5e48"), "col2": Color("2f3328"), "pat": 5, "mats": {}},
+	{"id": "bomb_desert", "cat": "bomb", "name": "사막 위장", "price": 200, "col": Color("b89e70"), "col2": Color("d98040"), "pat": 5, "mats": {"B_Case": Color(0.72, 0.62, 0.44), "B_Case2": Color(0.55, 0.46, 0.32), "B_Charge": Color(0.85, 0.50, 0.25), "B_Tape": Color(0.42, 0.33, 0.22), "B_Panel": Color(0.35, 0.30, 0.24), "B_Screen": Color(1.00, 0.60, 0.15)}},
+	{"id": "bomb_cyber", "cat": "bomb", "name": "네온 사이버", "price": 300, "col": Color("14141a"), "col2": Color("1ae6f2"), "pat": 5, "mats": {"B_Case": Color(0.08, 0.08, 0.10), "B_Case2": Color(0.05, 0.05, 0.07), "B_Charge": Color(0.15, 0.16, 0.20), "B_Tape": Color(0.10, 0.90, 0.95), "B_Screen": Color(0.20, 0.95, 1.00), "B_Stripe": Color(1.00, 0.20, 0.80), "B_WireA": Color(1.00, 0.20, 0.80), "B_WireB": Color(0.10, 0.90, 1.00), "B_LED": Color(0.20, 0.90, 1.00)}},
+	{"id": "bomb_gift", "cat": "bomb", "name": "파티 선물", "price": 300, "col": Color("d92630"), "col2": Color("ffd933"), "pat": 5, "mats": {"B_Case": Color(0.85, 0.15, 0.18), "B_Case2": Color(0.60, 0.08, 0.10), "B_Charge": Color(0.95, 0.25, 0.30), "B_Tape": Color(1.00, 0.85, 0.20), "B_Panel": Color(0.10, 0.45, 0.25), "B_Screen": Color(1.00, 1.00, 0.85), "B_Stripe": Color(1.00, 1.00, 1.00), "B_WireA": Color(1.00, 0.85, 0.20), "B_WireB": Color(0.20, 0.75, 0.35)}},
+	{"id": "bomb_gold", "cat": "bomb", "name": "황금", "price": 400, "col": Color("f2bf40"), "col2": Color("fff2db"), "pat": 5, "mats": {"B_Case": Color(0.95, 0.75, 0.25), "B_Case2": Color(0.70, 0.52, 0.15), "B_Charge": Color(0.98, 0.95, 0.86), "B_Tape": Color(0.85, 0.65, 0.20), "B_Panel": Color(0.12, 0.10, 0.08), "B_Screen": Color(1.00, 0.75, 0.25), "B_Stripe": Color(0.12, 0.10, 0.08)}, "metal": true},
 	# suit: the player's armband / patch colour (the "Team" material of every character)
 	{"id": "suit_orange", "cat": "suit", "name": "기본 주황", "price": 0, "col": Color(0.95, 0.62, 0.24)},
 	{"id": "suit_desert", "cat": "suit", "name": "사막", "price": 120, "col": Color(0.78, 0.68, 0.48)},
@@ -88,7 +94,7 @@ const ITEMS := [
 	{"id": "tt_ghost", "cat": "title", "name": "그림자", "price": 200},
 	{"id": "tt_legend", "cat": "title", "name": "전설의 병사", "price": 300},
 ]
-const DEFAULT_EQUIP := {"body": "body_rookie", "gear": "gear_helmet", "suit": "suit_orange", "kit": "kit_brown", "finish": "fin_none", "title": "tt_rookie", "killfx": "kill_none", "tracer": "tr_basic", "wfx": "wfx_none", "cfx": "cfx_none"}
+const DEFAULT_EQUIP := {"body": "body_rookie", "gear": "gear_helmet", "suit": "suit_orange", "kit": "kit_brown", "finish": "fin_none", "title": "tt_rookie", "killfx": "kill_none", "tracer": "tr_basic", "wfx": "wfx_none", "cfx": "cfx_none", "bomb": "bomb_base"}
 
 static var _d := {}
 static var _loaded := false
@@ -329,3 +335,22 @@ static func match_done(mode: String, map_name: String, result: String, win: bool
 static func recent() -> Array:
 	_load()
 	return _d["recent"]
+
+## recolour a bomb model (assets/bomb/bomb.glb) with a bomb skin
+static func apply_bomb_skin(model: Node, id: String) -> void:
+	var it := item(id)
+	var mats: Dictionary = it.get("mats", {})
+	for mi in model.find_children("*", "MeshInstance3D", true, false):
+		var g := mi as MeshInstance3D
+		for si in g.mesh.get_surface_count():
+			var m := g.mesh.surface_get_material(si) as StandardMaterial3D
+			if m == null or not mats.has(m.resource_name): continue
+			var d := m.duplicate() as StandardMaterial3D
+			d.albedo_color = mats[m.resource_name]
+			if d.emission_enabled: d.emission = mats[m.resource_name]
+			if it.get("metal", false) and m.resource_name in ["B_Case", "B_Case2", "B_Tape"]: d.metallic = 0.9; d.roughness = 0.28
+			g.set_surface_override_material(si, d)
+
+## the screen colour of a bomb skin (for the countdown digits)
+static func bomb_screen_col(id: String) -> Color:
+	return item(id).get("mats", {}).get("B_Screen", Color(0.55, 1.0, 0.6))
