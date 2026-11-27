@@ -67,7 +67,7 @@ func _set_weapon(id: String) -> void:
 	_wid = id
 	_wdef = Soldier.WEAPONS.get(id, Soldier.WEAPONS["m4"])
 	_kind = String(_wdef.get("kind", "long"))
-	_len = float(_wdef["len"])
+	_len = float(_wdef["len"]) * float(_wdef.get("fp", 1.0))     # bulky models drawn a bit smaller up close
 	if _gun: _gun.queue_free()
 	var m: Node3D = (load("res://assets/guns/%s.glb" % id) as PackedScene).instantiate()
 	_holder.add_child(m)

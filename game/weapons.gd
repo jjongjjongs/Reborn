@@ -17,7 +17,7 @@ const W := {
 	"ak": {"name": "AK-47", "cls": "돌격소총", "slot": 0, "dmg": [24, 32], "rpm": 600, "auto": true,
 		"mag": 30, "reload": 2.0, "spread": [1.2, 8.0], "bloom": 0.8, "kick": 0.9, "speed": 0.95,
 		"desc": "한 발이 묵직한 대신 반동이 큼. 중거리 화력형.", "bars": [8, 6, 5, 7, 5, 6]},
-	"m4": {"name": "M4A1", "cls": "돌격소총", "slot": 0, "dmg": [18, 26], "rpm": 670, "auto": true,
+	"m4": {"name": "AR-9R", "cls": "돌격소총", "slot": 0, "dmg": [18, 26], "rpm": 670, "auto": true,
 		"mag": 30, "reload": 1.8, "spread": [0.8, 6.0], "bloom": 0.55, "kick": 0.5, "speed": 0.97,
 		"desc": "반동이 작고 정확. 무난한 기본 소총.", "bars": [6, 7, 7, 4, 4, 6]},
 	"mp5": {"name": "MP5", "cls": "기관단총", "slot": 0, "dmg": [14, 20], "rpm": 860, "auto": true,

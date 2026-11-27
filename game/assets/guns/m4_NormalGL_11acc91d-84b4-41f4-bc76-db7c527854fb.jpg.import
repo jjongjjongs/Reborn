@@ -1,0 +1,37 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://658qdl3ixs4r"
+path="res://.godot/imported/m4_NormalGL_11acc91d-84b4-41f4-bc76-db7c527854fb.jpg-4e7b0ebf8dae72a384cd6379d9ea12f4.ctex"
+metadata={
+"vram_texture": false
+}
+generator_parameters={
+"md5": "f106b52ba4381329f0caed4c9fddda67"
+}
+
+[deps]
+
+source_file="res://assets/guns/m4_NormalGL_11acc91d-84b4-41f4-bc76-db7c527854fb.jpg"
+dest_files=["res://.godot/imported/m4_NormalGL_11acc91d-84b4-41f4-bc76-db7c527854fb.jpg-4e7b0ebf8dae72a384cd6379d9ea12f4.ctex"]
+
+[params]
+
+compress/mode=0
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=1
