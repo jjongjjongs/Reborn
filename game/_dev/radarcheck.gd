@@ -4,6 +4,7 @@ func _initialize() -> void:
 	_run()
 func _run() -> void:
 	await process_frame; await process_frame
+	root.get_node("Controls").sel_map = "downtown"
 	change_scene_to_file("res://TeamDeathmatch.tscn")
 	for i in 30: await process_frame
 	var sc = current_scene

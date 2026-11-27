@@ -74,6 +74,9 @@ func _ready() -> void:
 	_big.visible = false
 	_big.draw.connect(_draw_big)
 	_contacts.clear()
+	if player and player.get_parent():          # ally arrows / aimed-enemy name tags in the world
+		var tt := TeamTags.new(); tt.player = player
+		player.get_parent().add_child.call_deferred(tt)
 	_add_big.call_deferred()
 
 func _add_big() -> void:

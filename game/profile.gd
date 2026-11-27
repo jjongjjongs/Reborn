@@ -85,6 +85,14 @@ static func _load() -> void:
 		_d["rookie_default"] = true; _d["equip"]["body"] = "body_rookie"; save()
 	if item(String(_d["equip"]["body"])).is_empty():   # v107: removed bodies (mini / swat / Tripo rookie) -> Rookie
 		_d["equip"]["body"] = "body_rookie"; save()
+	# v111: the helmet / vest colour items (kit_*) never worked on the new characters: removed, coins refunded
+	const KIT_PRICE := {"kit_olive": 120, "kit_black": 150, "kit_tan": 150, "kit_navy": 200, "kit_white": 250}
+	var refund := 0
+	for id in _d["owned"].duplicate():
+		if String(id).begins_with("kit_"):
+			refund += int(KIT_PRICE.get(id, 0)); _d["owned"].erase(id)
+	if refund > 0:
+		Missions.earn(refund); _d["kit_refund"] = refund; save()
 	if not owns(String(_d["equip"]["body"])):           # v108: only the Rookie is free; the others are bought in the shop
 		_d["equip"]["body"] = "body_rookie"; save()
 
