@@ -91,7 +91,8 @@ var gun_k := 1.0                   # weapon size multiplier (the chunky mini hol
 static var test_body := ""
 var cheap := false                 # crowd LOD: retarget every other frame
 const BODIES := {"mini": "res://assets/soldier/MiniV3.glb", "swat": "res://assets/soldier/MiniSwat.glb",
-	"zombie": "res://assets/soldier/MiniZombie.glb", "rookie": "res://assets/soldier/Rookie.glb"}   # all built on the SWAT skeleton (tools/blender/build_minis.py)
+	"zombie": "res://assets/soldier/MiniZombie.glb", "rookie": "res://assets/soldier/Rookie.glb",
+	"rookie_t": "res://assets/soldier/RookieT.glb"}   # all built on the SWAT skeleton (tools/blender/build_minis.py)
 var gear := "helmet"               # mini head gear: helmet / beret / mask
 
 func setup(team_color: Color, kit: Color = Color(0, 0, 0, 0)) -> void:
@@ -99,7 +100,7 @@ func setup(team_color: Color, kit: Color = Color(0, 0, 0, 0)) -> void:
 	_kit = kit
 	# visible body (SWAT, or the Mini Soldier test body built on the same skeleton)
 	if test_body != "": body = test_body
-	gun_k = 1.15 if BODIES.has(body) else 1.0
+	gun_k = 1.35 if body == "rookie_t" else (1.15 if BODIES.has(body) else 1.0)      # chibi Tripo body: bigger guns
 	var path: String = BODIES.get(body, "")
 	var swat: Node3D = (load(path) as PackedScene).instantiate() if path != "" else SWAT.instantiate()
 	var gears := swat.find_children("Gear_*", "", true, false)
@@ -343,7 +344,7 @@ func _team_tint(mi: MeshInstance3D) -> void:
 		var c := (m as StandardMaterial3D).albedo_color
 		var cv := Vector3(c.r, c.g, c.b)
 		var col := Color.BLACK
-		if body == "rookie":                     # concept palette: only the team patches / tabs take the colour
+		if body.begins_with("rookie"):           # concept palette: only the team patches / tabs take the colour
 			if not m.resource_name.begins_with("Team"): continue
 			var nm2 := StandardMaterial3D.new(); nm2.albedo_color = _team; nm2.roughness = 0.6
 			mi.set_surface_override_material(s, nm2)
