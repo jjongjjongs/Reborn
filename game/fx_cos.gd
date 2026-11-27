@@ -319,6 +319,7 @@ static func emitter(o: Dictionary) -> CPUParticles3D:
 ## draws flickering electric arcs for the spark weapon effect
 class Follow extends Node3D:
 	var moving: Array = []
+	var always := false              # shop / menu preview: show "while moving" effects standing still
 	var arcs := 0.0                 # gun length for electric arcs (0 = none)
 	var arc_col := Color(0.5, 0.8, 1.0)
 	var _last := Vector3.ZERO
@@ -331,7 +332,7 @@ class Follow extends Node3D:
 		_last = p
 		_spd = lerpf(_spd, v, minf(1.0, dt * 8.0))
 		for e in moving:
-			if is_instance_valid(e): (e as CPUParticles3D).emitting = _spd > 1.0
+			if is_instance_valid(e): (e as CPUParticles3D).emitting = always or _spd > 1.0
 		if arcs > 0.0:
 			_t -= dt
 			if _t <= 0.0:
@@ -354,7 +355,7 @@ class Follow extends Node3D:
 			get_tree().create_timer(0.06).timeout.connect(m.queue_free)
 
 ## attach a weapon effect to a gun holder (gun -Z = muzzle, centred; L = gun length in metres)
-static func weapon_fx(id: String, holder: Node3D, L: float) -> Node3D:
+static func weapon_fx(id: String, holder: Node3D, L: float, k := 1.0) -> Node3D:
 	var f := Follow.new(); f.name = "WeaponFx"
 	if id == "" or id == "wfx_none": return f
 	var box := Vector3(0.025, 0.03, L * 0.42)
@@ -385,6 +386,13 @@ static func weapon_fx(id: String, holder: Node3D, L: float) -> Node3D:
 				"ramp": ramp([Color(1, 0.95, 0.7, 1), Color(1, 0.8, 0.3, 0)])}))
 			f.add_child(emitter({"n": 14, "size": 0.05, "tex": "core", "box": box, "vel": Vector2(0.02, 0.12), "grav": Vector3(0, -0.2, 0), "life": 1.0,
 				"ramp": ramp([Color(1, 0.85, 0.4, 1), Color(1, 0.7, 0.2, 0)])}))
+	if k != 1.0:                      # 1st person (k < 1): smaller, fewer; 3rd person (k > 1): bigger so it reads from the camera
+		for e in f.get_children():
+			if e is CPUParticles3D:
+				var pe := e as CPUParticles3D
+				if k < 1.0: pe.amount = maxi(3, int(pe.amount * 0.6))
+				if pe.mesh is QuadMesh: (pe.mesh as QuadMesh).size *= k
+				pe.initial_velocity_min *= k; pe.initial_velocity_max *= k; pe.gravity *= k
 	holder.add_child(f)
 	return f
 

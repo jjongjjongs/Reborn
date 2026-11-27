@@ -130,6 +130,9 @@ func _rebuild_preview() -> void:
 			"body": bd = _sel.substr(5); sk = Profile.skin_mats(Profile.skin_id(_sel))
 			"skin": bd = String(it["body"]).substr(5); sk = Profile.skin_mats(_sel)
 	_soldier = Soldier.new(); _soldier.body = bd; _soldier.gear = gr; _soldier.skin = sk; _vp.add_child(_soldier)
+	_soldier.wfx = _sel if String(it.get("cat", "")) == "wfx" else Profile.equipped("wfx")
+	_soldier.cfx = _sel if String(it.get("cat", "")) == "cfx" else Profile.equipped("cfx")
+	_soldier.fx_preview = true
 	_soldier.setup(suit, kit)
 	_soldier.set_weapon(wid)
 	if fin == Profile.equipped("finish") and not _sel.begins_with("gold:") and String(it.get("cat", "")) != "finish":

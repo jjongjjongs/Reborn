@@ -32,6 +32,7 @@ var _len := 0.8
 var _wdef := {}
 var _holder: Node3D
 var _gun: Node3D
+var _wfx_node: Node3D
 var _arm_r: MeshInstance3D
 var _arm_l: MeshInstance3D
 var _body: Soldier          # the player's own body, arms only, posed onto the first-person gun
@@ -122,6 +123,9 @@ func _set_weapon(id: String) -> void:
 	m.position = -(Basis(Vector3.UP, PI * 0.5) * (ab.get_center() * sc))
 	_gun = m
 	Profile.apply_finish(m, "", id)
+	if is_instance_valid(_wfx_node): _wfx_node.queue_free()
+	var wf := Profile.equipped("wfx")
+	if wf != "wfx_none": _wfx_node = FxCos.weapon_fx(wf, _holder, _len, 0.45)
 	if _body: _body.set_weapon(id)
 	_raise = 1.0                          # bring the new weapon up
 

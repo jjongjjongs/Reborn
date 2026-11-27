@@ -161,6 +161,7 @@ func _build() -> void:
 	add_child(_soldier)
 	_soldier.cosmetic = true
 	_soldier.body = Profile.equipped("body").substr(5); _soldier.gear = Profile.equipped("gear").substr(5); _soldier.skin = Profile.skin_mats(Profile.equipped("skin"))
+	_soldier.wfx = Profile.equipped("wfx"); _soldier.cfx = Profile.equipped("cfx"); _soldier.fx_preview = false
 	_soldier.setup(Profile.suit_color(), Profile.kit_color())
 	_muzzle = Node3D.new(); _muzzle.position = Vector3(0.22, 1.3, -0.5)
 	add_child(_muzzle)

@@ -103,6 +103,10 @@ const BODIES := {"zombie": "res://assets/soldier/MiniZombie.glb",
 	"sniper": "res://assets/soldier/Sniper.glb", "heavy": "res://assets/soldier/Heavy.glb"}
 var gear := "helmet"               # (unused: the old Mini's head gear)
 var skin := {}                     # character skin: material name -> colour (Profile.skin_mats)
+var wfx := ""                      # weapon / character effect (shop) on this soldier ("" = none)
+var cfx := ""
+var fx_preview := false            # shop / menu: show the moving-only character effects standing still
+var _wfx_node: Node3D
 var lod := false                   # bots: the light copy of the body (<Name>_lod.glb, ~17k faces instead of ~50k)
 
 func setup(team_color: Color, kit: Color = Color(0, 0, 0, 0)) -> void:
@@ -141,6 +145,8 @@ func setup(team_color: Color, kit: Color = Color(0, 0, 0, 0)) -> void:
 	if _ap:
 		_ap.play("Idle"); _ap.seek(0.0, true)
 	_build_map()
+	if cfx != "" and cfx != "cfx_none":
+		var cf := FxCos.char_fx(cfx, self); cf.always = fx_preview
 	if _src != null and _tgt != null:
 		_src_hips = _src.find_bone("DEF-hips")
 		var th := _tgt.find_bone("Hips")
@@ -440,6 +446,8 @@ func set_weapon(id: String) -> void:
 	m.position = -(Basis(Vector3.UP, PI * 0.5) * (a.get_center() * sc))
 	_gun.add_child(m)
 	_wmodel = m
+	if is_instance_valid(_wfx_node): _wfx_node.queue_free()
+	if wfx != "" and wfx != "wfx_none": _wfx_node = FxCos.weapon_fx(wfx, _gun, L, 1.8)
 	if cosmetic: Profile.apply_finish(m, "", id)
 
 # anchor [from-butt fraction, height fraction] -> holder space (barrel -Z, butt +Z)
