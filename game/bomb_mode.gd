@@ -69,7 +69,7 @@ var _result: Control
 var _banner_t := 0.0
 
 func _ready() -> void:
-	if not Controls.sel_map in ["quarter", "dockside", "facility", "oldtown"]:
+	if not Controls.sel_map in ["quarter", "dockside", "facility", "oldtown", "temple"]:
 		Controls.sel_map = "quarter"
 	info = MapBuilder.build(Controls.sel_map, self)
 	BotPlayer.roam_pts = info.get("ffa", [])

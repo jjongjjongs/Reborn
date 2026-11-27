@@ -17,6 +17,9 @@ const SOFT := Color(0.65, 0.71, 0.75)
 const BOMB_MAPS := [
 	{"id": "quarter", "plan": "oldquarter", "name": "구도심", "en": "OLD QUARTER", "size": "132×120m", "tag": "지하 통로 · 발코니 · 중앙 고지대", "ready": true, "ground": Color("2a2d31")},
 	{"id": "dockside", "plan": "dockside", "name": "항만 창고", "en": "DOCKSIDE", "size": "130×115m", "tag": "창고 마당 A · 부두 B · 배수로", "ready": true, "ground": Color("2a2d31")},
+	{"id": "temple", "name": "산사", "en": "MOUNTAIN TEMPLE", "size": "140×120m", "tag": "경회루 B · 대웅전 A · 계곡 · 석굴",
+		"rects": [[20, 4, 40, 36, "1d4a63"], [45, 18, 45, 36, "d6cfbf"], [18, 52, 70, 26, "b5ab92"], [36, 76, 34, 16, "8c8678"], [58, 30, 10, 8, "ff7a1a"], [16, 18, 18, 14, "f2c14e"]],
+		"ready": true, "ground": Color("31402c")},
 	{"id": "facility", "plan": "facility", "name": "연구 시설", "en": "FACILITY", "size": "130×115m", "tag": "반응로실 A · 하역장 B · 실내 복도", "ready": true, "ground": Color("2a2d31")},
 ]
 const MAPS := [

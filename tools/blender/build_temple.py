@@ -44,7 +44,7 @@ def mesh_obj(name, verts, faces, m, cols=None, smooth=False):
         for i, c in enumerate(cols): ca.data[i].color = (c[0], c[1], c[2], 1.0)
     for p in me.polygons: p.use_smooth = smooth
     o = bpy.data.objects.new(name, me); o.data.materials.append(m); return link(o)
-def box(c, s, m, rot=0.0, bev=0.0, name="b"):
+def box(c, s, m, rot=0.0, bev=0.0, name="Stone"):
     bpy.ops.mesh.primitive_cube_add(size=1, location=c, rotation=(0, 0, rot)); o = bpy.context.active_object; o.name = name; o.scale = s
     bpy.ops.object.transform_apply(scale=True, rotation=True)
     if bev:
@@ -135,14 +135,14 @@ for (x0, y0, h0), (x1, y1, h1), w, k in RAMPS:
         t = (s + 0.5) / n; x = x0 + (x1 - x0) * t; y = y0 + (y1 - y0) * t; z = h0 + (h1 - h0) * (s + 1) / n
         p = B(x, y)
         hb = h0 - 0.3                                     # solid flight: each step goes down to the foot
-        o = box((p.x, p.y, (z + hb) / 2), (L / n + 0.02, w, z - hb), STEPM if k == "stairs" else ROCKM, rot=ang, bev=0.03)
+        o = box((p.x, p.y, (z + hb) / 2), (L / n + 0.02, w, z - hb), STEPM if k == "stairs" else ROCKM, rot=ang, bev=0.03, name="Step")
     if k == "stairs":                                   # side cheek stones
         for side in (-1, 1):
             dx, dy = x1 - x0, y1 - y0; nx, ny = -dy / L * (w / 2 + 0.25) * side, dx / L * (w / 2 + 0.25) * side
             if abs(h1 - h0) > 3.5 and side < 0: continue          # 경회루 stair: no cheek on the deck side
             for s in range(n):
                 t = (s + 0.5) / n; x = x0 + dx * t + nx; y = y0 + dy * t + ny; z = h0 + (h1 - h0) * (s + 1) / n
-                p = B(x, y); box((p.x, p.y, z - 0.1), (L / n + 0.05, 0.5, 0.9), STONEM, rot=ang, bev=0.05)
+                p = B(x, y); box((p.x, p.y, z - 0.1), (L / n + 0.05, 0.5, 0.9), STONEM, rot=ang, bev=0.05, name="Stone")
 # ---------------------------------------------------------------- cave: rock tunnel over the cave ramp
 print("cave")
 (cx0, cy0, ch0), (cx1, cy1, ch1), cw, _ = [r for r in RAMPS if r[3] == "cave"][0]
@@ -157,21 +157,21 @@ for s in range(n + 1):
         off = Vector((-math.sin(ang), -math.cos(ang), 0)) * 0
         q = Vector((p.x, p.y, z)) + Vector((-math.sin(ang) * math.cos(th) * r, math.cos(ang) * math.cos(th) * r, math.sin(th) * 3.2 + 0.1))
         bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=random.uniform(0.7, 1.0), location=q)
-        o = bpy.context.active_object; o.scale = (random.uniform(0.8, 1.3), random.uniform(0.8, 1.3), random.uniform(0.6, 1.0)); o.data.materials.append(ROCKM)
+        o = bpy.context.active_object; o.name = "Rock"; o.scale = (random.uniform(0.8, 1.3), random.uniform(0.8, 1.3), random.uniform(0.6, 1.0)); o.data.materials.append(ROCKM)
 for t, label in ((0.0, "in"), (1.0, "out")):           # glow at the cave mouths
     x = cx0 + (cx1 - cx0) * t; y = cy0 + (cy1 - cy0) * t
 # ---------------------------------------------------------------- buildings
 print("buildings")
 HANOK = open(os.path.join(HERE, "build_hanok.py")).read()
 def building(kind, x, y, rot, args):
-    g = {"EMBED": True, "ARGS": ["/tmp/x.blend"] + [str(v) for v in args], "__name__": "hanok"}
+    g = {"EMBED": True, "LOW": True, "ARGS": ["/tmp/x.blend"] + [str(v) for v in args], "__name__": "hanok"}
     exec(HANOK, g)
-    o = g["RESULT"]; o.name = kind
+    o = g["RESULT"]; o.name = "Bld_" + kind
     z = GH_BASE if (x, y) == (31, 28) else hat(x, y)
     if kind == "pavilion" and (x, y) != (31, 28): z = hat(x, y + 4)     # 만세루: stands at the foot of the stairs
     p = B(x, y); o.location = (p.x, p.y, z - (0.0 if kind in ("pavilion",) else 0.15)); o.rotation_euler.z = -math.radians(rot)
     if kind == "bell":
-        bpy.ops.mesh.primitive_cone_add(vertices=24, radius1=0.75, radius2=0.5, depth=1.6, location=(p.x, p.y, z + 2.8)); b = bpy.context.active_object; b.data.materials.append(BRONZE)
+        bpy.ops.mesh.primitive_cone_add(vertices=24, radius1=0.75, radius2=0.5, depth=1.6, location=(p.x, p.y, z + 2.8)); b = bpy.context.active_object; b.name = "Stone_bell"; b.data.materials.append(BRONZE)
     return o
 for kind, x, y, rot, args in BUILDINGS: building(kind, x, y, rot, args)
 # ---------------------------------------------------------------- pagoda + lanterns at A
@@ -185,7 +185,7 @@ for k in range(3):
     box((p.x, p.y, zz + 0.65), (w * 0.55, w * 0.55, 1.3 - k * 0.2), STONEM, bev=0.04); zz += 1.3 - k * 0.2
     box((p.x, p.y, zz + 0.1), (w, w, 0.2), STONEM, bev=0.06)
     box((p.x, p.y, zz + 0.28), (w * 0.8, w * 0.8, 0.16), STONEM, bev=0.05); zz += 0.44
-bpy.ops.mesh.primitive_cone_add(vertices=8, radius1=0.25, radius2=0.05, depth=1.2, location=(p.x, p.y, zz + 0.6)); bpy.context.active_object.data.materials.append(BRONZE)
+bpy.ops.mesh.primitive_cone_add(vertices=8, radius1=0.25, radius2=0.05, depth=1.2, location=(p.x, p.y, zz + 0.6)); bpy.context.active_object.name = "Stone_top"; bpy.context.active_object.data.materials.append(BRONZE)
 for dx in (-8, 8):
     q = B(ax + dx, ay + 2); zq = hat(ax + dx, ay + 2)
     box((q.x, q.y, zq + 0.6), (0.4, 0.4, 1.2), STONEM); box((q.x, q.y, zq + 1.45), (0.9, 0.9, 0.5), STONEM, bev=0.05)
@@ -196,7 +196,7 @@ lc = B((lx0 + lx1) / 2, (ly0 + ly1) / 2); lang = math.atan2(-(ly1 - ly0), lx1 - 
 box((lc.x, lc.y, GH_DECK - 0.2), (lL, 1.6, 0.4), STEPM, rot=lang, bev=0.03)
 box((lc.x, lc.y, (GH_BASE - 0.2 + GH_DECK - 0.4) / 2), (lL, 1.7, GH_DECK - 0.2 - GH_BASE), STONEM, rot=lang, bev=0.04)   # solid stone pier under the landing
 isl = [B(x, y) for x, y in GH_ISLAND[:-1]]                     # 경회루 stone island (cut stone, a step above the water)
-mesh_obj("Island", [(q.x, q.y, GH_BASE - 1.5) for q in isl] + [(q.x, q.y, GH_BASE) for q in isl],
+mesh_obj("Stone_island", [(q.x, q.y, GH_BASE - 1.5) for q in isl] + [(q.x, q.y, GH_BASE) for q in isl],
     [(0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7), (4, 5, 6, 7)], STONEM)
 for (x0, y0), (x1, y1), hz, w in BRIDGES:
     L = math.hypot(x1 - x0, y1 - y0); ang = math.atan2(-(y1 - y0), x1 - x0); c = B((x0 + x1) / 2, (y0 + y1) / 2)
@@ -210,7 +210,7 @@ def pine_proto():
     bpy.ops.mesh.primitive_cylinder_add(vertices=8, radius=0.22, depth=7, location=(0, 0, 3.5)); t = bpy.context.active_object; t.data.materials.append(BARK)
     parts = [t]
     for k in range(4):
-        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2, radius=1.0, location=(random.uniform(-0.8, 0.8), random.uniform(-0.8, 0.8), 4.6 + k * 1.0))
+        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=1.0, location=(random.uniform(-0.8, 0.8), random.uniform(-0.8, 0.8), 4.6 + k * 1.0))
         c = bpy.context.active_object; c.scale = (2.2 - k * 0.35, 2.0 - k * 0.3, 0.75); c.data.materials.append(PINE if k % 2 else PINE2); parts.append(c)
     for x in bpy.context.selected_objects: x.select_set(False)
     for q in parts: q.select_set(True)
@@ -251,7 +251,7 @@ for i in range(70):                                     # boulders on the valley
     x = random.uniform(4, 136); y = random.uniform(4, 116)
     if not inside((x, y), OUTLINE) or not free_spot(x, y): continue
     bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2, radius=random.uniform(0.6, 1.6), location=(B(x, y).x, B(x, y).y, hat(x, y)))
-    o = bpy.context.active_object; o.scale = (random.uniform(0.8, 1.4), random.uniform(0.8, 1.4), random.uniform(0.5, 0.9)); o.data.materials.append(ROCKM)
+    o = bpy.context.active_object; o.name = "Rock"; o.scale = (random.uniform(0.8, 1.4), random.uniform(0.8, 1.4), random.uniform(0.5, 0.9)); o.data.materials.append(ROCKM)
     for v in o.data.vertices: v.co *= 1.0 + noise.noise(v.co * 2.0) * 0.25
 print("trees", count)
 bpy.ops.wm.save_as_mainfile(filepath="/tmp/gbg/temple.blend")

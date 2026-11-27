@@ -6,6 +6,7 @@ from mathutils import Vector
 # can also be exec()'d by another builder with ARGS = [...] and EMBED = True: then the scene is kept,
 # nothing is saved and the joined object is left in RESULT
 EMBED = globals().get("EMBED", False)
+LOW = globals().get("LOW", False)          # game export: fewer bevel segments / roof grid / column sides
 a = globals().get("ARGS") or (sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else [])
 OUT = a[0] if a else "/tmp/gbg/hall.blend"; NB = int(a[1]) if len(a) > 1 else 5; ND = int(a[2]) if len(a) > 2 else 3
 PAV = len(a) > 3 and a[3] == "pavilion"
@@ -33,9 +34,10 @@ def box(c, s, m, bev=0.02):
     bpy.ops.mesh.primitive_cube_add(size=1, location=c); o = bpy.context.active_object; o.scale = s
     bpy.ops.object.transform_apply(scale=True)
     if bev:
-        md = o.modifiers.new("b", "BEVEL"); md.width = min(bev, min(s) * 0.45); md.segments = 3; bpy.ops.object.modifier_apply(modifier="b")
+        md = o.modifiers.new("b", "BEVEL"); md.width = min(bev, min(s) * 0.45); md.segments = 1 if LOW else 3; bpy.ops.object.modifier_apply(modifier="b")
     return fin(o, m)
 def cyl(c, r, h, m, v=16, r2=None):
+    v = min(v, 8) if LOW else v
     bpy.ops.mesh.primitive_cone_add(vertices=v, radius1=r, radius2=r2 or r * 0.88, depth=h, location=c); return fin(bpy.context.active_object, m)
 BAY = 3.2; W = NB * BAY; D = ND * BAY; CH = 3.6      # column height
 BAY = 3.2; W = NB * BAY; D = ND * BAY
@@ -70,17 +72,18 @@ if PAV:
         bpy.ops.mesh.primitive_plane_add(size=1, location=(0, 0, 0.35)); o = bpy.context.active_object; o.scale = (W * 2.6, D * 3.2, 1)
         bpy.ops.object.transform_apply(scale=True); fin(o, mat("H_Water", (0.25, 0.45, 0.52), 0.08))
 else:
-    # stone platform (기단) with steps
-    box((0, 0, 0.45), (W + 3.0, D + 3.0, 0.9), STONE, 0.05)
-    box((0, 0, 0.93), (W + 2.6, D + 2.6, 0.06), STONE2, 0.02)
-    for k in range(4):
+    # stone platform (기단) with steps (gates: a flat sill you walk over)
+    PH = 0.12 if GATE else 0.9
+    box((0, 0, PH / 2), (W + 3.0, D + 3.0, PH), STONE, 0.05 if not GATE else 0.02)
+    if not GATE: box((0, 0, 0.93), (W + 2.6, D + 2.6, 0.06), STONE2, 0.02)
+    for k in (range(4) if not GATE else []):
         box((0, -(D + 3.0) / 2 - 0.35 - k * 0.35 + 1.05, 0.9 - 0.225 * (k + 1) + 0.11), (3.4, 0.36, 0.225 * (4 - k) * 1.0), STONE, 0.03)
     # columns on round stone bases
     for x in xs:
         for y in ys:
             if x not in (xs[0], xs[-1]) and y not in (ys[0], ys[-1]): continue
-            cyl((x, y, 1.0), 0.32, 0.18, STONE2, 16, 0.3)
-            cyl((x, y, 0.96 + CH / 2 + 0.08), 0.21, CH, COL, 16, 0.19)
+            cyl((x, y, (0.18 if GATE else 1.0)), 0.32, 0.18, STONE2, 16, 0.3)
+            cyl((x, y, (0.2 if GATE else 0.96) + CH / 2 + 0.08), 0.21, CH, COL, 16, 0.19)
     # front doors (꽃살문) + side walls (gates / corridors stay open)
     for i in (range(NB) if not GATE else []):
         cx = (xs[i] + xs[i + 1]) / 2
@@ -91,7 +94,7 @@ else:
         box((x, 0, 0.96 + CH * 0.45), (0.12, D - 0.4, CH * 0.85), WALL, 0.02)
     if not GATE: box((0, D / 2, 0.96 + CH * 0.45), (W - 0.4, 0.12, CH * 0.85), WALL, 0.02)
 
-    top = 0.96 + CH
+    top = (0.2 if GATE else 0.96) + CH
 # beams + dancheong bands (창방 / 평방), brackets (공포) as stacked blocks
 for y in (ys[0], ys[-1]): box((0, y, top + 0.12), (W + 0.5, 0.36, 0.3), BEAM, 0.03); box((0, y, top + 0.12), (W + 0.52, 0.38, 0.08), DAN2, 0.0)
 for x in (xs[0], xs[-1]): box((x, 0, top + 0.12), (0.36, D + 0.5, 0.3), BEAM, 0.03)
@@ -119,7 +122,7 @@ def roof_z(x, y):
     lift = (max(u, 0.0) ** 6) * (v ** 6)               # gentle upturn only right at the corners
     edge_lift = 0.18 * (u ** 8) + 0.18 * (v ** 8)      # eave line rises a little towards both ends
     return z + 1.0 * lift + edge_lift * (1.0 if t > 0.85 else t / 0.85)
-bm = bmesh.new(); N = 48; M = 32; vs = []
+bm = bmesh.new(); N = 28 if LOW else 48; M = 18 if LOW else 32; vs = []
 for j in range(M + 1):
     row = []
     for i in range(N + 1):
@@ -144,7 +147,7 @@ for side in (-1, 1):
             if abs(y) < 0.2: continue
             pts.append(Vector((x, y, roof_z(x, y) + 0.07)))
         if len(pts) < 3: continue
-        cu = bpy.data.curves.new("t", "CURVE"); cu.dimensions = "3D"; cu.bevel_depth = 0.09; cu.bevel_resolution = 2
+        cu = bpy.data.curves.new("t", "CURVE"); cu.dimensions = "3D"; cu.bevel_depth = 0.09; cu.bevel_resolution = 0 if LOW else 2
         sp = cu.splines.new("POLY"); sp.points.add(len(pts) - 1)
         for k, p in enumerate(pts): sp.points[k].co = (p.x, p.y, p.z, 1)
         o = bpy.data.objects.new("t", cu); bpy.context.scene.collection.objects.link(o)

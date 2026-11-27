@@ -25,6 +25,10 @@ static func build(id: String, parent: Node3D) -> Dictionary:
 			m.root = parent
 			return m.build_plan({"quarter": "oldquarter", "range": "training", "reststop": "zombie_reststop",
 				"downtown": "downtown_v3", "bazaar": "bazaar_v3", "cell": "cell_v3", "harbor": "harbor_v3"}.get(id, id))
+		"temple":
+			var tm := MapTemple.new()
+			tm.root = parent
+			return tm.build_temple()
 		"oldtown":
 			var o := MapOldTown.new()
 			o.root = parent

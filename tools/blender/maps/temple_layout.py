@@ -29,10 +29,10 @@ def gh(lx, ly):
     cx, cy, r = GYEONGHOERU; a = -math.radians(r)
     X = (cx - 70) + lx * math.cos(a) - ly * math.sin(a); Y = (60 - cy) + lx * math.sin(a) + ly * math.cos(a)
     return (X + 70, 60 - Y)
-GH_ISLAND = [gh(-13.0, -10.2), gh(12.5, -10.2), gh(12.5, 9.8), gh(-13.0, 9.8), gh(-13.0, -10.2)]
-GH_STAIR = (gh(-11.0, -8.3), gh(-1.4, -8.3))   # along the front edge, up to the deck
-GH_LANDING = (gh(-1.4, -8.3), gh(0.8, -8.3))   # flat landing at deck height; the railing opens right beside it
-GH_GAP = (-0.3, 2.0)                           # railing opening: centre x, width (pavilion local)
+GH_ISLAND = [gh(-14.0, -10.2), gh(12.5, -10.2), gh(12.5, 9.8), gh(-14.0, 9.8), gh(-14.0, -10.2)]
+GH_STAIR = (gh(-12.2, -8.3), gh(-2.6, -8.3))   # along the front edge, up to the deck
+GH_LANDING = (gh(-2.6, -8.3), gh(-0.6, -8.3))   # flat landing at deck height; the railing opens right beside it
+GH_GAP = (-1.6, 2.0)          # between the deck columns at x -3.2 and 0                           # railing opening: centre x, width (pavilion local)
 # ramps / stairs: (x0, y0, h0) -> (x1, y1, h1), width, kind ("stairs" | "path" | "cave")
 RAMPS = [
     ((64, 101, 0.0), (64, 91.0, 2.4), 4.5, "stairs"),       # 일주문 -> 천왕문 단
@@ -58,7 +58,7 @@ BRIDGES = [(gh(12.5, -3.0), gh(21.5, -3.0), 4.8, 3.0), (gh(12.5, 3.0), gh(21.5, 
 for (x0, y0), (x1, y1), hz, w in BRIDGES:                   # bridges are walkable strips too
     RAMPS.append(((x0, y0, hz), (x1, y1, hz), w, "bridge"))
 SITE_A = (102, 40); SITE_B = (31, 28)
-ATT_SPAWN = (72, 108); DEF_SPAWN = (80, 12)
+ATT_SPAWN = (76, 112); DEF_SPAWN = (80, 12)
 # buildings: (kind, x, y, rot_deg, args for build_hanok [bays, depth, mode, floor])
 BUILDINGS = [
     ("hall", 104, 27, -7, [5, 3]),                 # 대웅전
@@ -66,12 +66,12 @@ BUILDINGS = [
     ("hall", 126, 38, -17, [3, 1]),                # 승방 (동)
     ("pavilion", 100, 54, 0, [3, 2, "pavilion", 5.6]),    # 만세루 (아래 통과)
     ("bell", 70, 70, 12, [1, 1, "gate"]),                 # 범종각
-    ("pavilion", 31, 28, 14, [6, 4, "pavilion", 4.4, -0.3, 2.0]),   # 경회루 (B) on its stone island; railing open at the stair top
+    ("pavilion", 31, 28, 14, [6, 4, "pavilion", 4.4, -1.6, 2.0]),   # 경회루 (B) on its stone island; railing open at the stair top
     ("hall", 92, 77, 6, [3, 2]),                   # 요사채
     ("hall", 106, 82, -9, [3, 2]),
     ("hall", 86, 86, 3, [2, 2]),
-    ("gate", 62, 98, 23, [3, 1, "gate"]),          # 천왕문
-    ("gate", 68, 111, 0, [1, 1, "gate"]),          # 일주문
+    ("gate", 64, 86.5, 0, [3, 1, "gate"]),         # 천왕문 (top of the first stairs)
+    ("gate", 64, 106, 0, [1, 1, "gate"]),          # 일주문 (in line with the stairs)
     ("gate", 60, 22, 6, [5, 1, "gate"]),           # 수정전 회랑
     ("hall", 80, 14, 0, [3, 2]),                   # 산신각 (수비)
 ]
