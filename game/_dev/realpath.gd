@@ -28,5 +28,13 @@ func _run() -> void:
 	C.view_fp = true
 	for i in 30: await process_frame
 	await _shot("fp")
+	for slot in [1, 2]:                        # sidearm and knife from the real loadout
+		pl._equip(slot, true)
+		for i in 45: await process_frame
+		await _shot("fp_%d" % slot)
+		C.view_fp = false
+		for i in 30: await process_frame
+		await _shot("tp_%d" % slot)
+		C.view_fp = true
 	C.view_fp = false; C.save_settings()
 	quit()

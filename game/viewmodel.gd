@@ -19,8 +19,10 @@ const POSE := {
 	# rifles: low on the right, muzzle turned a little in so the side of the gun shows; elbows below the
 	# frame (right one out to the side, left one under the gun) so the forearms come in diagonally
 	"long":   {"grip": Vector3(0.185, -0.135, -0.25), "rot": Vector3(-6.0, 3.0, -5.0), "sr": Vector3(0.30, -0.30, 0.02), "sl": Vector3(-0.15, -0.30, -0.10)},
-	"pistol": {"grip": Vector3(0.10, -0.12, -0.27), "rot": Vector3(1.0, 3.0, 0.0), "sr": Vector3(0.20, -0.32, 0.0), "sl": Vector3(-0.04, -0.32, -0.04)},
-	"knife":  {"grip": Vector3(0.16, -0.13, -0.25), "rot": Vector3(25.0, 25.0, -20.0), "sr": Vector3(0.34, -0.46, 0.0), "sl": Vector3(-0.30, -0.8, 0.0)},
+	# pistol: both arms pushed out (isosceles), the gun low-centre-right so the sights and both hands show
+	"pistol": {"grip": Vector3(0.08, -0.17, -0.40), "rot": Vector3(3.0, 6.0, -4.0), "sr": Vector3(0.20, -0.32, 0.0), "sl": Vector3(-0.04, -0.32, -0.04)},
+	# knife: forward hammer grip low on the right, point toward the crosshair, edge down
+	"knife":  {"grip": Vector3(0.17, -0.19, -0.36), "rot": Vector3(10.0, 12.0, -8.0), "sr": Vector3(0.34, -0.46, 0.0), "sl": Vector3(-0.30, -0.8, 0.0)},
 }
 
 var player: PlayerBody
@@ -186,8 +188,14 @@ func _process(dt: float) -> void:
 	var rs: Vector3 = hr + bas * Vector3(0.05, -0.09, 0.15)
 	var ls: Vector3
 	if _kind == "long": ls = hl + bas * Vector3(-0.10, -0.12, 0.17)
-	elif _kind == "pistol": ls = hr + bas * Vector3(-0.20, -0.12, 0.19)
-	else: ls = rs + bas * Vector3(-0.24, 0.0, -0.04)
+	else:
+		# handguns / knife: shoulders placed from the body's own arm length and shoulder width (as drawn
+		# here), so short chibi arms still reach the grip instead of hanging off-screen
+		var kk := _len / maxf(_body._len(), 0.001) if _body and _body._tgt else 1.0
+		var rr: float = _body._reach("R") * kk if _body and _body._tgt else 0.18
+		var sw: float = _body._bone_s(_body._arm["UpperArm.R"]).distance_to(_body._bone_s(_body._arm["UpperArm.L"])) * kk if _body and _body._tgt else 0.24
+		rs = hr + bas * (Vector3(0.10, -0.30, 0.95).normalized() * rr * 0.92)
+		ls = rs + Vector3(-sw, 0.0, 0.0 if _kind == "pistol" else 0.04)
 	_pose_body(rs, ls)
 	_hand_l.visible = false; _arm_l.visible = false; _hand_r.visible = false; _arm_r.visible = false
 	# muzzle (tracers / flash)

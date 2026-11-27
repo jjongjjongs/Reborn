@@ -390,8 +390,8 @@ const WEAPONS := {
 	"shotgun":  {"len": 1.00, "kind": "long",   "butt": [0.01, -0.03], "grip": [0.27, 0.01],  "fore": [0.70, 0.02]},
 	"sniper":   {"len": 1.15, "kind": "long",   "butt": [0.01, -0.01], "grip": [0.17, -0.05], "fore": [0.46, -0.02], "fp": 0.8},   # SR-7L (concept)
 	"rpk":      {"len": 1.00, "kind": "long",   "butt": [0.00, 0.00],  "grip": [0.21, -0.07], "fore": [0.67, -0.01], "fp": 0.8},   # LMG-76 (concept)
-	"pistol":   {"len": 0.20, "kind": "pistol", "grip": [0.17, -0.07]},
-	"revolver": {"len": 0.26, "kind": "pistol", "grip": [0.13, -0.09]},
+	"pistol":   {"len": 0.20, "kind": "pistol", "grip": [0.17, -0.07], "fp": 1.3},
+	"revolver": {"len": 0.26, "kind": "pistol", "grip": [0.13, -0.09], "fp": 1.2},
 	"knife":    {"len": 0.30, "kind": "knife",  "grip": [0.17, 0.0]},
 }
 const READY_PITCH := 35.0      # low ready: muzzle down (deg)
@@ -439,7 +439,14 @@ func _anchor(key: String) -> Vector3:
 	var L: float = _len()
 	return Vector3(0.0, float(v[1]) * L, (0.5 - float(v[0])) * L)
 
+# handguns and the knife are sized from the hand (real pistol ~2.2 palm lengths, revolver ~2.8, knife ~3.2),
+# so a big glove never swallows a tiny pistol on any body
+const HAND_K := {"pistol": 2.2, "revolver": 2.8, "knife": 3.2}
+# first person looks straight down the barrel, so a real-size handgun disappears behind the fists;
+# like other shooters' view models, the handgun is drawn larger than the hands there
+const FP_HAND_GUN := 1.45
 func _len() -> float:
+	if HAND_K.has(weapon): return float(HAND_K[weapon]) * hand_back * 2.0 * (FP_HAND_GUN if fp_gun and _wdef.get("kind", "") == "pistol" else 1.0)
 	return float(_wdef["len"]) * (LONG_SCALE if _wdef["kind"] == "long" else 1.0) * gun_k
 
 func _model_aabb(root: Node3D) -> AABB:
@@ -495,15 +502,19 @@ func _pose_weapon() -> void:
 		var pocket := sh_r + Vector3(-0.06, lerpf(-0.05, -0.01, k), -0.04) + pocket_off + Vector3(0, 0, 0.04 * _kick)
 		_gun_s = Transform3D(basis, pocket - basis * _anchor("butt"))
 	elif kind == "pistol":
+		# isosceles (both arms forward, a triangle): aiming = arms almost straight at eye-line height,
+		# ready = compressed in front of the chest, muzzle a little down; distances from the arm length
 		var mid := (sh_r + sh_l) * 0.5
-		var ready_p := mid + Vector3(0.0, -0.17, -0.26)      # compressed ready
-		var aim_p := mid + Vector3(0.0, 0.08, -reach - 0.04)   # isosceles: arms extended
+		var ready_p := mid + Vector3(0.0, -reach * 0.30, -reach * 0.78 + pocket_off.z)
+		var aim_p := mid + Vector3(0.0, reach * 0.06, -reach * 0.93)
 		var gp := ready_p.lerp(aim_p, k)
-		var basis := Basis(Vector3.RIGHT, deg_to_rad(9.0 * _kick))
+		var basis := Basis(Vector3.RIGHT, deg_to_rad(lerpf(-14.0, 0.0, k) + 9.0 * _kick))
 		_gun_s = Transform3D(basis, gp - basis * _anchor("grip") + Vector3(0, 0, 0.03 * _kick))
 	else:   # knife: hammer grip, blade forward, guard hand up
-		var gp := sh_r + Vector3(-0.08, -0.17, -0.30 - 0.32 * sin(PI * (1.0 - _kick)))
-		var basis := Basis(Vector3.RIGHT, deg_to_rad(12.0))
+		# forward (hammer) grip: fist in front of the right side of the chest, point aimed forward-up at the
+		# target, edge down; the stab drives it straight out (arm length based, any body)
+		var gp := sh_r + Vector3(-reach * 0.12, -reach * 0.30, -reach * (0.62 + 0.30 * sin(PI * (1.0 - _kick)))) + Vector3(0, 0, pocket_off.z)
+		var basis := Basis(Vector3.RIGHT, deg_to_rad(12.0)) * Basis(Vector3.UP, deg_to_rad(8.0))
 		_gun_s = Transform3D(basis, gp - basis * _anchor("grip"))
 	_place_hands(kind, sh_l)
 
@@ -527,6 +538,9 @@ func _fit_reach(targets: Array) -> void:
 	_fit_loop(targets, back)
 	if fp_gun:                                        # the gun is fixed on screen: move the arms instead
 		fp_shift = fp_shift + (_gun_s.origin - o0)
+		var cap := _reach("R") * 0.8                  # never let the arms run away (unreachable -> settle)
+		if not fp_shift.is_finite(): fp_shift = Vector3.ZERO
+		elif fp_shift.length() > cap: fp_shift = fp_shift.normalized() * cap
 		_gun_s.origin = o0
 
 func _fit_loop(targets: Array, back: Vector3) -> void:
@@ -545,7 +559,9 @@ func _place_hands(kind: String, sh_l: Vector3) -> void:
 		var lf := [Vector3(0.35, -0.55, -0.75), Vector3(1, 0, 0), 0.03] if bool(_wdef.get("vfore", false)) else [Vector3(0.45, 0.25, -0.85), Vector3(0.2, 1, 0), 0.035]
 		_fit_reach([["R", _anchor("grip"), Vector3(-0.45, -0.35, -0.82), Vector3(-1, 0, 0), 0.03], ["L", _anchor("fore"), lf[0], lf[1], lf[2]]])
 	elif kind == "pistol":
-		_fit_reach([["R", _anchor("grip"), Vector3(-0.3, -0.5, -0.8), Vector3(-1, 0, 0), 0.02], ["L", _anchor("grip"), Vector3(0.3, -0.5, -0.8), Vector3(1, 0, 0), 0.05]])
+		var hw0 := hand_back * 2.0
+		_fit_reach([["R", _anchor("grip") + Vector3(0.0, -hw0 * 0.12, hw0 * 0.10), Vector3(-0.15, -0.55, -0.82), Vector3(-1, 0, 0.35), hw0 * 0.18],
+			["L", _anchor("grip") + Vector3(-hw0 * 0.07, -hw0 * 0.19, -hw0 * 0.03), Vector3(0.35, -0.45, -0.82), Vector3(1, 0, 0), hw0 * 0.22]])
 	if kind == "long":
 		# strong hand wraps the pistol grip (palm on its right side, knuckles forward-down);
 		# support hand cradles the handguard from below, palm up (or wraps a vertical foregrip)
@@ -556,11 +572,13 @@ func _place_hands(kind: String, sh_l: Vector3) -> void:
 			_hand("L", _anchor("fore"), Vector3(0.45, 0.25, -0.85), Vector3(0.2, 1, 0), 0.035, 48.0, Vector3(-0.5, -1.0, 0.1))
 	elif kind == "pistol":
 		# strong hand high on the grip; support hand wraps over its fingers from the left
-		_hand("R", _anchor("grip"), Vector3(-0.3, -0.5, -0.8), Vector3(-1, 0, 0), 0.02, 66.0, Vector3(0.8, -1.0, 0.2))
-		_hand("L", _anchor("grip"), Vector3(0.3, -0.5, -0.8), Vector3(1, 0, 0), 0.05, 60.0, Vector3(-0.8, -1.0, 0.2))
+		var hw := hand_back * 2.0
+		_hand("R", _anchor("grip") + Vector3(0.0, -hw * 0.12, hw * 0.10), Vector3(-0.15, -0.55, -0.82), Vector3(-1, 0, 0.35), hw * 0.18, 70.0, Vector3(0.8, -1.0, 0.2))
+		_hand("L", _anchor("grip") + Vector3(-hw * 0.07, -hw * 0.19, -hw * 0.03), Vector3(0.35, -0.45, -0.82), Vector3(1, 0, 0), hw * 0.22, 72.0, Vector3(-0.8, -1.0, 0.2))
 	else:   # knife: hammer grip; guard hand open, palm toward the target, in front of the chest
-		_hand("R", _anchor("grip"), Vector3(-0.1, -0.75, -0.65), Vector3(-1, 0, 0.2), 0.02, 72.0, Vector3(0.7, -1.0, 0.4))
-		_hand("L", _gun_s.affine_inverse() * (sh_l + Vector3(0.14, -0.10, -0.30)), Vector3(0.1, 1.0, -0.2), Vector3(0.3, 0, -1), 0.0, 12.0, Vector3(-0.6, -1.0, 0.0))
+		_hand("R", _anchor("grip"), Vector3(0.0, -0.9, 0.35), Vector3(-1, 0, 0), hand_back * 0.35, 80.0, Vector3(0.7, -1.0, 0.4))
+		var rl := _reach("L")
+		_hand("L", _gun_s.affine_inverse() * (sh_l + Vector3(rl * 0.22, -rl * 0.22, -rl * 0.62 + pocket_off.z)), Vector3(0.15, 1.0, -0.25), Vector3(0.35, 0.1, -1), 0.0, 18.0, Vector3(-0.6, -1.0, 0.0))
 
 ## first-person arms: keep only the triangles skinned to the arm / hand bones (any body)
 const ARM_BONES := ["Shoulder", "UpperArm", "LowerArm", "Hand", "Thumb", "Index", "Middle", "Ring", "Pinky"]
@@ -607,6 +625,7 @@ func arms_only() -> void:
 		m.mesh = am
 		for si in am.get_surface_count(): m.set_surface_override_material(si, null)
 		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		m.extra_cull_margin = 2.0     # posed arms leave the rest-pose box: never frustum-cull them
 
 # place one hand on the weapon. contact/f/n are in gun space: f = wrist->knuckles
 # direction, n = palm normal (toward the part being held), pad = palm thickness
