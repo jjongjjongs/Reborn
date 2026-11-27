@@ -1,6 +1,7 @@
 class_name TouchInput
 extends Control
 var move_only := false            # minigames: just the stick, jump and crouch (no weapon buttons)
+var off := false                  # result window up: no controls at all
 ## Manual multi-touch (no GUI buttons so every finger is independent):
 ##   left half            -> move stick
 ##   right open area      -> look / aim
@@ -34,7 +35,7 @@ func _ready() -> void:
 	z_index = 1          # above the crosshair / scope mask
 
 func _process(_dt: float) -> void:
-	visible = not Controls.shop_open      # the upgrade shop takes the screen
+	visible = not Controls.shop_open and not off      # the upgrade shop / a result window takes the screen
 	# While the shop is open input is ignored; a finger released during that time
 	# would leave stale state. Keep everything cleared so it's fresh on close.
 	if Controls.shop_open and (_m_idx != -1 or not _touch.is_empty() or not _look.is_empty()):

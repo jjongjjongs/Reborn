@@ -28,7 +28,7 @@ var _sub: Label
 var _toast: Label
 var _toast_t := 0.0
 var _time := 0.0
-var _touch: Control
+var _touch: TouchInput
 
 func _ready() -> void:
 	Controls.sel_map = "jump1"
@@ -231,16 +231,20 @@ func _show_toast(t: String) -> void:
 func _finish() -> void:
 	_done = true
 	var best := float(Profile._d.get("best_jump1", 0.0))
-	var new_best := best <= 0.0 or _t < best
+	var first := best <= 0.0
+	var new_best := first or _t < best
 	if new_best: Profile._d["best_jump1"] = _t; Profile.save()
-	Missions.record("미니게임 · 점프맵", "구름 계단", "완주 %s · 낙하 %d" % [_fmt(_t), _falls], true, "", 0)
+	# coins: 30 for a finish, +50 the first time, +20 for beating your best
+	var reward := 30 + (50 if first else 0) + (20 if new_best and not first else 0)
+	Missions.record("미니게임 · 점프맵", "구름 계단", "완주 %s · 낙하 %d" % [_fmt(_t), _falls], true, "", reward)
 	Sfx.play("reload")
 	var layer := CanvasLayer.new(); layer.layer = 40; add_child(layer)
 	var bg := ColorRect.new(); bg.color = Color(0.02, 0.03, 0.05, 0.72); bg.set_anchors_preset(Control.PRESET_FULL_RECT); layer.add_child(bg)
 	var v := VBoxContainer.new(); v.set_anchors_preset(Control.PRESET_CENTER); v.alignment = BoxContainer.ALIGNMENT_CENTER
 	v.position = Vector2(-260, -170); v.size = Vector2(520, 340); v.add_theme_constant_override("separation", 14); layer.add_child(v)
 	for row in [["완주!", 56, Color("ffd36b")], ["기록 %s%s" % [_fmt(_t), "  · 최고 기록!" if new_best else ""], 32, Color.WHITE],
-			["낙하 %d회 · 최고 %s" % [_falls, _fmt(minf(_t, best) if best > 0.0 else _t)], 24, Color(1, 1, 1, 0.7)]]:
+			["낙하 %d회 · 최고 %s" % [_falls, _fmt(minf(_t, best) if best > 0.0 else _t)], 24, Color(1, 1, 1, 0.7)],
+			["획득 코인 ◆%d%s" % [reward, "  (첫 완주 +50)" if first else ("  (기록 경신 +20)" if new_best else "")], 28, Color("ffd36b")]]:
 		var l := Label.new(); l.text = row[0]; l.add_theme_font_size_override("font_size", row[1]); l.add_theme_color_override("font_color", row[2])
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; v.add_child(l)
 	var hb := HBoxContainer.new(); hb.alignment = BoxContainer.ALIGNMENT_CENTER; hb.add_theme_constant_override("separation", 16); v.add_child(hb)
@@ -253,7 +257,7 @@ func _finish() -> void:
 			if what == "again": get_tree().reload_current_scene()
 			else: get_tree().change_scene_to_file("res://Menu.tscn"))
 		hb.add_child(bt)
-	if _touch: _touch.visible = false          # result window: no control buttons over it
+	if _touch: _touch.off = true               # result window: no control buttons over it
 
 func _build_hud() -> void:
 	var layer := CanvasLayer.new(); add_child(layer)

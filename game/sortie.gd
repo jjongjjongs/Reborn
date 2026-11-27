@@ -122,6 +122,7 @@ func _ready() -> void:
 	c3.position = Vector2(908, col_y); c3.size = Vector2(344, col_h)
 	c3.anchor_right = 1.0; c3.offset_right = -28
 	add_child(c3)
+	c3.visible = kind != "minigame"          # no weapons in the minigames
 	var h3 := _label("장비", 20, FG); h3.position = Vector2(16, 12); c3.add_child(h3)
 	_slots = VBoxContainer.new(); _slots.position = Vector2(16, 48)
 	_slots.add_theme_constant_override("separation", 8)
@@ -204,7 +205,7 @@ func _refresh() -> void:
 	for c in _detail.get_children(): c.queue_free()
 	if kind == "minigame":
 		for r in [["5 스테이지", "기초 → 좁은 길 → 이동 → 사라짐 → 탑"], ["체크포인트", "초록 발판 · 떨어지면 여기서 다시"], ["발판 색", "보라 이동 · 파랑 점프대 · 노랑 사라짐"],
-				["기록", "출발 발판을 떠나면 시작 · 최고 기록 저장"]]:
+				["기록", "출발 발판을 떠나면 시작 · 최고 기록 저장"], ["완주 보상", "◆30 · 첫 완주 +50 · 최고 기록 경신 +20"]]:
 			var card := Panel.new(); card.custom_minimum_size = Vector2(268, 64)
 			card.add_theme_stylebox_override("panel", _sb(CARD, LINE2, 1, 10))
 			var n := _label(r[0], 18, FG); n.position = Vector2(14, 6); card.add_child(n)

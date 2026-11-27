@@ -25,6 +25,8 @@ func _go(pl, sc, tgt: Vector3, half: float, max_frames := 400) -> bool:
 func _run() -> void:
 	await process_frame; await process_frame
 	C = root.get_node("Controls"); C.reset(); C.view_fp = false
+	Profile._load(); Profile._d.erase("best_jump1")          # as on a fresh install: first clear
+	print("COINS before ", Missions.coins())
 	change_scene_to_file("res://JumpMap.tscn")
 	for i in 60: await process_frame
 	var sc = current_scene; var pl = sc.player
@@ -54,4 +56,7 @@ func _run() -> void:
 		await _go(pl, sc, Vector3(0, 15.6, -113.0), 2.2, 300)
 		for i in 10: await physics_frame
 		print("RUN S5 ok -> finished %s, pos %s" % [sc._done, pl.global_position])
+		print("COINS after ", Missions.coins(), " (reward ", Missions.last_reward, ")")
+		for i in 20: await process_frame
+		root.get_viewport().get_texture().get_image().save_png("/tmp/jump_finish.png")
 	quit()
