@@ -80,7 +80,8 @@ def box(c, s, m, bev=0.02, rot=None, soft=None, seg=3):
     if rot: o.rotation_euler = rot
     _apply(o)
     if bev > 0:
-        md = o.modifiers.new("b", "BEVEL"); md.width = min(bev, min(s) * 0.49); md.segments = seg; md.limit_method = "NONE"
+        md = o.modifiers.new("b", "BEVEL"); md.width = min(max(bev * 1.6, min(s) * 0.38), min(s) * 0.49); md.segments = max(seg, 6); md.limit_method = "NONE"
+        md.profile = 0.6
         bpy.ops.object.modifier_apply(modifier="b")
     return _fin(o, m, soft)
 def cyl(c, r, h, m, rot=(0, 0, 0), bev=0.0, soft=None, verts=32):
@@ -240,7 +241,7 @@ def build_rookie():
         tube([Vector(((x0 + 0.04) * s, -0.06, 1.13)), Vector(((x0 + 0.08) * s, -0.085, 1.115)), Vector(((x0 + 0.115) * s, -0.075, 1.105))], 0.027, DARK)   # thumb
     mirror_x(glove)
 
-HEAD_SCALE = 1.0; HEAD_PIVOT = Vector((0, -0.01, 1.30))
+HEAD_SCALE = 0.86; HEAD_PIVOT = Vector((0, -0.01, 1.30))
 def build_head_gear():
     n_hard0 = len(HARD)
     skin = [o for o in SOFT["skin"]]
