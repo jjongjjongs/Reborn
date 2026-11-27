@@ -91,7 +91,7 @@ var gun_k := 1.0                   # weapon size multiplier (the chunky mini hol
 static var test_body := ""
 var cheap := false                 # crowd LOD: retarget every other frame
 const BODIES := {"mini": "res://assets/soldier/MiniV3.glb", "swat": "res://assets/soldier/MiniSwat.glb",
-	"zombie": "res://assets/soldier/MiniZombie.glb"}   # all built on the SWAT skeleton (tools/blender/build_minis.py)
+	"zombie": "res://assets/soldier/MiniZombie.glb", "rookie": "res://assets/soldier/Rookie.glb"}   # all built on the SWAT skeleton (tools/blender/build_minis.py)
 var gear := "helmet"               # mini head gear: helmet / beret / mask
 
 func setup(team_color: Color, kit: Color = Color(0, 0, 0, 0)) -> void:
