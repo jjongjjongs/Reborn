@@ -30,7 +30,7 @@ for (x0, y0, h0), (x1, y1, h1), w, k in RAMPS:
     dx, dy = x1 - x0, y1 - y0; L = math.hypot(dx, dy); ux, uy = dx / L, dy / L
     t = ((xx - x0) * ux + (yy - y0) * uy) / L
     s = np.abs(-(xx - x0) * uy + (yy - y0) * ux)
-    ww = w - 0.7 if k in ("stairs", "bridge") else w            # slope hidden inside the stone steps / under the bridge deck
+    ww = w + 0.5 if k == "stairs" else (w - 0.2 if k == "bridge" else w)   # stairs: walkable slope as wide as the steps, under the cheek stones (no gaps to get stuck in)
     m = (t >= -0.02) & (t <= 1.02) & (s <= ww / 2)
     tt = np.clip(t, 0, 1)
     if k == "stairs": tt = np.floor(tt * L / 0.45) * 0.45 / L * 0 + tt     # smooth slope (steps are drawn as a mesh)

@@ -751,40 +751,40 @@ func _all(n: Node) -> Array:
 		o += _all(c)
 	return o
 
-## thin coloured outline round the whole body (inverted hull: back faces pushed out along the normals)
-## col.a == 0 removes it. through_walls: an extra rim pass drawn over walls too (allies)
+## thin coloured outline round the whole body (inverted hull: back faces pushed out along the normals,
+## depth-tested, so only the outer silhouette edge shows). col.a == 0 removes it.
+## set_xray(true): while an ally is hidden behind a wall, a flat translucent silhouette is drawn over it instead.
 const XRAY := """
 shader_type spatial;
-render_mode unshaded, depth_test_disabled, depth_draw_never, cull_back, blend_mix;
-uniform vec4 col : source_color = vec4(0.3, 0.6, 1.0, 0.85);
-void fragment() {
-	float r = 1.0 - abs(dot(normalize(NORMAL), normalize(VIEW)));
-	ALBEDO = col.rgb;
-	ALPHA = smoothstep(0.5, 0.85, r) * col.a;
-}
+render_mode unshaded, depth_test_disabled, depth_draw_never, cull_back, blend_mix, shadows_disabled;
+uniform vec4 col : source_color = vec4(0.3, 0.6, 1.0, 0.45);
+void fragment() { ALBEDO = col.rgb; ALPHA = col.a; }
 """
 static var _xray_sh: Shader
 var outline_col := Color(0, 0, 0, 0)
-func set_outline(col: Color, width := 0.014, through_walls := false) -> void:
+var _xray_on := false
+var _xray_mats: Array = []          # [hull material, xray material] per mesh
+
+func set_outline(col: Color, width := 0.014, _through_walls := false) -> void:
 	outline_col = col
-	var m: StandardMaterial3D = null
-	if col.a > 0.0:
-		m = StandardMaterial3D.new()
-		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		m.cull_mode = BaseMaterial3D.CULL_FRONT
-		m.grow = true; m.grow_amount = width
-		m.albedo_color = col
-		m.disable_receive_shadows = true
-		if through_walls:
-			if _xray_sh == null: _xray_sh = Shader.new(); _xray_sh.code = XRAY
-			var x := ShaderMaterial.new(); x.shader = _xray_sh; x.set_shader_parameter("col", Color(col.r, col.g, col.b, 0.85))
-			x.render_priority = 10
-			m.next_pass = x
+	_xray_mats.clear()
 	for mi in find_children("*", "MeshInstance3D", true, false):
 		var g := mi as MeshInstance3D
 		if _gun and _gun.is_ancestor_of(g): continue          # body only, not the gun
-		if m == null: g.material_overlay = null; continue
+		if col.a <= 0.0: g.material_overlay = null; continue
 		# grow is in the mesh's own units (the rigged bodies carry a 100x armature scale): convert metres
 		var k := g.global_transform.basis.get_scale().x / maxf(global_transform.basis.get_scale().x, 0.0001)
-		var mm := m.duplicate() as StandardMaterial3D; mm.grow_amount = width / maxf(k, 0.0001)
-		g.material_overlay = mm
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; m.cull_mode = BaseMaterial3D.CULL_FRONT
+		m.grow = true; m.grow_amount = width / maxf(k, 0.0001); m.albedo_color = col; m.disable_receive_shadows = true
+		if _xray_sh == null: _xray_sh = Shader.new(); _xray_sh.code = XRAY
+		var x := ShaderMaterial.new(); x.shader = _xray_sh; x.set_shader_parameter("col", Color(col.r, col.g, col.b, 0.45))
+		x.render_priority = 10
+		if _xray_on: m.next_pass = x
+		g.material_overlay = m
+		_xray_mats.append([m, x])
+
+func set_xray(on: bool) -> void:
+	if on == _xray_on: return
+	_xray_on = on
+	for p in _xray_mats: (p[0] as StandardMaterial3D).next_pass = p[1] if on else null

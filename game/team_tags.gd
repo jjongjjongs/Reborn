@@ -16,7 +16,8 @@ func _on_my_side(n) -> bool:
 func _process(dt: float) -> void:
 	_t -= dt
 	if _t > 0.0 or player == null or not is_instance_valid(player): return
-	_t = 0.4                         # new / respawned soldiers pick it up within a moment
+	_t = 0.15                        # new / respawned soldiers pick it up within a moment
+	var cam := get_viewport().get_camera_3d()
 	for n in get_tree().get_nodes_in_group("combatant"):
 		if n == player or not is_instance_valid(n): continue
 		var s = n.get("_soldier")
@@ -26,3 +27,13 @@ func _process(dt: float) -> void:
 		if s.outline_col != want or s.get_meta("ol_n", -1) != s.find_children("*", "MeshInstance3D", true, false).size():
 			s.set_outline(want, 0.014, ally)
 			s.set_meta("ol_n", s.find_children("*", "MeshInstance3D", true, false).size())
+		# allies: a translucent silhouette only while a wall hides them from the camera
+		var hidden := false
+		if ally and cam and n.alive:
+			var q := PhysicsRayQueryParameters3D.create(cam.global_position, (n as Node3D).global_position + Vector3(0, 1.2, 0))
+			var ex: Array[RID] = []
+			if n is CollisionObject3D: ex.append((n as CollisionObject3D).get_rid())
+			if player is CollisionObject3D: ex.append((player as CollisionObject3D).get_rid())
+			q.exclude = ex
+			hidden = not cam.get_world_3d().direct_space_state.intersect_ray(q).is_empty()
+		s.set_xray(hidden)

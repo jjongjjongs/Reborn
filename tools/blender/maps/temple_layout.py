@@ -37,8 +37,8 @@ GH_GAP = (-1.6, 2.0)          # between the deck columns at x -3.2 and 0        
 RAMPS = [
     ((64, 101, 0.0), (64, 91.0, 2.4), 4.5, "stairs"),       # 일주문 -> 천왕문 단
     ((34, 100, 0.0), (33, 88.0, 2.4), 3.5, "stairs"),       # 서쪽 오름
-    ((82, 71, 2.4), (84, 62.5, 4.8), 4.0, "stairs"),        # 범종각 -> 만세루 앞
-    ((100, 60, 4.8), (100, 47.5, 7.2), 3.0, "stairs"),      # 만세루 아래 -> A (between its pillars)
+    ((82, 71, 2.4), (84, 62.5, 4.8), 5.0, "stairs"),        # 범종각 -> 만세루 앞
+    ((100, 60, 4.8), (100, 47.5, 7.2), 5.0, "stairs"),      # 만세루 아래 -> A (its middle pillars left out)
     ((38, 67, 2.4), (44, 54.0, 4.8), 3.5, "stairs"),        # 오솔길 -> 연못 동쪽
     ((34, 107, 0.0), (28, 90, 0.9), 3.5, "path"),           # 계곡 돌길
     ((28, 90, 0.9), (26, 74, 2.2), 3.5, "path"),
@@ -58,16 +58,16 @@ BRIDGES = [(gh(12.5, -3.0), gh(21.5, -3.0), 4.8, 3.0), (gh(12.5, 3.0), gh(21.5, 
 for (x0, y0), (x1, y1), hz, w in BRIDGES:                   # bridges are walkable strips too
     RAMPS.append(((x0, y0, hz), (x1, y1, hz), w, "bridge"))
 SITE_A = (102, 40); SITE_B = (31, 28)
-ATT_SPAWN = (76, 112); DEF_SPAWN = (80, 12)
+ATT_SPAWN = (76, 112); DEF_SPAWN = (96, 14)
 # buildings: (kind, x, y, rot_deg, args for build_hanok [bays, depth, mode, floor])
 BUILDINGS = [
     ("hall", 104, 27, -7, [5, 3]),                 # 대웅전
     ("hall", 82, 36, 20, [3, 1]),                  # 승방 (서)
     ("hall", 126, 38, -17, [3, 1]),                # 승방 (동)
-    ("pavilion", 100, 54, 0, [3, 2, "pavilion", 5.6]),    # 만세루 (아래 통과)
+    ("pavilion", 100, 54, 0, [4, 2, "pavilion", 5.6, 99, 0, 6.8]),   # 만세루 (아래 통과, 가운데 기둥 없음)
     ("bell", 70, 70, 12, [1, 1, "gate"]),                 # 범종각
     ("pavilion", 31, 28, 14, [6, 4, "pavilion", 4.4, -1.6, 2.0]),   # 경회루 (B) on its stone island; railing open at the stair top
-    ("hall", 92, 77, 6, [3, 2]),                   # 요사채
+    ("hall", 96, 78, 6, [3, 2]),                   # 요사채
     ("hall", 106, 82, -9, [3, 2]),
     ("hall", 86, 86, 3, [2, 2]),
     ("gate", 64, 86.5, 0, [3, 1, "gate"]),         # 천왕문 (top of the first stairs)

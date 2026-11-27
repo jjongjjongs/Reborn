@@ -12,7 +12,8 @@ OUT = a[0] if a else "/tmp/gbg/hall.blend"; NB = int(a[1]) if len(a) > 1 else 5;
 PAV = len(a) > 3 and a[3] == "pavilion"
 GATE = len(a) > 3 and a[3] == "gate"       # open gate / corridor: columns + roof only
 FLH = float(a[4]) if len(a) > 4 else 4.0    # pavilion: upper floor height
-GAPX = float(a[5]) if len(a) > 5 else 1e9; GAPW = float(a[6]) if len(a) > 6 else 0.0   # opening in the front railing (stair top)     # 경회루-style: stone pillars over water, open wooden upper floor
+GAPX = float(a[5]) if len(a) > 5 else 1e9; GAPW = float(a[6]) if len(a) > 6 else 0.0   # opening in the front railing (stair top)
+OPENW = float(a[7]) if len(a) > 7 else 0.0    # pavilion: no ground pillars in the middle |x| < OPENW/2 (a stair runs under it)     # 경회루-style: stone pillars over water, open wooden upper floor
 if not EMBED: bpy.ops.wm.read_factory_settings(use_empty=True)
 def lin(c): return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
 def mat(n, rgb, r=0.7, m=0.0):
@@ -45,7 +46,9 @@ xs = [-W / 2 + i * BAY for i in range(NB + 1)]; ys = [-D / 2 + j * BAY for j in 
 if PAV:
     FL = FLH; CH = 3.4                                   # upper floor height, upper column height
     for x in xs:                                          # square stone pillars (ground floor forest)
-        for y in ys: box((x, y, FL / 2), (0.62, 0.62, FL), STONE, 0.06)
+        for y in ys:
+            if abs(x) < OPENW / 2: continue
+            box((x, y, FL / 2), (0.62, 0.62, FL), STONE, 0.06)
     box((0, 0, FL + 0.18), (W + 1.6, D + 1.6, 0.36), DOOR, 0.04)          # wooden floor deck
     box((0, 0, FL - 0.1), (W + 1.0, D + 1.0, 0.25), BEAM, 0.03)
     for side in (-1, 1):                                                   # railing (난간)
