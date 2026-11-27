@@ -25,6 +25,8 @@ var player: Node3D
 var respawn_pts: Array = []      # where a hopelessly stuck zombie is put back (wave spawns)
 var _stuck_t := 0.0
 var _stuck_hits := 0
+var _climbing := false
+var _climb_tw: Tween
 var _stuck_from := Vector3.ZERO
 
 func _ready() -> void:
@@ -46,6 +48,7 @@ func _ready() -> void:
 	_agent = NavigationAgent3D.new()
 	_agent.path_desired_distance = 0.5
 	_agent.target_desired_distance = ATTACK_DIST * 0.8
+	_agent.link_reached.connect(_on_link)
 	add_child(_agent)
 
 func _physics_process(delta: float) -> void:
@@ -54,6 +57,9 @@ func _physics_process(delta: float) -> void:
 	if _flash > 0.0:   # hit: a quick flinch backwards
 		_flash = maxf(0.0, _flash - delta * 6.0)
 		_body.rotation.x = -0.18 * _flash
+	if _climbing:
+		velocity = Vector3.ZERO
+		return
 	_atk_cd = maxf(0.0, _atk_cd - delta)
 	_warmup = maxf(0.0, _warmup - delta)
 	if player == null:
@@ -116,6 +122,33 @@ func _physics_process(delta: float) -> void:
 		if not test_move(global_transform, up) and not test_move(global_transform.translated(up), want * 3.0):
 			global_position += up + want
 
+# a climb link on the path (jump routes up to roofs): lean into the wall and haul up to the top.
+# Slow on purpose: the roof buys the player time, it is not a safe spot.
+func _on_link(details: Dictionary) -> void:
+	if _dead or _climbing: return
+	var a: Vector3 = details.get("link_entry_position", global_position)
+	var b: Vector3 = details.get("link_exit_position", global_position)
+	if b.y < a.y + 0.6: return                 # going down: just walk off the edge
+	_climbing = true
+	var flat := Vector3(b.x - a.x, 0, b.z - a.z)
+	if flat.length() > 0.1: look_at(global_position + flat, Vector3.UP)
+	var steps: Array = []
+	var owner_n = details.get("owner", null)
+	if owner_n is Node and (owner_n as Node).has_meta("via"): steps = ((owner_n as Node).get_meta("via") as Array).duplicate()
+	steps.append(b)
+	_body.rotation.x = -0.3                     # lean in, arms reaching up
+	var t := create_tween(); _climb_tw = t
+	var cur := global_position
+	for st in steps:                            # hop up each step: haul up, then onto it
+		var p: Vector3 = st
+		var rise := maxf(p.y - cur.y, 0.0)
+		t.tween_property(self, "global_position", Vector3(cur.x, p.y + 0.25, cur.z).lerp(Vector3(p.x, p.y + 0.25, p.z), 0.3), 0.25 + 0.3 * rise)
+		t.tween_property(self, "global_position", p + Vector3(0, 0.08, 0), 0.22)
+		t.tween_interval(0.12)
+		cur = p
+	t.tween_callback(func() -> void:
+		_climbing = false; _body.rotation.x = 0.0; _stuck_t = 0.0; _stuck_from = global_position)
+
 func hit(dmg: int, is_head: bool = false, _attacker = null) -> void:
 	if _dead:
 		return
@@ -127,6 +160,8 @@ func hit(dmg: int, is_head: bool = false, _attacker = null) -> void:
 
 func _die() -> void:
 	_dead = true
+	_climbing = false
+	if _climb_tw and _climb_tw.is_valid(): _climb_tw.kill()
 	Controls.kills += 1
 	Missions.add("kill"); if Controls.weapon_id == "knife": Missions.add("knife_kill")
 	Controls.points += 10

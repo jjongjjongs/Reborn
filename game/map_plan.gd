@@ -217,9 +217,35 @@ func _reststop_props() -> void:
 		box(P.call(4.0 + i * 4.0, 4.0, 0.012), Vector3(2.0, 0.02, 0.18), white, 0.0, false, false)
 	for i in 7:
 		box(P.call(26.0 + i * 3.0, 38.8, 0.012), Vector3(0.12, 0.02, 4.6), white, 0.0, false, false)
+	_reststop_routes()
 	# quarantine sandbags beside the gaps in the back wall
 	for x in [7.0, 13.0, 27.0, 33.0, 39.0, 45.0]:
 		box(P.call(x, 48.6, 0.32), Vector3(2.4, 0.64, 0.9), Color(0.50, 0.44, 0.32), 0.0, true)
+
+# jump routes up to the roofs (jump = 1.6 m): each step is at most ~1.4 m. Zombies get a climb
+# link (NavigationLink3D) from the foot of the route to its top, see Zombie._climb.
+func _reststop_routes() -> void:
+	var wood := Color(0.50, 0.36, 0.22); var green := Color(0.20, 0.36, 0.26); var concrete := Color(0.62, 0.60, 0.56)
+	# 1) forecourt -> shop roof: dumpster (1.2) -> wall ledge (2.6) -> roof (4.0)
+	box(Vector3(-6.5, 0.6, -7.6), Vector3(1.9, 1.2, 1.2), green)                       # dumpster
+	box(Vector3(-6.5, 1.22, -7.6), Vector3(2.0, 0.06, 1.3), Color(0.12, 0.18, 0.14), 0.0, false, false)
+	box(Vector3(-6.5, 2.5, -6.4), Vector3(3.0, 0.2, 0.8), concrete)                    # wide ledge
+	for x in [-7.8, -5.2]:                                                              # brackets under it
+		box(Vector3(x, 2.15, -6.25), Vector3(0.14, 0.5, 0.5), concrete, 0.0, false)
+	# 2) shop roof <-> canopy roof: a plank bridge (3.2 -> 4.0)
+	ramp(Vector3(-3.0, 3.22, -12.6), Vector3(-3.0, 4.02, -5.4), 1.3, wood)
+	# 3) parking: crate (1.1) -> container (2.6)
+	box(Vector3(-22.6, 0.55, 13.0), Vector3(1.1, 1.1, 1.1), wood)
+	# zombie climb links (foot of the route -> top) and the bridge
+	_link(Vector3(-6.5, 0.0, -9.0), Vector3(-6.5, 4.0, -5.0), [Vector3(-6.5, 1.2, -7.9), Vector3(-6.5, 2.6, -6.5)])
+	_link(Vector3(-21.2, 0.0, 13.0), Vector3(-25.0, 2.6, 12.5), [Vector3(-22.6, 1.1, 13.0)])
+
+func _link(a: Vector3, b: Vector3, via: Array = []) -> void:
+	var l := NavigationLink3D.new()
+	l.set_meta("via", via)            # the steps a zombie hops up on (dumpster, ledge, crate)
+	l.bidirectional = true
+	l.start_position = a; l.end_position = b
+	nav.add_child(l)
 
 func _palm(p: Vector3, k: int) -> void:
 	var lean := Vector3(0.35 * sin(k), 0, 0.35 * cos(k))
