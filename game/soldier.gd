@@ -90,12 +90,14 @@ var body := "mini"                 # "mini" (default toy soldier) or "swat" (sho
 var gun_k := 1.0                   # weapon size multiplier (the chunky mini holds bigger guns)
 static var test_body := ""
 var cheap := false
+const FACE_MATS := ["R_Skin", "R_Blush", "R_EyeWhite", "R_Iris", "R_IrisDark", "R_Pupil", "R_Shine", "R_Lash", "R_Hair", "R_Bandage"]
 var fp_gun := false                # first-person arms: the gun pose comes from the view model (fp_gun_xf, soldier space)
 var fp_gun_xf := Transform3D()
 var pocket_off := Vector3.ZERO     # long guns: shift the shoulder pocket (bulky bodies)
 var hand_back := 0.08              # wrist this far behind the grip point (big gloves: less)                 # crowd LOD: retarget every other frame
 const BODIES := {"mini": "res://assets/soldier/MiniV3.glb", "swat": "res://assets/soldier/MiniSwat.glb",
-	"zombie": "res://assets/soldier/MiniZombie.glb", "rookie": "res://assets/soldier/RookieT.glb"}   # all built on the SWAT skeleton (tools/blender/build_minis.py)
+	"zombie": "res://assets/soldier/MiniZombie.glb", "rookie": "res://assets/soldier/RookieT.glb",
+	"rookie_b": "res://assets/soldier/RookieB.glb"}     # rookie_b: built in Blender (tools/blender/build_mini_v3.py), shading in vertex colours   # all built on the SWAT skeleton (tools/blender/build_minis.py)
 var gear := "helmet"               # mini head gear: helmet / beret / mask
 
 func setup(team_color: Color, kit: Color = Color(0, 0, 0, 0)) -> void:
@@ -103,9 +105,9 @@ func setup(team_color: Color, kit: Color = Color(0, 0, 0, 0)) -> void:
 	_kit = kit
 	# visible body (SWAT, or the Mini Soldier test body built on the same skeleton)
 	if test_body != "": body = test_body
-	gun_k = 1.35 if body == "rookie" else (1.15 if BODIES.has(body) else 1.0)      # chibi Tripo body: bigger guns
-	pocket_off = Vector3(0.04, 0.0, -0.15) if body == "rookie" else Vector3.ZERO    # thick vest: rifle in front of it
-	hand_back = 0.0 if body == "rookie" else 0.08
+	gun_k = 1.35 if body.begins_with("rookie") else (1.15 if BODIES.has(body) else 1.0)      # chibi Tripo body: bigger guns
+	pocket_off = Vector3(0.04, 0.0, -0.15) if body.begins_with("rookie") else Vector3.ZERO    # thick vest: rifle in front of it
+	hand_back = 0.0 if body.begins_with("rookie") else 0.08
 	var path: String = BODIES.get(body, "")
 	var swat: Node3D = (load(path) as PackedScene).instantiate() if path != "" else SWAT.instantiate()
 	var gears := swat.find_children("Gear_*", "", true, false)
@@ -350,8 +352,16 @@ func _team_tint(mi: MeshInstance3D) -> void:
 		var cv := Vector3(c.r, c.g, c.b)
 		var col := Color.BLACK
 		if body.begins_with("rookie"):           # concept palette: only the team patches / tabs take the colour
-			if not m.resource_name.begins_with("Team"): continue
+			var vcol := body == "rookie_b"          # baked AO / cavity / fabric noise in the vertex colours
+			if not m.resource_name.begins_with("Team"):
+				if vcol:
+					var dm := (m as StandardMaterial3D).duplicate() as StandardMaterial3D
+					dm.vertex_color_use_as_albedo = true
+					if m.resource_name in FACE_MATS: dm.disable_receive_shadows = true   # anime face: no jagged helmet shadow
+					mi.set_surface_override_material(s, dm)
+				continue
 			var nm2 := StandardMaterial3D.new(); nm2.albedo_color = _team; nm2.roughness = 0.6
+			nm2.vertex_color_use_as_albedo = vcol
 			mi.set_surface_override_material(s, nm2)
 			continue
 		if cv.distance_to(grey) < 0.14:        # plate carrier / gear -> full team color

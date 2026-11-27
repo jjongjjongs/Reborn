@@ -12,6 +12,7 @@ const CATS := [["body", "캐릭터"], ["gear", "머리 장비"], ["suit", "병�
 const ITEMS := [
 	# body: the soldier model (same skeleton / animations)
 	{"id": "body_rookie", "cat": "body", "name": "루키 어썰트", "price": 0},
+	{"id": "body_rookie_b", "cat": "body", "name": "루키 어썰트 (블렌더)", "price": 0},
 	{"id": "body_mini", "cat": "body", "name": "꼬마 병사", "price": 0},
 	{"id": "body_swat", "cat": "body", "name": "꼬마 SWAT", "price": 300},
 	# gear: head gear on the mini

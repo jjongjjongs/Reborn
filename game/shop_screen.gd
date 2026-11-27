@@ -206,7 +206,7 @@ func _card(it: Dictionary) -> Control:
 		var tl := _lbl(String(it["name"]), 20, rar[1]); tl.position = Vector2(8, 16); sw.add_child(tl)
 	elif cat == "body" or cat == "gear":
 		sw.color = Color(0.10, 0.13, 0.16)
-		var sub: String = {"body_rookie": "기본 · 컨셉 아트 3D 모델", "body_mini": "큰 머리 장난감 병정", "body_swat": "복면·바이저 헬멧 특수부대 (머리 장비 고정)", "gear_helmet": "고글 올린 전투 헬멧",
+		var sub: String = {"body_rookie": "기본 · 컨셉 아트 3D 모델", "body_rookie_b": "Blender로 직접 만든 버전", "body_mini": "큰 머리 장난감 병정", "body_swat": "복면·바이저 헬멧 특수부대 (머리 장비 고정)", "gear_helmet": "고글 올린 전투 헬멧",
 			"gear_beret": "꼬마 병사 전용", "gear_mask": "꼬마 병사 전용"}.get(id, "")
 		var tl := _lbl(sub, 13, MUTED); tl.position = Vector2(8, 20); sw.add_child(tl)
 	elif c.a == 0.0:
