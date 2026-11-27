@@ -35,6 +35,7 @@ func build_plan(file: String) -> Dictionary:
 			m.create_trimesh_collision()
 		else:
 			m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			if nm == "Detail": _awning_cols(m)
 	# stairs are drawn as steps but walked as smooth slopes (solid wedges)
 	for r in plan["ramps"]:
 		_wedge(float(r[0]), float(r[1]), float(r[2]), float(r[3]), float(r[4]), float(r[5]), String(r[6]))
@@ -154,6 +155,33 @@ func _plan_props() -> void:
 				barrel(p + Vector3(-0.35, 0, -0.3), cols[k % 3])
 				barrel(p + Vector3(0.45, 0, 0.1), cols[(k + 1) % 3])
 				if k % 2 == 0: barrel(p + Vector3(-0.2, 0, 0.55), cols[(k + 2) % 3])
+
+# shop awnings are part of the visual Detail mesh: give just those surfaces a collider so you can stand
+# on them (climb from a crate, jump across). Thickened into small slabs so nobody falls through.
+func _awning_cols(m: MeshInstance3D) -> void:
+	var mesh := m.mesh
+	if mesh == null: return
+	var xf := m.global_transform
+	for si in mesh.get_surface_count():
+		var mt := mesh.surface_get_material(si)
+		if mt == null or not mt.resource_name.contains("awning"): continue
+		var arr := mesh.surface_get_arrays(si)
+		var v: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+		var idx = arr[Mesh.ARRAY_INDEX]
+		var tris := PackedVector3Array()
+		if idx == null or (idx as PackedInt32Array).is_empty():
+			for i in v.size(): tris.append(xf * v[i])
+		else:
+			for i in (idx as PackedInt32Array): tris.append(xf * v[i])
+		var sb := StaticBody3D.new()
+		for t in range(0, tris.size() - 2, 3):          # each triangle -> a thin prism
+			var pts := PackedVector3Array()
+			for k in 3:
+				pts.append(tris[t + k]); pts.append(tris[t + k] - Vector3(0, 0.12, 0))
+			var sh := ConvexPolygonShape3D.new(); sh.points = pts
+			var col := CollisionShape3D.new(); col.shape = sh
+			sb.add_child(col)
+		nav.add_child(sb)
 
 # 폐휴게소: what makes it read as a highway rest stop (pumps under the canopy, pole sign, shop sign, road paint)
 func _reststop_props() -> void:

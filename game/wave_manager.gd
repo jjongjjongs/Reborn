@@ -27,6 +27,7 @@ var _to_spawn := 0
 var _spawn_cd := 0.0
 var _alive := 0
 var _prep := PREP
+var zones: ZoneGates           # survival maps that open up area by area
 
 func _ready() -> void:
 	Controls.wave_total = WAVES.size()
@@ -36,6 +37,9 @@ func _start_prep() -> void:
 	_state = "prep"
 	_prep = PREP
 	Controls.prep_left = PREP
+	if zones:
+		zones.open_for_wave(_wave + 2)       # the area for the coming wave opens now
+		spawn_points = zones.spawns()
 
 func _start_wave() -> void:
 	_wave += 1
@@ -80,8 +84,18 @@ func _spawn_one() -> void:
 	z.hp_scale = float(cur["hp_mul"])
 	z.spd_scale = float(cur["spd_mul"])
 	z.player = player
+	z.respawn_pts = spawn_points
+	# a free spot near a spawn point (zombies spawned inside each other get shoved through the floor)
 	var base: Vector3 = spawn_points[randi() % spawn_points.size()]
-	z.position = base + Vector3(randf_range(-2.0, 2.0), 0.0, randf_range(-2.0, 2.0))
+	var pos := base
+	for tries in 10:
+		pos = base + Vector3(randf_range(-1.6, 1.6), 0.0, randf_range(-1.6, 1.6))
+		var free := true
+		for o in arena.get_tree().get_nodes_in_group("zombie"):
+			if Vector2((o as Node3D).global_position.x - pos.x, (o as Node3D).global_position.z - pos.z).length() < 1.0:
+				free = false; break
+		if free: break
+	z.position = pos
 	z.died.connect(_on_zombie_died)
 	arena.add_child(z)
 	_alive += 1

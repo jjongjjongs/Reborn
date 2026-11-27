@@ -22,6 +22,10 @@ var _agent: NavigationAgent3D
 var _body: Soldier
 var _flash := 0.0
 var player: Node3D
+var respawn_pts: Array = []      # where a hopelessly stuck zombie is put back (wave spawns)
+var _stuck_t := 0.0
+var _stuck_hits := 0
+var _stuck_from := Vector3.ZERO
 
 func _ready() -> void:
 	# never inherit a 'platform' velocity from a body we stood on (e.g. another character that respawned far away)
@@ -54,10 +58,13 @@ func _physics_process(delta: float) -> void:
 	_warmup = maxf(0.0, _warmup - delta)
 	if player == null:
 		return
+	if global_position.y < -8.0 and not respawn_pts.is_empty():   # fell out of the world: back to a spawn
+		global_position = respawn_pts[randi() % respawn_pts.size()]; velocity = Vector3.ZERO
 	var to_player := player.global_position - global_position
+	var dy := absf(to_player.y)
 	to_player.y = 0.0
 	var dist := to_player.length()
-	if dist <= ATTACK_DIST:
+	if dist <= ATTACK_DIST and dy < 1.6:     # not through a roof / from under the canopy
 		# attack
 		if _atk_cd <= 0.0:
 			_atk_cd = ATTACK_COOL
@@ -71,14 +78,31 @@ func _physics_process(delta: float) -> void:
 		var next := _agent.get_next_path_position()
 		var dir := next - global_position
 		dir.y = 0.0
-		# off-mesh / no path / shoved onto cover -> beeline so it walks off and drops
-		if dir.length() < 0.15 or global_position.y > 0.6:
+		# no path (target unreachable / we are off the mesh): head straight at the player
+		if dir.length() < 0.15 and _agent.is_navigation_finished():
 			dir = to_player
 		if dir.length() > 0.05:
 			dir = dir.normalized()
 			velocity.x = dir.x * SPEED * spd_scale * Difficulty.v("z_spd")
 			velocity.z = dir.z * SPEED * spd_scale * Difficulty.v("z_spd")
 			look_at(global_position + Vector3(dir.x, 0, dir.z), Vector3.UP)
+		# stuck watchdog: barely moved for a while while chasing -> sidestep, then put back at a spawn
+		_stuck_t += delta
+		if _agent.is_navigation_finished() or dist < 4.0:   # waiting under the player is not "stuck"
+			_stuck_t = 0.0; _stuck_hits = 0; _stuck_from = global_position
+		elif _stuck_t > 1.2:
+			var moved := global_position.distance_to(_stuck_from)
+			if moved < 0.4:
+				_stuck_hits += 1
+				if _stuck_hits >= 3 and not respawn_pts.is_empty():
+					global_position = respawn_pts[randi() % respawn_pts.size()]
+					velocity = Vector3.ZERO; _stuck_hits = 0
+				else:
+					var side := Vector3(-dir.z, 0, dir.x) * (1.0 if randf() < 0.5 else -1.0)
+					global_position += side * 0.35 + Vector3(0, 0.05, 0)
+			else:
+				_stuck_hits = 0
+			_stuck_t = 0.0; _stuck_from = global_position
 	else:
 		velocity.x = 0.0; velocity.z = 0.0
 	_body.drive(clampf(Vector2(velocity.x, velocity.z).length() / 5.0, 0.0, 0.6), true)   # shamble: walk / jog, never sprint

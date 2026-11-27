@@ -20,6 +20,11 @@ func _ready() -> void:
 	wm.player = player
 	if _map.has("zombie"):
 		wm.spawn_points = _map["zombie"]
+	if ZoneGates.has_zones("zombie_reststop") and Controls.sel_map == "reststop":
+		var navs := find_children("*", "NavigationRegion3D", true, false)
+		var zg := ZoneGates.new(); add_child(zg)
+		zg.setup("zombie_reststop", navs[0] if navs.size() > 0 else null, _map.get("bounds", Rect2()))
+		wm.zones = zg
 	add_child(wm)
 
 func _build_world() -> void:
