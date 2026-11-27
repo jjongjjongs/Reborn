@@ -23,6 +23,7 @@ func _run() -> void:
 	for s in spots:
 		var b: Node3D = s[0]; b.global_position = base + s[1]
 		b.look_at(base + Vector3(0, 0, s[1].z * 0.2), Vector3.UP) if b.team != pl.team else b.look_at(base + s[1] + fwd * 5.0, Vector3.UP)
+	for t in sc.find_children("*", "TeamTags", true, false): t.queue_free()     # 시안: no head markers
 	for i in 20: await process_frame
 	_shot("none")
 	for b in bots:
@@ -32,5 +33,14 @@ func _run() -> void:
 	C.view_fp = true
 	for i in 30: await process_frame
 	_shot("fp")
-	C.view_fp = false
+	# sniper scope on the far enemy
+	C.loadout[0] = "sniper"; pl._ammo["sniper"] = pl._mag_of("sniper"); pl._equip(0, true)
+	for i in 30: await process_frame
+	var e: Node3D = spots[4][0]
+	var d: Vector3 = e.global_position + Vector3(0, 1.1, 0) - (pl.global_position + Vector3(0, 1.5, 0))
+	pl.aim_yaw = rad_to_deg(atan2(-d.x, -d.z)); pl.aim_pitch = rad_to_deg(atan2(d.y, Vector2(d.x, d.z).length()))
+	C.scoped = true
+	for i in 40: await process_frame
+	_shot("scope")
+	C.scoped = false; C.view_fp = false; C.loadout[0] = "m4"; C.save_settings()
 	quit()
