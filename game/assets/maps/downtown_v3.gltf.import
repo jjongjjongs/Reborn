@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://ch6njlrjsa848"
-path="res://.godot/imported/downtown.gltf-83eb6879e2fa5fc6c6454dda1bd7bd36.scn"
+uid="uid://bbqjn8nlf3i7w"
+path="res://.godot/imported/downtown_v3.gltf-8db5a280925655fc684bb9ae22ee48d8.scn"
 
 [deps]
 
-source_file="res://assets/maps/downtown.gltf"
-dest_files=["res://.godot/imported/downtown.gltf-83eb6879e2fa5fc6c6454dda1bd7bd36.scn"]
+source_file="res://assets/maps/downtown_v3.gltf"
+dest_files=["res://.godot/imported/downtown_v3.gltf-8db5a280925655fc684bb9ae22ee48d8.scn"]
 
 [params]
 

@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://bc2jnjib6rcuh"
-path="res://.godot/imported/bazaar.gltf-85d70cb9a921daf2e04c2a42ef77e240.scn"
+uid="uid://dplvioauw26ec"
+path="res://.godot/imported/cell_v3.gltf-664268126f300199681ee2079cfe0f1d.scn"
 
 [deps]
 
-source_file="res://assets/maps/bazaar.gltf"
-dest_files=["res://.godot/imported/bazaar.gltf-85d70cb9a921daf2e04c2a42ef77e240.scn"]
+source_file="res://assets/maps/cell_v3.gltf"
+dest_files=["res://.godot/imported/cell_v3.gltf-664268126f300199681ee2079cfe0f1d.scn"]
 
 [params]
 

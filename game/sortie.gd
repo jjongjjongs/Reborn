@@ -20,10 +20,10 @@ const BOMB_MAPS := [
 	{"id": "facility", "plan": "facility", "name": "연구 시설", "en": "FACILITY", "size": "108×96m · 5 vs 5", "tag": "반응로실 A · 하역장 B · 실내 복도", "ready": true, "ground": Color("2a2d31")},
 ]
 const MAPS := [
-	{"id": "downtown", "plan": "downtown", "name": "다운타운", "en": "DOWNTOWN", "size": "72×60m · 4–8명", "tag": "대로 · 지하철 · 주차장 2층", "ready": true, "ground": Color("2a2d31")},
-	{"id": "bazaar", "plan": "bazaar", "name": "사막 시장", "en": "BAZAAR", "size": "68×60m · 4–8명", "tag": "광장 · 실내 시장 · 지붕 테라스", "ready": true, "ground": Color("3a3226")},
-	{"id": "cell", "plan": "cell", "name": "교도소", "en": "CELLBLOCK", "size": "64×56m · 4–8명", "tag": "감방 복도 · 감시탑 · 운동장 통로", "ready": true, "ground": Color("2a2e33")},
-	{"id": "harbor", "plan": "harbor", "name": "컨테이너 항구", "en": "HARBOR", "size": "72×56m · 4–8명", "tag": "컨테이너 미로 · 사무동 옥상", "ready": true, "ground": Color("263038")},
+	{"id": "downtown", "plan": "downtown_v3", "name": "다운타운", "en": "DOWNTOWN", "size": "68×56m · 4–8명", "tag": "주차 데크 · 실내 로비 · 지하철 터널", "ready": true, "ground": Color("2a2d31")},
+	{"id": "bazaar", "plan": "bazaar_v3", "name": "사막 시장", "en": "BAZAAR", "size": "68×56m · 4–8명", "tag": "덮인 시장 · 분수 광장 테라스 · 수로", "ready": true, "ground": Color("3a3226")},
+	{"id": "cell", "plan": "cell_v3", "name": "교도소", "en": "CELLBLOCK", "size": "68×56m · 4–8명", "tag": "감방 복도 · 감시탑 운동장 · 탈옥 터널", "ready": true, "ground": Color("2a2e33")},
+	{"id": "harbor", "plan": "harbor_v3", "name": "컨테이너 항구", "en": "HARBOR", "size": "68×56m · 4–8명", "tag": "창고 실내 · 컨테이너 야적장 · 크레인 부두", "ready": true, "ground": Color("263038")},
 ]
 const ZOMBIE_MAPS := [
 	{"id": "reststop", "plan": "zombie_reststop", "name": "폐휴게소", "en": "REST STOP", "size": "64×56m · 좀비 전용", "tag": "편의점 농성 · 주유소 지붕 · 모텔 · 주차장 순환로", "ready": true, "ground": Color("2b2a2e")},

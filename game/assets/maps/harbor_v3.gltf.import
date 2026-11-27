@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://jpmplkkypmg0"
-path="res://.godot/imported/harbor.gltf-626cc5d4fb88e3dfbeb46df24bd85e4a.scn"
+uid="uid://oihhhc0hmuuv"
+path="res://.godot/imported/harbor_v3.gltf-5b641488cfb33af63997e4f3f678af37.scn"
 
 [deps]
 
-source_file="res://assets/maps/harbor.gltf"
-dest_files=["res://.godot/imported/harbor.gltf-626cc5d4fb88e3dfbeb46df24bd85e4a.scn"]
+source_file="res://assets/maps/harbor_v3.gltf"
+dest_files=["res://.godot/imported/harbor_v3.gltf-5b641488cfb33af63997e4f3f678af37.scn"]
 
 [params]
 

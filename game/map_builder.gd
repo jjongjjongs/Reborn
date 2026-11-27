@@ -19,7 +19,8 @@ static func build(id: String, parent: Node3D) -> Dictionary:
 		"quarter", "dockside", "facility", "downtown", "bazaar", "cell", "harbor", "range", "reststop":
 			var m := MapPlan.new()
 			m.root = parent
-			return m.build_plan({"quarter": "oldquarter", "range": "training", "reststop": "zombie_reststop"}.get(id, id))
+			return m.build_plan({"quarter": "oldquarter", "range": "training", "reststop": "zombie_reststop",
+				"downtown": "downtown_v3", "bazaar": "bazaar_v3", "cell": "cell_v3", "harbor": "harbor_v3"}.get(id, id))
 		"oldtown":
 			var o := MapOldTown.new()
 			o.root = parent
