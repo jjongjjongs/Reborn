@@ -343,6 +343,11 @@ func _team_tint(mi: MeshInstance3D) -> void:
 		var c := (m as StandardMaterial3D).albedo_color
 		var cv := Vector3(c.r, c.g, c.b)
 		var col := Color.BLACK
+		if body == "rookie":                     # concept palette: only the team patches / tabs take the colour
+			if not m.resource_name.begins_with("Team"): continue
+			var nm2 := StandardMaterial3D.new(); nm2.albedo_color = _team; nm2.roughness = 0.6
+			mi.set_surface_override_material(s, nm2)
+			continue
 		if cv.distance_to(grey) < 0.14:        # plate carrier / gear -> full team color
 			col = _team
 		elif cv.distance_to(dark) < 0.12:      # dark fatigues -> team-tinted dark
