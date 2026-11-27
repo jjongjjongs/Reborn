@@ -11,6 +11,7 @@ func build_temple() -> Dictionary:
 	_env(Color(0.62, 0.74, 0.88), Color(0.78, 0.80, 0.80), 1.0, Vector3(-50, -40, 0), Color(1.0, 0.95, 0.86), 1.25, Color(0.72, 0.80, 0.84), 0.004)
 	var model: Node3D = (load("res://assets/maps/temple.gltf") as PackedScene).instantiate()
 	nav.add_child(model)
+	_batch_trees(model)
 	for mi in model.find_children("*", "MeshInstance3D", true, false):
 		var m := mi as MeshInstance3D
 		var nm := String(m.name)
@@ -23,8 +24,10 @@ func build_temple() -> Dictionary:
 				var sm := m.mesh.surface_get_material(si) as StandardMaterial3D
 				if sm: var dm := sm.duplicate() as StandardMaterial3D; dm.vertex_color_use_as_albedo = true; dm.albedo_color = Color.WHITE; m.set_surface_override_material(si, dm)
 		if nm.begins_with("Vis_Water"):
-			var wm := StandardMaterial3D.new(); wm.albedo_color = Color(0.20, 0.40, 0.48, 0.82); wm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			wm.roughness = 0.08; wm.metallic = 0.2; m.material_override = wm
+			var wm := StandardMaterial3D.new(); wm.albedo_color = Color(0.22, 0.46, 0.56, 0.78); wm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			wm.roughness = 0.05; wm.metallic = 0.35; wm.metallic_specular = 0.9
+			wm.cull_mode = BaseMaterial3D.CULL_DISABLED                 # the surface was exported facing down: show both sides
+			m.material_override = wm
 	# tree trunks inside the valley block bullets and players
 	for t in d["trunks"]:
 		var sb := StaticBody3D.new(); var cs := CollisionShape3D.new(); var cy := CylinderShape3D.new(); cy.radius = 0.35; cy.height = 8.0
@@ -58,3 +61,19 @@ func _rect_poly(p: PackedVector2Array) -> Rect2:
 	var r := Rect2(p[0], Vector2.ZERO)
 	for q in p: r = r.expand(q)
 	return r
+
+## ~530 trees were one draw call per tree and material (over 1200 calls looking up the valley from the
+## attackers' start): put every tree of the same mesh into one MultiMesh (a handful of calls)
+func _batch_trees(model: Node3D) -> void:
+	var by_mesh := {}
+	for mi in model.find_children("Vis_Tree*", "MeshInstance3D", true, false):
+		var m := mi as MeshInstance3D
+		if not by_mesh.has(m.mesh): by_mesh[m.mesh] = []
+		by_mesh[m.mesh].append(m.global_transform if m.is_inside_tree() else (model.transform * m.transform))
+		m.queue_free()
+	for mesh in by_mesh:
+		var xs: Array = by_mesh[mesh]
+		var mm := MultiMesh.new(); mm.transform_format = MultiMesh.TRANSFORM_3D; mm.mesh = mesh; mm.instance_count = xs.size()
+		for i in xs.size(): mm.set_instance_transform(i, xs[i])
+		var mmi := MultiMeshInstance3D.new(); mmi.multimesh = mm
+		nav.add_child(mmi)
