@@ -11,25 +11,25 @@ OUT = "/home/user/Reborn/game/assets/soldier/RookieT.glb"
 for o in list(bpy.data.objects):
     bpy.data.objects.remove(o, do_unlink=True)
 log = []
-# ---- 1. the T-pose figure from the full-detail mesh
-bpy.ops.import_scene.gltf(filepath="/tmp/tripo_out/a.glb")
+# ---- 1. the T-pose figure, already cut out + repacked onto its own 2048 maps (repack_tripo.py + tripo_transfer.py)
+NAME = globals().get("NAME", "char")
+bpy.ops.wm.open_mainfile(filepath="/tmp/tripo_out/%s_cut.blend" % NAME)
 mesh = [o for o in bpy.data.objects if o.type == "MESH"][0]
-bpy.context.view_layer.objects.active = mesh
-for o in bpy.context.selected_objects: o.select_set(False)
-mesh.select_set(True)
-bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-mn = Vector((-0.082, -0.458, -0.035)) - Vector((0.004, 0.004, 0.004))
-mx = Vector((-0.082 + 0.136, -0.458 + 0.243, -0.035 + 0.346)) + Vector((0.004, 0.004, 0.004))
-bm = bmesh.new(); bm.from_mesh(mesh.data)
-kill = [v for v in bm.verts if not (mn.x <= v.co.x <= mx.x and mn.y <= v.co.y <= mx.y and mn.z <= v.co.z <= mx.z)]
-bmesh.ops.delete(bm, geom=kill, context="VERTS")
-bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=0.0003)
-bm.to_mesh(mesh.data); bm.free()
-log.append("figure faces %d" % len(mesh.data.polygons))
-# ---- 2. decimate to ~20k
-dec = mesh.modifiers.new("dec", "DECIMATE"); dec.ratio = min(1.0, 20000.0 / max(len(mesh.data.polygons), 1))
-bpy.ops.object.modifier_apply(modifier="dec")
-log.append("decimated faces %d" % len(mesh.data.polygons))
+me = mesh.data
+me.uv_layers.remove(me.uv_layers["old"])
+mat = bpy.data.materials.new(NAME); mat.use_nodes = True; nt = mat.node_tree
+bsdf = nt.nodes["Principled BSDF"]
+def img(path, data):
+    n = nt.nodes.new("ShaderNodeTexImage"); n.image = bpy.data.images.load(path)
+    if data: n.image.colorspace_settings.name = "Non-Color"
+    return n
+nt.links.new(img("/tmp/tripo_out/%s_color.jpg" % NAME, False).outputs["Color"], bsdf.inputs["Base Color"])
+sep = nt.nodes.new("ShaderNodeSeparateColor"); nt.links.new(img("/tmp/tripo_out/%s_orm.jpg" % NAME, True).outputs["Color"], sep.inputs[0])
+nt.links.new(sep.outputs[1], bsdf.inputs["Roughness"]); nt.links.new(sep.outputs[2], bsdf.inputs["Metallic"])
+nn = nt.nodes.new("ShaderNodeNormalMap"); nt.links.new(img("/tmp/tripo_out/%s_normal.png" % NAME, True).outputs["Color"], nn.inputs["Color"]); nt.links.new(nn.outputs[0], bsdf.inputs["Normal"])
+me.materials.clear(); me.materials.append(mat)
+for p in me.polygons: p.use_smooth = True
+log = ["figure faces %d" % len(me.polygons)]
 # ---- 3. face -Y, game height, feet on the ground
 for v in mesh.data.vertices:            # turn so the face (+X in the file) looks down -Y: (x, y) -> (y, -x)
     v.co = Vector((v.co.y, -v.co.x, v.co.z))
@@ -159,12 +159,10 @@ mesh.matrix_parent_inverse = arm.matrix_world.inverted()     # keep the mesh whe
 md = mesh.modifiers.new("Armature", "ARMATURE"); md.object = arm
 mesh.name = "Rookie_Body"
 # smaller textures for mobile
-for img in bpy.data.images:
-    if img.size[0] > 1024: img.scale(1024, 1024)
 for o in bpy.context.selected_objects: o.select_set(False)
 arm.select_set(True); mesh.select_set(True)
 bpy.ops.export_scene.gltf(filepath=OUT, export_format="GLB", use_selection=True, export_skins=True, export_animations=False,
-    export_materials="EXPORT", export_image_format="JPEG", export_cameras=False, export_lights=False)
+    export_materials="EXPORT", export_image_format="AUTO", export_cameras=False, export_lights=False)
 log.append("exported")
 open("/tmp/bwork/tripo_rig.txt", "w").write("\n".join(log))
 print("\n".join(log))

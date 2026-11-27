@@ -370,7 +370,7 @@ func _team_tint(mi: MeshInstance3D) -> void:
 # as a fraction of length above the model's centre].
 const WEAPONS := {
 	"ak":       {"len": 0.88, "kind": "long",   "butt": [0.01, 0.03],  "grip": [0.29, 0.0],   "fore": [0.66, 0.07]},
-	"m4":       {"len": 0.84, "kind": "long",   "butt": [0.01, 0.04],  "grip": [0.31, -0.06], "fore": [0.70, -0.02], "fp": 0.78},   # AR-9R (concept): vertical foregrip
+	"m4":       {"len": 0.84, "kind": "long",   "butt": [0.01, 0.04],  "grip": [0.30, -0.10], "fore": [0.70, -0.05], "fp": 0.78, "vfore": true},   # AR-9R (concept): vertical foregrip
 	"mp5":      {"len": 0.66, "kind": "long",   "butt": [0.01, 0.06],  "grip": [0.42, -0.01], "fore": [0.76, 0.09]},
 	"shotgun":  {"len": 1.00, "kind": "long",   "butt": [0.01, -0.03], "grip": [0.27, 0.01],  "fore": [0.70, 0.02]},
 	"sniper":   {"len": 1.15, "kind": "long",   "butt": [0.01, -0.03], "grip": [0.26, -0.01], "fore": [0.48, 0.01]},

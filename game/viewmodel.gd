@@ -13,7 +13,7 @@ const SLEEVE := Color(0.25, 0.27, 0.21)
 const GLOVE := Color(0.13, 0.12, 0.11)
 # per kind: right-hand grip point (camera space), weapon rotation (deg), shoulders the forearms start from
 const POSE := {
-	"long":   {"grip": Vector3(0.24, -0.21, -0.38), "rot": Vector3(1.0, -2.0, 0.0), "sr": Vector3(0.36, -0.44, 0.02), "sl": Vector3(0.02, -0.50, -0.16)},
+	"long":   {"grip": Vector3(0.19, -0.16, -0.52), "rot": Vector3(1.0, -2.0, 0.0), "sr": Vector3(0.36, -0.44, 0.02), "sl": Vector3(0.02, -0.50, -0.16)},
 	"pistol": {"grip": Vector3(0.14, -0.15, -0.48), "rot": Vector3(1.0, -2.0, 0.0), "sr": Vector3(0.26, -0.44, -0.10), "sl": Vector3(0.02, -0.44, -0.14)},
 	"knife":  {"grip": Vector3(0.25, -0.20, -0.38), "rot": Vector3(25.0, 25.0, -20.0), "sr": Vector3(0.34, -0.46, 0.0), "sl": Vector3(-0.30, -0.8, 0.0)},
 }
@@ -27,8 +27,13 @@ var _holder: Node3D
 var _gun: Node3D
 var _arm_r: MeshInstance3D
 var _arm_l: MeshInstance3D
-var _hand_r: MeshInstance3D
-var _hand_l: MeshInstance3D
+var _hand_r: Node3D          # gloved fists (assets/fp/glove_*.glb, built by tools/blender/build_fp_gloves.py)
+var _hand_l: Node3D
+var _wrist_r := Vector3.ZERO  # cuff point in the glove's design frame
+var _wrist_l := Vector3.ZERO
+# glove files are authored Z-up in Blender: imported (x, y, z) = design (x, z, -y); this turns them back so
+# design +Y = along the grip, -Z = toward the muzzle, +X = back of the right hand
+const FIX := Basis(Vector3(1, 0, 0), Vector3(0, 0, 1), Vector3(0, -1, 0))
 var _flash: OmniLight3D
 var _flash_t := 0.0
 var _t := 0.0
@@ -42,7 +47,7 @@ func _ready() -> void:
 	var gl := StandardMaterial3D.new(); gl.albedo_color = GLOVE; gl.roughness = 0.8
 	_holder = Node3D.new(); add_child(_holder)
 	_arm_r = _limb(sl, 0.042); _arm_l = _limb(sl, 0.040)
-	_hand_r = _fist(gl); _hand_l = _fist(gl)
+	_hand_r = _glove("r"); _hand_l = _glove("l")
 	_flash = OmniLight3D.new(); _flash.light_color = Color(1, 0.8, 0.4); _flash.light_energy = 3.0; _flash.omni_range = 4.0
 	_flash.visible = false; add_child(_flash)
 
@@ -57,6 +62,25 @@ func _fist(m: Material) -> MeshInstance3D:   # rounded glove, long axis along th
 	cm.radial_segments = 10; cm.rings = 3
 	mi.mesh = cm; mi.material_override = m; mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(mi); return mi
+
+func _glove(side: String) -> Node3D:
+	var g: Node3D = (load("res://assets/fp/glove_%s.glb" % side) as PackedScene).instantiate()
+	var root := Node3D.new(); root.add_child(g); add_child(root)
+	g.transform = Transform3D(FIX, Vector3.ZERO)
+	for mi in g.find_children("*", "MeshInstance3D", true, false):
+		var m3 := mi as MeshInstance3D
+		m3.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		for si in m3.mesh.get_surface_count():               # the left glove is a mirror: draw both faces
+			var sm := m3.mesh.surface_get_material(si)
+			if sm is BaseMaterial3D:
+				var c := (sm as BaseMaterial3D).duplicate() as BaseMaterial3D
+				c.cull_mode = BaseMaterial3D.CULL_DISABLED
+				m3.set_surface_override_material(si, c)
+	var w := g.find_child("Wrist", true, false) as Node3D
+	var wp: Vector3 = FIX * w.position if w else Vector3(0.06, -0.08, 0.05)
+	if side == "r": _wrist_r = wp
+	else: _wrist_l = wp
+	return root
 
 func _box(m: Material, s: Vector3) -> MeshInstance3D:
 	var mi := MeshInstance3D.new(); var bm := BoxMesh.new(); bm.size = s
@@ -141,12 +165,25 @@ func _process(dt: float) -> void:
 	if _kind == "long": hl = _holder.transform * _anchor("fore") + bas * Vector3(0, -0.035, 0)   # under the handguard
 	elif _kind == "pistol": hl = hr + bas * Vector3(-0.045, -0.025, 0.02)                          # cupping the grip
 	else: hl = pose["sl"]
-	_place_limb(_arm_r, pose["sr"], hr)
-	_place_limb(_arm_l, pose["sl"], hl)
-	var hb := bas * Basis(Vector3.RIGHT, PI * 0.5)       # capsule axis (Y) -> along the barrel
-	_hand_r.transform = Transform3D(hb, hr + bas * Vector3(0, -0.02, 0.0))
-	_hand_l.transform = Transform3D(hb, hl + bas * Vector3(0, -0.01, 0.0))
+	# fists: right round the pistol grip (raked back), left round the vertical foregrip, or under the
+	# handguard with the grip axis along the barrel; knife: fist round the handle
+	var rake := Basis(Vector3.RIGHT, deg_to_rad(-15.0))
+	var along := Basis(Vector3.RIGHT, deg_to_rad(-90.0))
+	var br: Basis = bas * (along if _kind == "knife" else rake)
+	var bl: Basis
+	if _kind == "long" and bool(_wdef.get("vfore", false)):
+		hl = _holder.transform * _anchor("fore"); bl = bas
+	elif _kind == "long":
+		# cradle under the handguard: grip axis along the barrel, wrist down and back toward the shooter
+		hl = _holder.transform * _anchor("fore") + bas * Vector3(0, -0.03, 0)
+		bl = bas * Basis(Vector3.RIGHT, deg_to_rad(90.0)) * Basis(Vector3.UP, deg_to_rad(-25.0))
+	else:
+		bl = br
+	_hand_r.transform = Transform3D(br, hr)
+	_hand_l.transform = Transform3D(bl, hl)
 	_hand_l.visible = _kind != "knife"; _arm_l.visible = _kind != "knife"
+	_place_limb(_arm_r, pose["sr"], _hand_r.transform * _wrist_r)
+	if _kind != "knife": _place_limb(_arm_l, pose["sl"], _hand_l.transform * _wrist_l)
 	# muzzle (tracers / flash)
 	var mz: Vector3 = _holder.transform * Vector3(0, _anchor("grip").y + 0.03, -_len * 0.5)
 	_flash.position = mz
