@@ -8,7 +8,9 @@ func _shot(n: String) -> void:
 func _run() -> void:
 	await process_frame; await process_frame
 	var a := OS.get_cmdline_user_args()
-	if a.size() > 0: Profile.equip(a[0])            # the shop's own equip call
+	if a.size() > 0:
+		if not Profile.owns(a[0]): Profile._d["owned"].append(a[0])   # as if bought in the shop
+		Profile.equip(a[0])            # the shop's own equip call
 	print("TEST_BODY '", Soldier.test_body, "' equipped ", Profile.equipped("body"))
 	change_scene_to_file("res://Menu.tscn")
 	for i in 60: await process_frame

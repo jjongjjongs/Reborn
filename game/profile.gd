@@ -13,10 +13,10 @@ const ITEMS := [
 	# body: the soldier model (same skeleton / animations)
 	# the five concept-sheet characters, all built in Blender (tools/blender/build_mini_v3.py -- CLASS)
 	{"id": "body_rookie", "cat": "body", "name": "루키 어썰트", "price": 0},
-	{"id": "body_scout", "cat": "body", "name": "스위프트 스카우트", "price": 0},
-	{"id": "body_tech", "cat": "body", "name": "테크 서포트", "price": 0},
-	{"id": "body_sniper", "cat": "body", "name": "섀도 스나이퍼", "price": 0},
-	{"id": "body_heavy", "cat": "body", "name": "헤비 거너", "price": 0},
+	{"id": "body_scout", "cat": "body", "name": "스위프트 스카우트", "price": 400},
+	{"id": "body_tech", "cat": "body", "name": "테크 서포트", "price": 400},
+	{"id": "body_sniper", "cat": "body", "name": "섀도 스나이퍼", "price": 500},
+	{"id": "body_heavy", "cat": "body", "name": "헤비 거너", "price": 500},
 	# suit: the uniform colour (sleeves / trousers)
 	{"id": "suit_orange", "cat": "suit", "name": "기본 주황", "price": 0, "col": Color(0.95, 0.62, 0.24)},
 	{"id": "suit_desert", "cat": "suit", "name": "사막", "price": 120, "col": Color(0.78, 0.68, 0.48)},
@@ -75,6 +75,8 @@ static func _load() -> void:
 	if not _d.get("rookie_default", false):      # v98: Rookie Assault becomes the default body (once, for existing saves too)
 		_d["rookie_default"] = true; _d["equip"]["body"] = "body_rookie"; save()
 	if item(String(_d["equip"]["body"])).is_empty():   # v107: removed bodies (mini / swat / Tripo rookie) -> Rookie
+		_d["equip"]["body"] = "body_rookie"; save()
+	if not owns(String(_d["equip"]["body"])):           # v108: only the Rookie is free; the others are bought in the shop
 		_d["equip"]["body"] = "body_rookie"; save()
 
 ## nickname (main menu, top left); 2..12 characters

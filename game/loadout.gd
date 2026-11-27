@@ -57,9 +57,10 @@ func _build_left() -> void:
 	vp.own_world_3d = true; vp.transparent_bg = true
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	svc.add_child(vp)
-	var cam := Camera3D.new(); cam.fov = 38.0
+	var cam := Camera3D.new(); cam.fov = 36.0
 	vp.add_child(cam)
-	cam.position = Vector3(-1.45, 1.35, -2.1); cam.look_at_from_position(cam.position, Vector3(0.05, 1.0, -0.2))
+	# whole figure incl. helmet / hood / antenna, a little room above (same framing as the shop)
+	cam.position = Vector3(-1.75, 1.3, -3.2); cam.look_at_from_position(cam.position, Vector3(0.05, 0.98, -0.15))
 	var l := DirectionalLight3D.new(); l.rotation_degrees = Vector3(-40, -150, 0); vp.add_child(l)
 	var l2 := DirectionalLight3D.new(); l2.rotation_degrees = Vector3(-30, 30, 0); l2.light_energy = 0.6; vp.add_child(l2)
 	var we := WorldEnvironment.new(); var e := Environment.new()
