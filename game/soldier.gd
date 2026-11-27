@@ -101,7 +101,8 @@ const CLASSES := ["rookie", "scout", "tech", "sniper", "heavy"]
 const BODIES := {"zombie": "res://assets/soldier/MiniZombie.glb",
 	"rookie": "res://assets/soldier/Rookie.glb", "scout": "res://assets/soldier/Scout.glb", "tech": "res://assets/soldier/Tech.glb",
 	"sniper": "res://assets/soldier/Sniper.glb", "heavy": "res://assets/soldier/Heavy.glb"}
-var gear := "helmet"               # mini head gear: helmet / beret / mask
+var gear := "helmet"               # (unused: the old Mini's head gear)
+var skin := {}                     # character skin: material name -> colour (Profile.skin_mats)
 
 func setup(team_color: Color, kit: Color = Color(0, 0, 0, 0)) -> void:
 	_team = team_color
@@ -362,6 +363,7 @@ func _team_tint(mi: MeshInstance3D) -> void:
 				if vcol:
 					var dm := (m as StandardMaterial3D).duplicate() as StandardMaterial3D
 					dm.vertex_color_use_as_albedo = true
+					if skin.has(m.resource_name): dm.albedo_color = skin[m.resource_name]
 					if m.resource_name in FACE_MATS: dm.disable_receive_shadows = true   # anime face: no jagged helmet shadow
 					mi.set_surface_override_material(s, dm)
 				continue

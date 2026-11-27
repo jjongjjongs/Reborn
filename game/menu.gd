@@ -97,7 +97,7 @@ func _backdrop() -> void:
 	MapBuilder.backdrop = true
 	MapBuilder.build("quarter", w)
 	MapBuilder.backdrop = false
-	var s := Soldier.new(); w.add_child(s); s.cosmetic = true; s.body = Profile.equipped("body").substr(5); s.gear = Profile.equipped("gear").substr(5); s.setup(Profile.suit_color(), Profile.kit_color())
+	var s := Soldier.new(); w.add_child(s); s.cosmetic = true; s.body = Profile.equipped("body").substr(5); s.gear = Profile.equipped("gear").substr(5); s.skin = Profile.skin_mats(Profile.equipped("skin")); s.setup(Profile.suit_color(), Profile.kit_color())
 	s.position = BD_SOLDIER; s.rotation_degrees.y = 55.0
 	s.set_weapon(Controls.loadout[0] if Controls.loadout[0] != "knife" else "m4"); s.drive(0.0, true)
 	_bd_cam = Camera3D.new(); _bd_cam.fov = 36.0; w.add_child(_bd_cam); _bd_cam.current = true

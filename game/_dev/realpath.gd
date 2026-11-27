@@ -9,7 +9,8 @@ func _run() -> void:
 	await process_frame; await process_frame
 	var a := OS.get_cmdline_user_args()
 	if a.size() > 0:
-		if not Profile.owns(a[0]): Profile._d["owned"].append(a[0])   # as if bought in the shop
+		for id in [String(Profile.item(a[0]).get("body", "")), a[0]]:    # (a skin also needs its character)
+			if id != "" and not Profile.owns(id): Profile._d["owned"].append(id)   # as if bought in the shop
 		Profile.equip(a[0])            # the shop's own equip call
 	print("TEST_BODY '", Soldier.test_body, "' equipped ", Profile.equipped("body"))
 	change_scene_to_file("res://Menu.tscn")
@@ -19,6 +20,11 @@ func _run() -> void:
 	var lo = LoadoutScreen.new(); m.add_child(lo)
 	await _shot("loadout")
 	lo.queue_free()
+	var shop = load("res://shop_screen.gd").new(); m.add_child(shop)
+	for i in 10: await process_frame
+	shop._cat = "skin"; shop._sel = Profile.equipped("skin"); shop._refresh()
+	await _shot("shop")
+	shop.queue_free()
 	var C = root.get_node("Controls")
 	C.reset(); C.view_fp = false; C.loadout[0] = "m4"
 	change_scene_to_file("res://Training.tscn")

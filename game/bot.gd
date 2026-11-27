@@ -367,7 +367,8 @@ func _ready() -> void:
 	add_to_group("combatant")
 	_soldier = Soldier.new()
 	add_child(_soldier)
-	_soldier.body = Soldier.CLASSES.pick_random()       # bots wear the five concept characters
+	_soldier.body = Soldier.CLASSES.pick_random()       # bots wear the five concept characters, any skin
+	_soldier.skin = Profile.skin_mats(Profile.skins_of(_soldier.body).pick_random())
 	_soldier.setup(tint)
 	loadout = [Weapons.ORDER_PRIMARY.pick_random(), Weapons.ORDER_SECONDARY.pick_random(), "knife"]
 	rusher = randf() < (0.6 if loadout[0] in ["shotgun", "mp5"] else 0.25) * D("tactics")

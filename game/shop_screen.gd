@@ -116,6 +116,7 @@ func _rebuild_preview() -> void:
 	if _soldier: _soldier.queue_free()
 	var suit := Profile.suit_color(); var kit := Profile.kit_color(); var fin := Profile.equipped("finish")
 	var bd := Profile.equipped("body").substr(5); var gr := Profile.equipped("gear").substr(5)
+	var sk := Profile.skin_mats(Profile.equipped("skin"))
 	var wid: String = Controls.loadout[0] if Controls.loadout[0] != "knife" else "m4"
 	var it := Profile.item(_sel)
 	if _sel.begins_with("gold:"):
@@ -125,8 +126,9 @@ func _rebuild_preview() -> void:
 			"suit": suit = it["col"]
 			"kit": kit = it["col"]
 			"finish": fin = _sel
-			"body": bd = _sel.substr(5)
-	_soldier = Soldier.new(); _soldier.body = bd; _soldier.gear = gr; _vp.add_child(_soldier)
+			"body": bd = _sel.substr(5); sk = Profile.skin_mats(Profile.skin_id(_sel))
+			"skin": bd = String(it["body"]).substr(5); sk = Profile.skin_mats(_sel)
+	_soldier = Soldier.new(); _soldier.body = bd; _soldier.gear = gr; _soldier.skin = sk; _vp.add_child(_soldier)
 	_soldier.setup(suit, kit)
 	_soldier.set_weapon(wid)
 	if fin == Profile.equipped("finish") and not _sel.begins_with("gold:") and String(it.get("cat", "")) != "finish":
@@ -172,7 +174,9 @@ func _refresh() -> void:
 		var owned := Profile.owns(_sel)
 		var equipped := Profile.equipped(scat) == _sel
 		var price := Profile.price_today(_sel)
-		if equipped:
+		if sel.has("body") and not Profile.owns(String(sel["body"])):
+			_btn.text = "%s 먼저 구매" % String(Profile.item(String(sel["body"])).get("name", "캐릭터")); col = Color(0.3, 0.3, 0.32)
+		elif equipped:
 			_btn.text = "장착 중"; col = Color(0.2, 0.26, 0.3)
 		elif owned:
 			_btn.text = "장착하기"; col = OK
@@ -189,8 +193,9 @@ func _card(it: Dictionary) -> Control:
 	var id: String = it["id"]
 	var cat := String(it["cat"])
 	var price := int(it["price"])
-	var owned := Profile.owns(id)
-	var equipped := Profile.equipped(cat) == id
+	var locked: bool = it.has("body") and not Profile.owns(String(it["body"]))     # skin of a character you don't have
+	var owned := Profile.owns(id) and not locked
+	var equipped := (Profile.skin_id(String(it["body"])) == id) if cat == "skin" else Profile.equipped(cat) == id
 	var mast: bool = it.get("mastery", false)
 	var rar: Array = ["숙련", Color(1.0, 0.85, 0.4)] if mast else rarity(price)
 	var b := Button.new(); b.focus_mode = Control.FOCUS_NONE; b.custom_minimum_size = Vector2(196, 150)
@@ -208,8 +213,15 @@ func _card(it: Dictionary) -> Control:
 		var sub: String = {"body_rookie": "기본 · 고글 헬멧, 플레이트 캐리어", "body_scout": "전술 모자 · 가벼운 체스트 리그", "body_tech": "무전기 배낭 · 팔 단말기",
 			"body_sniper": "후드 · 마스크 · 길리 스카프", "body_heavy": "중장갑 · 어깨 보호대 · 탄띠"}.get(id, "")
 		var tl := _lbl(sub, 13, MUTED); tl.position = Vector2(8, 20); sw.add_child(tl)
+	elif cat == "skin":                 # the skin's main colours side by side (base = the character's own look)
+		var mats: Dictionary = it.get("mats", {})
+		var cols := [mats.get("R_Helmet", Color(0.42, 0.42, 0.36)), mats.get("R_Gear", Color(0.55, 0.48, 0.36)), mats.get("R_Uniform", Color(0.36, 0.38, 0.28)), mats.get("R_Accent", mats.get("R_Sleeve", Color(0.3, 0.3, 0.3)))]
+		sw.color = Color(0.10, 0.13, 0.16)
+		for k in 4:
+			var st := ColorRect.new(); st.color = cols[k]; st.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			st.size = Vector2(44, 52); st.position = Vector2(k * 44, 0); sw.add_child(st)
 	elif c.a == 0.0:
-		sw.color = Color(0.36, 0.30, 0.24) if cat == "kit" else Color(0.22, 0.24, 0.26)
+		sw.color = Color(0.22, 0.24, 0.26)
 	else:
 		sw.color = c
 		if it.has("pat"):     # hint the pattern with the second colour
@@ -223,7 +235,7 @@ func _card(it: Dictionary) -> Control:
 	var n := _lbl(it["name"], 17, FG); n.size_flags_horizontal = Control.SIZE_EXPAND_FILL; top.add_child(n)
 	top.add_child(_lbl(rar[0] if price > 0 else "", 12, rar[1])); v.add_child(top)
 	var today := Profile.price_today(id)
-	var tag := "장착 중" if equipped else ("보유" if owned else ("숙련 보상" if mast else ("◆ %d" % today)))
+	var tag := "캐릭터 필요" if locked else ("장착 중" if equipped else ("보유" if owned else ("숙련 보상" if mast else ("◆ %d" % today))))
 	var tl := _lbl(tag, 15, OK if owned else Color(1.0, 0.8, 0.35))
 	if not owned and not mast and today < price:
 		var hb := HBoxContainer.new(); hb.mouse_filter = Control.MOUSE_FILTER_IGNORE; hb.add_child(tl)

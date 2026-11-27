@@ -58,7 +58,7 @@ func _ready() -> void:
 	_hand_r = _glove("r", "l"); _hand_l = _glove("l", "r")      # (the exported files came out mirrored)
 	_hand_r.visible = false; _hand_l.visible = false; _arm_r.visible = false; _arm_l.visible = false
 	_body = Soldier.new(); _body.cosmetic = true
-	_body.body = Profile.equipped("body").substr(5); _body.gear = Profile.equipped("gear").substr(5)
+	_body.body = Profile.equipped("body").substr(5); _body.gear = Profile.equipped("gear").substr(5); _body.skin = Profile.skin_mats(Profile.equipped("skin"))
 	add_child(_body)
 	_body.setup(Profile.suit_color(), Profile.kit_color())
 	_body.fp_gun = true

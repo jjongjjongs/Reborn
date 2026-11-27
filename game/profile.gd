@@ -8,7 +8,7 @@ extends RefCounted
 const PATH := "user://profile.json"
 
 # ---------------------------------------------------------------- catalogue
-const CATS := [["body", "캐릭터"], ["suit", "병사 위장복"], ["kit", "헬멧·조끼 색"], ["finish", "무기 도색"], ["title", "칭호"]]
+const CATS := [["body", "캐릭터"], ["skin", "캐릭터 스킨"], ["suit", "완장 색"], ["finish", "무기 도색"], ["title", "칭호"]]
 const ITEMS := [
 	# body: the soldier model (same skeleton / animations)
 	# the five concept-sheet characters, all built in Blender (tools/blender/build_mini_v3.py -- CLASS)
@@ -17,7 +17,7 @@ const ITEMS := [
 	{"id": "body_tech", "cat": "body", "name": "테크 서포트", "price": 400},
 	{"id": "body_sniper", "cat": "body", "name": "섀도 스나이퍼", "price": 500},
 	{"id": "body_heavy", "cat": "body", "name": "헤비 거너", "price": 500},
-	# suit: the uniform colour (sleeves / trousers)
+	# suit: the player's armband / patch colour (the "Team" material of every character)
 	{"id": "suit_orange", "cat": "suit", "name": "기본 주황", "price": 0, "col": Color(0.95, 0.62, 0.24)},
 	{"id": "suit_desert", "cat": "suit", "name": "사막", "price": 120, "col": Color(0.78, 0.68, 0.48)},
 	{"id": "suit_wood", "cat": "suit", "name": "숲 위장", "price": 150, "col": Color(0.40, 0.50, 0.30)},
@@ -26,13 +26,22 @@ const ITEMS := [
 	{"id": "suit_snow", "cat": "suit", "name": "설원 흰색", "price": 250, "col": Color(0.88, 0.90, 0.92)},
 	{"id": "suit_crimson", "cat": "suit", "name": "진홍", "price": 250, "col": Color(0.70, 0.18, 0.16)},
 	{"id": "suit_tiger", "cat": "suit", "name": "타이거 주황", "price": 300, "col": Color(1.0, 0.50, 0.08)},
-	# kit: helmet + plate carrier
-	{"id": "kit_brown", "cat": "kit", "name": "기본 갈색", "price": 0, "col": Color(0, 0, 0, 0)},
-	{"id": "kit_olive", "cat": "kit", "name": "올리브", "price": 120, "col": Color(0.30, 0.34, 0.22)},
-	{"id": "kit_black", "cat": "kit", "name": "전술 블랙", "price": 150, "col": Color(0.10, 0.10, 0.11)},
-	{"id": "kit_tan", "cat": "kit", "name": "코요테 탄", "price": 150, "col": Color(0.55, 0.45, 0.30)},
-	{"id": "kit_navy", "cat": "kit", "name": "네이비", "price": 200, "col": Color(0.14, 0.18, 0.30)},
-	{"id": "kit_white", "cat": "kit", "name": "설원", "price": 250, "col": Color(0.80, 0.82, 0.84)},
+	# skin: per character colour set (material -> sRGB colour); only for a character you own
+	{"id": "skin_rookie_base", "cat": "skin", "body": "body_rookie", "name": "루키 · 기본", "price": 0, "mats": {}},
+	{"id": "skin_rookie_desert", "cat": "skin", "body": "body_rookie", "name": "루키 · 사막 폭풍", "price": 250, "mats": {"R_Uniform": Color(0.70, 0.60, 0.44), "R_Sleeve": Color(0.78, 0.69, 0.52), "R_Gear": Color(0.56, 0.46, 0.31), "R_Gear2": Color(0.47, 0.38, 0.25), "R_Helmet": Color(0.66, 0.57, 0.41), "R_Boot": Color(0.45, 0.36, 0.26)}},
+	{"id": "skin_rookie_urban", "cat": "skin", "body": "body_rookie", "name": "루키 · 도시 작전", "price": 250, "mats": {"R_Uniform": Color(0.40, 0.42, 0.46), "R_Sleeve": Color(0.55, 0.57, 0.60), "R_Gear": Color(0.22, 0.23, 0.25), "R_Gear2": Color(0.17, 0.18, 0.20), "R_Helmet": Color(0.25, 0.26, 0.29), "R_Boot": Color(0.15, 0.15, 0.16)}},
+	{"id": "skin_scout_base", "cat": "skin", "body": "body_scout", "name": "스카우트 · 기본", "price": 0, "mats": {}},
+	{"id": "skin_scout_jungle", "cat": "skin", "body": "body_scout", "name": "스카우트 · 정글 레인저", "price": 250, "mats": {"R_Uniform": Color(0.24, 0.33, 0.19), "R_Sleeve": Color(0.36, 0.43, 0.26), "R_Gear": Color(0.31, 0.37, 0.22), "R_Gear2": Color(0.25, 0.30, 0.18), "R_Helmet": Color(0.28, 0.38, 0.22), "R_Accent": Color(0.10, 0.78, 0.66)}},
+	{"id": "skin_scout_street", "cat": "skin", "body": "body_scout", "name": "스카우트 · 스트리트", "price": 250, "mats": {"R_Uniform": Color(0.14, 0.14, 0.16), "R_Sleeve": Color(0.86, 0.86, 0.83), "R_Gear": Color(0.21, 0.21, 0.23), "R_Gear2": Color(0.15, 0.15, 0.17), "R_Helmet": Color(0.88, 0.88, 0.86), "R_Boot": Color(0.85, 0.85, 0.83), "R_Accent": Color(0.12, 0.75, 0.75)}},
+	{"id": "skin_tech_base", "cat": "skin", "body": "body_tech", "name": "테크 · 기본", "price": 0, "mats": {}},
+	{"id": "skin_tech_hivis", "cat": "skin", "body": "body_tech", "name": "테크 · 공병 하이비즈", "price": 250, "mats": {"R_Uniform": Color(0.30, 0.32, 0.34), "R_Sleeve": Color(0.42, 0.44, 0.46), "R_Gear": Color(0.95, 0.72, 0.12), "R_Gear2": Color(0.88, 0.56, 0.10), "R_Helmet": Color(0.96, 0.78, 0.18)}},
+	{"id": "skin_tech_cyber", "cat": "skin", "body": "body_tech", "name": "테크 · 사이버 옵스", "price": 250, "mats": {"R_Uniform": Color(0.12, 0.13, 0.16), "R_Sleeve": Color(0.20, 0.22, 0.26), "R_Gear": Color(0.17, 0.18, 0.21), "R_Gear2": Color(0.11, 0.12, 0.14), "R_Helmet": Color(0.15, 0.16, 0.19), "R_Accent": Color(0.10, 0.92, 0.95), "R_Lens": Color(0.10, 0.85, 0.95)}},
+	{"id": "skin_sniper_base", "cat": "skin", "body": "body_sniper", "name": "스나이퍼 · 기본", "price": 0, "mats": {}},
+	{"id": "skin_sniper_snow", "cat": "skin", "body": "body_sniper", "name": "스나이퍼 · 설원 고스트", "price": 250, "mats": {"R_Uniform": Color(0.85, 0.87, 0.88), "R_Sleeve": Color(0.92, 0.93, 0.94), "R_Gear": Color(0.74, 0.76, 0.78), "R_Gear2": Color(0.64, 0.66, 0.68), "R_Helmet": Color(0.90, 0.91, 0.92), "R_Ghillie1": Color(0.90, 0.92, 0.92), "R_Ghillie2": Color(0.76, 0.79, 0.80), "R_Ghillie3": Color(0.97, 0.97, 0.97), "R_Dark": Color(0.80, 0.82, 0.84)}},
+	{"id": "skin_sniper_dune", "cat": "skin", "body": "body_sniper", "name": "스나이퍼 · 사막 유령", "price": 250, "mats": {"R_Uniform": Color(0.66, 0.56, 0.40), "R_Sleeve": Color(0.74, 0.64, 0.47), "R_Gear": Color(0.55, 0.45, 0.31), "R_Gear2": Color(0.47, 0.38, 0.26), "R_Helmet": Color(0.70, 0.60, 0.43), "R_Ghillie1": Color(0.70, 0.60, 0.42), "R_Ghillie2": Color(0.56, 0.45, 0.30), "R_Ghillie3": Color(0.80, 0.70, 0.52), "R_Dark": Color(0.42, 0.34, 0.25)}},
+	{"id": "skin_heavy_base", "cat": "skin", "body": "body_heavy", "name": "헤비 · 기본", "price": 0, "mats": {}},
+	{"id": "skin_heavy_riot", "cat": "skin", "body": "body_heavy", "name": "헤비 · 진압대", "price": 250, "mats": {"R_Uniform": Color(0.12, 0.12, 0.13), "R_Sleeve": Color(0.19, 0.19, 0.20), "R_Gear": Color(0.15, 0.15, 0.16), "R_Gear2": Color(0.10, 0.10, 0.11), "R_Helmet": Color(0.13, 0.13, 0.14), "R_Pauldron": Color(0.16, 0.16, 0.17), "R_Accent": Color(0.88, 0.12, 0.10)}},
+	{"id": "skin_heavy_arctic", "cat": "skin", "body": "body_heavy", "name": "헤비 · 북극 강습", "price": 250, "mats": {"R_Uniform": Color(0.82, 0.84, 0.86), "R_Sleeve": Color(0.66, 0.68, 0.70), "R_Gear": Color(0.60, 0.63, 0.66), "R_Gear2": Color(0.50, 0.53, 0.56), "R_Helmet": Color(0.86, 0.87, 0.89), "R_Pauldron": Color(0.88, 0.89, 0.90), "R_Boot": Color(0.30, 0.31, 0.33)}},
 	# finish: every gun the player holds (pat = procedural pattern in skin.gdshader)
 	{"id": "fin_none", "cat": "finish", "name": "기본", "price": 0, "col": Color(0, 0, 0, 0)},
 	{"id": "fin_desert", "cat": "finish", "name": "사막 도색", "price": 120, "col": Color(0.72, 0.62, 0.44), "metal": 0.1},
@@ -110,12 +119,14 @@ static func owns(id: String) -> bool:
 
 static func equipped(cat: String) -> String:
 	_load()
+	if cat == "skin": return skin_id(equipped("body"))
 	return String(_d["equip"].get(cat, DEFAULT_EQUIP[cat]))
 
 static func buy(id: String) -> bool:
 	_load()
 	var it := item(id)
 	if it.is_empty() or owns(id) or int(it["price"]) <= 0: return false
+	if it.has("body") and not owns(String(it["body"])): return false     # skins: buy the character first
 	if not Missions.spend(price_today(id)): return false
 	_d["owned"].append(id)
 	save()
@@ -125,8 +136,27 @@ static func equip(id: String) -> void:
 	_load()
 	var it := item(id)
 	if it.is_empty() or not owns(id): return
-	_d["equip"][it["cat"]] = id
+	if it["cat"] == "skin":
+		if not owns(String(it["body"])): return
+		_d["equip"]["skin_" + String(it["body"]).substr(5)] = id
+		_d["equip"]["body"] = it["body"]          # wearing a skin = wearing that character
+	else:
+		_d["equip"][it["cat"]] = id
 	save()
+
+## the skin equipped for a character ("body_scout" -> "skin_scout_jungle")
+static func skin_id(body_id: String) -> String:
+	_load()
+	var cls := body_id.substr(5)
+	return String(_d["equip"].get("skin_" + cls, "skin_%s_base" % cls))
+
+## material colours of a skin (empty = the character's own palette)
+static func skin_mats(skin: String) -> Dictionary:
+	return item(skin).get("mats", {})
+
+## every skin of a character, for bots
+static func skins_of(cls: String) -> Array:
+	return ITEMS.filter(func(it): return it["cat"] == "skin" and it["body"] == "body_" + cls).map(func(it): return it["id"])
 
 # colours the player's soldier wears / finish for the player's guns
 static func suit_color() -> Color:
@@ -198,7 +228,7 @@ static func _day() -> String:
 
 static func _draw_offers(day: String, exclude: Array) -> Array:
 	var rng := RandomNumberGenerator.new(); rng.seed = hash("shop-" + day)
-	var pool: Array = ITEMS.filter(func(it): return int(it["price"]) > 0 and not (it["id"] in exclude))
+	var pool: Array = ITEMS.filter(func(it): return int(it["price"]) > 0 and not (it["id"] in exclude) and (not it.has("body") or owns(String(it["body"]))))
 	var out := []
 	while out.size() < OFFERS and not pool.is_empty():
 		out.append(pool.pop_at(rng.randi_range(0, pool.size() - 1))["id"])

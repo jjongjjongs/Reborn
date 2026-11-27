@@ -69,7 +69,7 @@ func _build_left() -> void:
 	we.environment = e; vp.add_child(we)
 	_soldier = Soldier.new(); vp.add_child(_soldier)
 	_soldier.cosmetic = true
-	_soldier.body = Profile.equipped("body").substr(5); _soldier.gear = Profile.equipped("gear").substr(5)
+	_soldier.body = Profile.equipped("body").substr(5); _soldier.gear = Profile.equipped("gear").substr(5); _soldier.skin = Profile.skin_mats(Profile.equipped("skin"))
 	_soldier.setup(Profile.suit_color(), Profile.kit_color())
 	_soldier.drive(0.0, true)
 

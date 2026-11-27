@@ -38,6 +38,8 @@ that were made and reported more than once. Follow them on every task.
   arm; anything straddling the shoulder tears when aiming. Check `_dev/gripsheet.gd -- <class>` close-ups
   (left side, arm across the chest) for stretched wedges, not only the T-pose renders.
 - Team colour only on the "Team" material (armbands, patches, tabs) - keep armbands on every class.
+- Skins = material colour sets (Profile ITEMS cat "skin", "mats": material -> colour; Soldier.skin applied in
+  _team_tint). One equipped skin per character (equip key "skin_<class>"); a skin needs its character owned.
 
 ## Process
 - Bump `tools/bump.sh <code> <name>` on every push (project.godot + Android preset together).
