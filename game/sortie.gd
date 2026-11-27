@@ -32,11 +32,15 @@ const TRAIN_MAPS := [
 	{"id": "range", "name": "훈련장", "en": "TRAINING", "size": "64×54m · 혼자", "tag": "사격장 · 더미 · 무기 보관대 · 킬하우스 · 이동 코스",
 		"rects": [[27, 2, 46, 48, "8c8678"], [27, 54, 46, 17, "5f5a52"], [2, 22, 26, 34, "b9b2a6"], [74, 20, 22, 30, "b9b2a6"], [74, 60, 22, 22, "a09a8c"], [32, 88, 36, 8, "f05a52"]], "ready": true, "ground": Color("2a2d31")},
 ]
+const MINI_MAPS := [
+	{"id": "jump1", "name": "구름 계단", "en": "CLOUD STEPS", "size": "5 스테이지 · 혼자", "tag": "기초 점프 · 좁은 길 · 움직이는 발판 · 사라지는 발판 · 정상 탑",
+		"rects": [[44, 88, 12, 12, "e9e4d8"], [42, 64, 16, 22, "ff9a3c"], [40, 44, 22, 18, "3cc6c0"], [38, 26, 24, 16, "9b6cf0"], [40, 10, 20, 14, "ffd23c"], [44, 0, 12, 9, "ffc83a"]], "ready": true, "ground": Color("9cc4ee")},
+]
 const KIND_COL := {"street": "8c8678", "plaza": "b9b2a6", "siteA": "ff7a1a", "siteB": "f2c14e", "att": "f05a52", "def": "56a8ff",
 	"room": "5f5a52", "tunnel": "1d4a63", "water": "1d4a63"}
 
 static func map_name(id: String) -> String:
-	for m in BOMB_MAPS + MAPS + TRAIN_MAPS + ZOMBIE_MAPS:
+	for m in BOMB_MAPS + MAPS + TRAIN_MAPS + ZOMBIE_MAPS + MINI_MAPS:
 		if m["id"] == id: return m["name"]
 	return id
 
@@ -76,7 +80,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var bg := ColorRect.new(); bg.color = Color(0.043, 0.055, 0.071)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); add_child(bg)
-	if not _map_ready(Controls.sel_map): Controls.sel_map = {"bomb": "quarter", "training": "range", "survival": "reststop"}.get(kind, "downtown")
+	if not _map_ready(Controls.sel_map): Controls.sel_map = {"bomb": "quarter", "training": "range", "survival": "reststop", "minigame": "jump1"}.get(kind, "downtown")
 
 	# --- top bar ---
 	var back := _btn("‹ 메뉴", 20, Vector2(28, 18), Vector2(110, 48))
@@ -104,7 +108,7 @@ func _ready() -> void:
 	c1.add_child(_map_box)
 
 	var c2 := _panel(Vector2(592, col_y), Vector2(300, col_h)); add_child(c2)
-	var h2 := _label({"survival": "좀비 강도", "training": "훈련 안내"}.get(kind, "봇 난이도"), 20, FG); h2.position = Vector2(16, 12); c2.add_child(h2)
+	var h2 := _label({"survival": "좀비 강도", "training": "훈련 안내", "minigame": "코스 안내"}.get(kind, "봇 난이도"), 20, FG); h2.position = Vector2(16, 12); c2.add_child(h2)
 	_diff_box = VBoxContainer.new(); _diff_box.position = Vector2(16, 48); _diff_box.size = Vector2(268, 300)
 	_diff_box.add_theme_constant_override("separation", 8)
 	c2.add_child(_diff_box)
@@ -180,6 +184,7 @@ func _launch() -> void:
 
 func _maps() -> Array:
 	if kind == "training": return TRAIN_MAPS
+	if kind == "minigame": return MINI_MAPS
 	if kind == "survival": return ZOMBIE_MAPS
 	return BOMB_MAPS if kind == "bomb" else MAPS
 
@@ -197,6 +202,14 @@ func _refresh() -> void:
 	# difficulty (training: what the range offers instead)
 	for c in _diff_box.get_children(): c.queue_free()
 	for c in _detail.get_children(): c.queue_free()
+	if kind == "minigame":
+		for r in [["5 스테이지", "기초 → 좁은 길 → 이동 → 사라짐 → 탑"], ["체크포인트", "초록 발판 · 떨어지면 여기서 다시"], ["발판 색", "보라 이동 · 파랑 점프대 · 노랑 사라짐"],
+				["기록", "출발 발판을 떠나면 시작 · 최고 기록 저장"]]:
+			var card := Panel.new(); card.custom_minimum_size = Vector2(268, 64)
+			card.add_theme_stylebox_override("panel", _sb(CARD, LINE2, 1, 10))
+			var n := _label(r[0], 18, FG); n.position = Vector2(14, 6); card.add_child(n)
+			var sh := _label(r[1], 13, SOFT); sh.position = Vector2(14, 36); card.add_child(sh)
+			_diff_box.add_child(card)
 	if kind == "training":
 		for r in [["사격장", "10–30m 종이 표적 · 철판 · 이동 표적"], ["더미 구역", "피해 숫자 · 정지 / 좌우 이동 / 앉음"], ["무기 보관대", "다가가서 버튼으로 바로 교체"],
 				["킬하우스 · 이동 코스", "START 발판부터 기록 측정"]]:
@@ -210,7 +223,7 @@ func _refresh() -> void:
 			var v := _label(r[1], 14, FG); v.custom_minimum_size = Vector2(134, 0)
 			v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT; _detail.add_child(v)
 	var surv := kind == "survival"
-	for id in (Difficulty.IDS if kind != "training" else []):
+	for id in (Difficulty.IDS if not kind in ["training", "minigame"] else []):
 		var d: Dictionary = Difficulty.L[id]
 		var on: bool = id == Controls.bot_diff
 		var b := Button.new(); b.focus_mode = Control.FOCUS_NONE
@@ -225,7 +238,7 @@ func _refresh() -> void:
 		_diff_box.add_child(b)
 	var cd := Difficulty.cur()
 	var rows := []
-	if kind == "training":
+	if kind in ["training", "minigame"]:
 		pass
 	elif surv:
 		rows = [["좀비 체력", "×%.2f" % cd["z_hp"]], ["좀비 공격력", "×%.2f" % cd["z_dmg"]], ["좀비 속도", "×%.2f" % cd["z_spd"]]]
@@ -263,8 +276,8 @@ func _refresh() -> void:
 	var mname := ""
 	for m in _maps():
 		if m["id"] == Controls.sel_map: mname = m["name"]
-	var who := "혼자 · 사격장 · 더미 · 기록 측정" if kind == "training" else "웨이브 5" if surv else ("3 vs 3" if kind == "team" else ("5 vs 5 · 7승" if kind == "bomb" else "개인전 6명"))
-	_summary.text = ("%s · %s" % [mname, who]) if kind == "training" else ("%s · %s · %s" % [mname, Difficulty.cur()["name"], who])
+	var who := "혼자 · 5 스테이지 · 기록 도전" if kind == "minigame" else "혼자 · 사격장 · 더미 · 기록 측정" if kind == "training" else "웨이브 5" if surv else ("3 vs 3" if kind == "team" else ("5 vs 5 · 7승" if kind == "bomb" else "개인전 6명"))
+	_summary.text = ("%s · %s" % [mname, who]) if kind in ["training", "minigame"] else ("%s · %s · %s" % [mname, Difficulty.cur()["name"], who])
 
 func _map_card(m: Dictionary) -> Button:
 	var on: bool = m["id"] == Controls.sel_map

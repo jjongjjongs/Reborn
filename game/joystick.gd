@@ -1,5 +1,6 @@
 class_name TouchInput
 extends Control
+var move_only := false            # minigames: just the stick, jump and crouch (no weapon buttons)
 ## Manual multi-touch (no GUI buttons so every finger is independent):
 ##   left half            -> move stick
 ##   right open area      -> look / aim
@@ -125,12 +126,14 @@ func _role_at(pos: Vector2) -> String:
 	if Controls.act_label != "" and pos.distance_to(_act_center()) <= 74.0:
 		return "act"
 	var rects := _chip_rects()
-	for i in 3:
+	for i in (0 if move_only else 3):
 		if (rects[i] as Rect2).grow(4.0).has_point(pos):
 			return "swap%d" % i
 	var L := _layout()
 	for key in KEYS:
 		if key == "scope" and not has_scope():
+			continue
+		if move_only and key not in ["jump", "crouch"]:
 			continue
 		if pos.distance_to(L[key]["c"]) <= float(L[key]["r"]):
 			return key
@@ -229,6 +232,10 @@ func _active(role: String) -> bool:
 func _draw() -> void:
 	var L := _layout()
 	var melee := Weapons.is_melee(Controls.weapon_id)
+	if move_only:
+		_draw_btn(L["jump"]["c"], float(L["jump"]["r"]), "점프", _active("jump"), Color(0.55, 0.85, 1.0), 36)
+		_draw_btn(L["crouch"]["c"], float(L["crouch"]["r"]), "서기" if Controls.crouched else "앉기", Controls.crouched or _active("crouch"), Color(0.56, 0.76, 1.0), 28)
+		return
 	_draw_btn(L["fire"]["c"], float(L["fire"]["r"]), "찌르기" if melee else "사격", _active("fire"), Color(1.0, 0.36, 0.22))
 	_draw_btn(L["jump"]["c"], float(L["jump"]["r"]), "점프", _active("jump"), Color(0.8, 0.85, 0.9))
 	_draw_btn(L["reload"]["c"], float(L["reload"]["r"]), "장전", _active("reload"),

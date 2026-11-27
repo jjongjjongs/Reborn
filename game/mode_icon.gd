@@ -32,6 +32,13 @@ func _draw() -> void:
 		"nade": _nade()
 		"bomb": _bomb()
 		"training": _target()
+		"minigame": _steps()
+
+func _steps() -> void:     # three rising blocks + a jumping arc
+	for i in 3:
+		var x := 3.0 + i * 6.0; var top := 18.0 - i * 4.0
+		draw_rect(Rect2(_p(x, top), _p(x + 5, 21) - _p(x, top)), col, false, _w())
+	draw_polyline(PackedVector2Array([_p(5, 13), _p(8, 6), _p(12, 4), _p(16, 6)]), col, _w(), true)
 
 func _shield() -> void:
 	var pts := PackedVector2Array([
