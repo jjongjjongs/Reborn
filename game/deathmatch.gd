@@ -40,6 +40,7 @@ func _build_world() -> void:
 	var info := MapBuilder.build(Controls.sel_map, self)
 	_bounds = info.get("bounds", Rect2(-35, -35, 70, 70))
 	_spawns = info["ffa"]
+	BotPlayer.roam_pts = info["ffa"]
 
 func _add_box(parent: Node, size: Vector3, pos: Vector3, c: Color) -> void:
 	var sb := StaticBody3D.new()

@@ -52,6 +52,7 @@ func _ready() -> void:
 	if not Controls.sel_map in ["quarter", "dockside", "facility", "oldtown"]:
 		Controls.sel_map = "quarter"
 	info = MapBuilder.build(Controls.sel_map, self)
+	BotPlayer.roam_pts = info.get("ffa", [])
 	player = PlayerBody.new()
 	player.team = RED
 	player.position = (info["att"] as Array)[0]

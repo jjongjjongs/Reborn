@@ -130,6 +130,7 @@ func _build_world() -> void:
 	_bounds = info.get("bounds", Rect2(-35, -35, 70, 70))
 	_red_spawns = info["red"]
 	_blue_spawns = info["blue"]
+	BotPlayer.roam_pts = info.get("ffa", [])
 
 func _add_box(parent: Node, size: Vector3, pos: Vector3, c: Color) -> void:
 	var sb := StaticBody3D.new()
