@@ -94,7 +94,7 @@ func _on_died(attacker, victim) -> void:
 	if attacker != null and attacker != victim and kt != -1 and kt != _team_of(victim):
 		_score[kt] += 1
 		if attacker == player:
-			Controls.kills += 1
+			Controls.kills += 1; FxCos.my_kill(victim)
 			Missions.add("kill"); if Controls.weapon_id == "knife": Missions.add("knife_kill")
 		if _score[kt] >= TEAM_TARGET:
 			_end_match(kt)

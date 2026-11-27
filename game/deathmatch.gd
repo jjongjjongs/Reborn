@@ -93,7 +93,7 @@ func _on_died(attacker, victim) -> void:
 	# credit the killer
 	var killer_kills := -1
 	if attacker == player:
-		Controls.kills += 1
+		Controls.kills += 1; FxCos.my_kill(victim)
 		Missions.add("kill"); if Controls.weapon_id == "knife": Missions.add("knife_kill")
 		killer_kills = Controls.kills
 	elif attacker is BotPlayer and attacker != victim:

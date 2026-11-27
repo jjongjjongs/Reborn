@@ -38,7 +38,7 @@ func hit(dmg: int, is_head: bool = false, _attacker = null) -> void:
 	hp -= dmg
 	_number(dmg, is_head)
 	if hp <= 0.0:
-		Controls.kills += 1
+		Controls.kills += 1; FxCos.my_kill(self)
 		Missions.add("target")
 		_down_t = 2.5; _body.set_dead(true); _col.set_deferred("disabled", true)
 		Sfx.play("hit")

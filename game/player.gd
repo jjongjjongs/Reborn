@@ -445,6 +445,8 @@ func _impact(pos: Vector3) -> void:
 	get_tree().create_timer(0.25).timeout.connect(m.queue_free)
 
 func _tracer(a: Vector3, b: Vector3) -> void:
+	FxCos.tracer(Profile.equipped("tracer"), get_tree().current_scene, a, b)
+	return
 	var m := MeshInstance3D.new()
 	var bm := BoxMesh.new(); bm.size = Vector3(0.03, 0.03, (b - a).length()); m.mesh = bm
 	var mat := StandardMaterial3D.new()

@@ -338,7 +338,7 @@ func _jit(r: float) -> Vector3:
 # ---------------------------------------------------------------- deaths
 func _on_died(attacker, victim) -> void:
 	if attacker == player and victim != player:
-		Controls.kills += 1
+		Controls.kills += 1; FxCos.my_kill(victim)
 		Missions.add("kill"); if Controls.weapon_id == "knife": Missions.add("knife_kill")
 
 # ---------------------------------------------------------------- bomb visual

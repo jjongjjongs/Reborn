@@ -113,6 +113,14 @@ static func pop(parent: Node, pos: Vector3, c: Color, size := 1.6, t := 0.25) ->
 	tw.tween_property(mat, "albedo_color:a", 0.0, t).set_ease(Tween.EASE_IN).set_delay(t * 0.2)
 	tw.chain().tween_callback(m.queue_free)
 
+## the player killed `victim`: play the equipped kill effect where it fell
+static func my_kill(victim: Node3D) -> void:
+	if victim == null or not is_instance_valid(victim) or not victim.is_inside_tree(): return
+	var id := Profile.equipped("killfx")
+	if id == "kill_none" or id == "": return
+	var col: Color = victim.get("tint") if victim.get("tint") is Color else Color(0.85, 0.45, 0.2)
+	kill(id, victim.get_tree().current_scene, victim.global_position, col)
+
 # ---------------------------------------------------------------- kill effects
 ## a target died at `pos` (its feet). `col` = a colour of the victim (pixel break-up)
 static func kill(id: String, parent: Node, pos: Vector3, col := Color(0.35, 0.55, 0.9)) -> void:

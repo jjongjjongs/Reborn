@@ -8,7 +8,7 @@ extends RefCounted
 const PATH := "user://profile.json"
 
 # ---------------------------------------------------------------- catalogue
-const CATS := [["body", "캐릭터"], ["skin", "캐릭터 스킨"], ["suit", "완장 색"], ["finish", "무기 도색"], ["title", "칭호"]]
+const CATS := [["body", "캐릭터"], ["skin", "캐릭터 스킨"], ["killfx", "킬 이펙트"], ["tracer", "탄환 효과"], ["suit", "완장 색"], ["finish", "무기 도색"], ["title", "칭호"]]
 const ITEMS := [
 	# body: the soldier model (same skeleton / animations)
 	# the five concept-sheet characters, all built in Blender (tools/blender/build_mini_v3.py -- CLASS)
@@ -17,6 +17,18 @@ const ITEMS := [
 	{"id": "body_tech", "cat": "body", "name": "테크 서포트", "price": 400},
 	{"id": "body_sniper", "cat": "body", "name": "섀도 스나이퍼", "price": 500},
 	{"id": "body_heavy", "cat": "body", "name": "헤비 거너", "price": 500},
+	# killfx: effect on a target you kill / tracer: your bullet trails (FxCos)
+	{"id": "kill_none", "cat": "killfx", "name": "없음", "price": 0, "col": Color(0.25, 0.27, 0.3)},
+	{"id": "kill_fire", "cat": "killfx", "name": "불꽃놀이", "price": 200, "col": Color(1.0, 0.35, 0.3), "col2": Color(0.3, 0.85, 1.0), "pat": 5},
+	{"id": "kill_bolt", "cat": "killfx", "name": "번개", "price": 250, "col": Color(0.45, 0.65, 1.0), "col2": Color(0.95, 0.97, 1.0), "pat": 5},
+	{"id": "kill_pixel", "cat": "killfx", "name": "픽셀 붕괴", "price": 250, "col": Color(1.0, 0.55, 0.2), "col2": Color(0.25, 0.25, 0.28), "pat": 5},
+	{"id": "kill_soul", "cat": "killfx", "name": "유령", "price": 300, "col": Color(0.55, 0.85, 1.0), "col2": Color(0.9, 0.97, 1.0), "pat": 5},
+	{"id": "kill_coin", "cat": "killfx", "name": "코인 분수", "price": 400, "col": Color(1.0, 0.78, 0.22), "col2": Color(1.0, 0.95, 0.7), "pat": 5},
+	{"id": "tr_basic", "cat": "tracer", "name": "기본", "price": 0, "col": Color(1.0, 0.85, 0.4)},
+	{"id": "tr_neon", "cat": "tracer", "name": "네온 블루", "price": 150, "col": Color(0.1, 0.75, 1.0), "col2": Color(0.9, 1.0, 1.0), "pat": 5},
+	{"id": "tr_flame", "cat": "tracer", "name": "불꽃", "price": 200, "col": Color(1.0, 0.45, 0.08), "col2": Color(1.0, 0.85, 0.4), "pat": 5},
+	{"id": "tr_rainbow", "cat": "tracer", "name": "무지개", "price": 300, "col": Color(1.0, 0.3, 0.3), "col2": Color(0.3, 0.7, 1.0), "pat": 7},
+	{"id": "tr_plasma", "cat": "tracer", "name": "플라스마", "price": 300, "col": Color(0.6, 0.25, 1.0), "col2": Color(0.95, 0.85, 1.0), "pat": 5},
 	# suit: the player's armband / patch colour (the "Team" material of every character)
 	{"id": "suit_orange", "cat": "suit", "name": "기본 주황", "price": 0, "col": Color(0.95, 0.62, 0.24)},
 	{"id": "suit_desert", "cat": "suit", "name": "사막", "price": 120, "col": Color(0.78, 0.68, 0.48)},
@@ -63,7 +75,7 @@ const ITEMS := [
 	{"id": "tt_ghost", "cat": "title", "name": "그림자", "price": 200},
 	{"id": "tt_legend", "cat": "title", "name": "전설의 병사", "price": 300},
 ]
-const DEFAULT_EQUIP := {"body": "body_rookie", "gear": "gear_helmet", "suit": "suit_orange", "kit": "kit_brown", "finish": "fin_none", "title": "tt_rookie"}
+const DEFAULT_EQUIP := {"body": "body_rookie", "gear": "gear_helmet", "suit": "suit_orange", "kit": "kit_brown", "finish": "fin_none", "title": "tt_rookie", "killfx": "kill_none", "tracer": "tr_basic"}
 
 static var _d := {}
 static var _loaded := false

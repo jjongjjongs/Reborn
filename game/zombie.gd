@@ -160,6 +160,7 @@ func hit(dmg: int, is_head: bool = false, _attacker = null) -> void:
 
 func _die() -> void:
 	_dead = true
+	FxCos.my_kill(self)
 	_climbing = false
 	if _climb_tw and _climb_tw.is_valid(): _climb_tw.kill()
 	Controls.kills += 1

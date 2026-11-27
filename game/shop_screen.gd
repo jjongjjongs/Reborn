@@ -309,5 +309,26 @@ func _on_btn() -> void:
 	_refresh()
 
 
+var _fx_t := 0.5
+var _fx_shots := 0
 func _process(dt: float) -> void:
 	if _gun_pv: _gun_pv.rotation.y = sin(Time.get_ticks_msec() / 1000.0 * 0.6) * 0.5
+	# effect preview: the try-on soldier fires tracers / gets "killed" with the selected effect, on a loop
+	var cat := String(Profile.item(_sel).get("cat", ""))
+	if cat in ["killfx", "tracer"] and _soldier and is_instance_valid(_soldier) and _soldier.is_inside_tree():
+		_fx_t -= dt
+		if _fx_t <= 0.0:
+			if cat == "tracer":
+				var fwd := -_soldier.global_transform.basis.z
+				var a: Vector3 = _soldier.global_position + Vector3(0, 1.32, 0) + fwd * 0.75 + _soldier.global_transform.basis.x * -0.12
+				FxCos.tracer(_sel, _vp, a, a + fwd * 14.0 + Vector3(randf_range(-0.4, 0.4), randf_range(-0.2, 0.3), 0), 0.12)
+				_soldier.shoot()
+				_fx_shots += 1
+				_fx_t = 0.16 if _fx_shots % 4 != 0 else 1.0
+			else:
+				_fx_t = 2.4
+				if _sel != "kill_none":
+					var sd := _soldier
+					sd.visible = false
+					FxCos.kill(_sel, _vp, sd.global_position, Color(0.85, 0.45, 0.2))
+					get_tree().create_timer(1.5).timeout.connect(func() -> void: if is_instance_valid(sd): sd.visible = true)
