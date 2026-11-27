@@ -750,3 +750,24 @@ func _all(n: Node) -> Array:
 	for c in n.get_children():
 		o += _all(c)
 	return o
+
+## thin coloured outline round the whole body (inverted hull: back faces pushed out along the normals)
+## col.a == 0 removes it. through_walls: drawn over geometry too (allies)
+func set_outline(col: Color, width := 0.014, through_walls := false) -> void:
+	var m: StandardMaterial3D = null
+	if col.a > 0.0:
+		m = StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.cull_mode = BaseMaterial3D.CULL_FRONT
+		m.grow = true; m.grow_amount = width
+		m.albedo_color = col
+		m.disable_receive_shadows = true
+		if through_walls: m.no_depth_test = true; m.render_priority = -1
+	for mi in find_children("*", "MeshInstance3D", true, false):
+		var g := mi as MeshInstance3D
+		if _gun and _gun.is_ancestor_of(g): continue          # body only, not the gun
+		if m == null: g.material_overlay = null; continue
+		# grow is in the mesh's own units (the rigged bodies carry a 100x armature scale): convert metres
+		var k := g.global_transform.basis.get_scale().x / maxf(global_transform.basis.get_scale().x, 0.0001)
+		var mm := m.duplicate() as StandardMaterial3D; mm.grow_amount = width / maxf(k, 0.0001)
+		g.material_overlay = mm
