@@ -36,6 +36,7 @@ func build_plan(file: String) -> Dictionary:
 		else:
 			m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			if nm == "Detail": _awning_cols(m)
+			if nm == "Windows" or nm == "Detail": _interiors(m, nm == "Detail")
 	# stairs are drawn as steps but walked as smooth slopes (solid wedges)
 	for r in plan["ramps"]:
 		_wedge(float(r[0]), float(r[1]), float(r[2]), float(r[3]), float(r[4]), float(r[5]), String(r[6]))
@@ -50,6 +51,7 @@ func build_plan(file: String) -> Dictionary:
 	if bomb:
 		_site_mark("A", _wp(_centroid(plan["siteA"])) + Vector3(0, 0.06, 0), Vector2(0, 0))
 		_site_mark("B", _wp(_centroid(plan["siteB"])) + Vector3(0, 0.06, 0), Vector2(0, 0))
+	if String(plan.get("name", "")) != "zombie_reststop" and not MapBuilder.backdrop: _auto_routes()
 	_bake_colliders()
 	var att: Array[Vector3] = []
 	for p in plan["att_spawns"]: att.append(_wp(p) + Vector3(0, 1.0, 0))
@@ -155,6 +157,125 @@ func _plan_props() -> void:
 				barrel(p + Vector3(-0.35, 0, -0.3), cols[k % 3])
 				barrel(p + Vector3(0.45, 0, 0.1), cols[(k + 1) % 3])
 				if k % 2 == 0: barrel(p + Vector3(-0.2, 0, 0.55), cols[(k + 2) % 3])
+
+# ---- jump routes: crate staircases up to low roofs, found from a 1 m height map of the built level
+static var climb_links := false
+static var route_spots: Array = []   # last built map's routes (dev screenshots)      # survival: zombies climb the routes (bots do not use them)
+const STEP_MAX := 1.25                # jump reaches 1.6 m
+func _auto_routes(want := 3, max_rise := 7.0) -> void:
+	var sp := nav.get_world_3d().direct_space_state
+	var x0 := -_hw + 1.0; var z0 := -_hh + 1.0
+	var nx := int(_hw * 2.0) - 2; var nz := int(_hh * 2.0) - 2
+	var H := PackedFloat32Array(); H.resize(nx * nz)
+	for j in nz:
+		for i in nx:
+			var p := Vector3(x0 + i + 0.5, 40.0, z0 + j + 0.5)
+			var h := sp.intersect_ray(PhysicsRayQueryParameters3D.create(p, p + Vector3(0, -60, 0)))
+			H[j * nx + i] = h["position"].y if h else -99.0
+	var at := func(i: int, j: int) -> float: return H[j * nx + i] if i >= 0 and j >= 0 and i < nx and j < nz else -99.0
+	var spawns: Array = []
+	for k in ["att_spawns", "def_spawns", "ffa_spawns"]:
+		for q in plan.get(k, []): spawns.append(_wp(q))
+	var cands: Array = []
+	var dbg := {"rise": 0, "flatroof": 0, "ground": 0, "spawn": 0}
+	for j in range(2, nz - 2):
+		for i in range(2, nx - 2):
+			var hg: float = at.call(i, j)
+			if hg < -1.0 or hg > 1.5: continue
+			for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				var hr: float = at.call(i + d.x, j + d.y)
+				var rise := hr - hg
+				if rise < 2.8 or rise > max_rise: continue
+				dbg["rise"] += 1
+				if absf(at.call(i + d.x * 2, j + d.y * 2) - hr) > 0.25 or absf(at.call(i + d.x * 3, j + d.y * 3) - hr) > 0.25: continue
+				dbg["flatroof"] += 1
+				var tg := Vector2i(-d.y, d.x)
+				var smax := STEP_MAX if max_rise < 8.0 else 1.38
+				var steps := int(ceil(rise / smax)) - 1
+				var gtol := 0.12 if max_rise < 8.0 else 0.3
+				var ok := true
+				for t in range(0, steps + 1):          # flat open ground beside the wall, roof all along
+					for o in range(0, 3 if max_rise > 8.0 else 4):
+						if absf(at.call(i + tg.x * t - d.x * o, j + tg.y * t - d.y * o) - hg) > gtol: ok = false
+					if absf(at.call(i + tg.x * t + d.x, j + tg.y * t + d.y) - hr) > 0.25: ok = false
+					if not ok: break
+				if not ok: continue
+				dbg["ground"] += 1
+				var wp := Vector3(x0 + i + 0.5, hg, z0 + j + 0.5)
+				var near := false
+				for q in spawns:
+					if Vector2(q.x - wp.x, q.z - wp.z).length() < 4.0: near = true
+				if near: continue
+				cands.append({"p": wp, "n": Vector3(d.x, 0, d.y), "t": Vector3(tg.x, 0, tg.y), "rise": rise, "steps": steps})
+	cands.sort_custom(func(a, b) -> bool: return absf(a["rise"] - 4.2) < absf(b["rise"] - 4.2))
+	var picked: Array = []
+	for c in cands:
+		var far := true
+		for q in picked:
+			if (q["p"] as Vector3).distance_to(c["p"]) < 18.0: far = false
+		if far: picked.append(c)
+		if picked.size() >= want: break
+	if picked.size() < 2 and max_rise < 10.0:      # tall-city maps: allow scaffolds up to ~10 m
+		_auto_routes(want, 10.6); return
+	for c in picked: _crate_stairs(c, sp)
+	route_spots = picked
+	print("ROUTES ", plan.get("name", ""), " candidates ", cands.size(), " placed ", picked.size(), " max ", max_rise, " ", dbg)
+
+func _crate_stairs(c: Dictionary, sp: PhysicsDirectSpaceState3D) -> void:
+	var n: Vector3 = c["n"]; var t: Vector3 = c["t"]; var p: Vector3 = c["p"]
+	# exact wall face: a horizontal ray from the ground cell toward the roof side
+	var o := p + Vector3(0, 0.8, 0)
+	var h := sp.intersect_ray(PhysicsRayQueryParameters3D.create(o - n * 0.6, o + n * 2.0))
+	var face: Vector3 = (h["position"] as Vector3) if h else p + n * 0.5
+	face.y = p.y
+	var steps: int = c["steps"]; var rise: float = c["rise"]
+	var step := rise / float(steps + 1)
+	var yaw := rad_to_deg(atan2(-t.z, t.x))
+	var wood := Color(0.55, 0.40, 0.24); var band := Color(0.30, 0.21, 0.12)
+	if rise > 7.0:                                  # tall: grey scaffold towers instead of crate piles
+		wood = Color(0.46, 0.48, 0.50); band = Color(0.86, 0.62, 0.12)
+	var start := p - t * 0.0
+	var tops: Array = []
+	for k in steps:
+		var hk := step * float(k + 1)
+		var ctr := Vector3(face.x, p.y, face.z) - n * 0.6 + t * (0.55 + 1.12 * k)
+		ctr = Vector3(ctr.x, p.y + hk * 0.5, ctr.z)
+		box(ctr, Vector3(1.1, hk, 1.2) if absf(t.x) > 0.5 else Vector3(1.1, hk, 1.2), wood, yaw)
+		var lv := 1.1
+		while lv < hk - 0.2:                     # crate seams
+			box(Vector3(ctr.x, p.y + lv, ctr.z), Vector3(1.14, 0.07, 1.24), band, yaw, false, false)
+			lv += 1.1
+		box(Vector3(ctr.x, p.y + hk - 0.02, ctr.z), Vector3(1.14, 0.06, 1.24), band, yaw, false, false)
+		tops.append(Vector3(ctr.x, p.y + hk, ctr.z))
+	if climb_links and tops.size() > 0:
+		var foot := Vector3(face.x, p.y, face.z) - n * 1.9 + t * 0.55
+		var top: Vector3 = (tops[tops.size() - 1] as Vector3) + n * 1.4
+		top.y = p.y + rise
+		var l := NavigationLink3D.new(); l.bidirectional = true
+		l.start_position = foot; l.end_position = top; l.set_meta("via", tops)
+		nav.add_child(l)
+
+# windows / shop fronts: swap the flat interior pictures for a traced fake room (interior.gdshader)
+static var _int_mats := {}
+func _interiors(m: MeshInstance3D, shopfront: bool) -> void:
+	var mesh := m.mesh
+	if mesh == null: return
+	for si in mesh.get_surface_count():
+		var mt := mesh.surface_get_material(si)
+		if mt == null: continue
+		var n := mt.resource_name
+		if n != "window" and n != "window_lit": continue
+		var key := "%s|%s" % [n, shopfront]
+		if not _int_mats.has(key):
+			var sm := ShaderMaterial.new(); sm.shader = load("res://interior.gdshader")
+			var T := "res://assets/maps/tex/%s.png"
+			sm.set_shader_parameter("wall_tex", load(T % "T_RedBrick_BaseColor" if n == "window" else T % "T_Concrete_BaseColor"))
+			sm.set_shader_parameter("floor_tex", load(T % "T_MarbleFloor_BaseColor"))
+			sm.set_shader_parameter("back_tex", load(T % "T_Concrete_BaseColor"))
+			sm.set_shader_parameter("lit_chance", 1.0 if n == "window_lit" else 0.3)
+			sm.set_shader_parameter("shop", 1.0 if shopfront else 0.0)
+			_int_mats[key] = sm
+		m.set_surface_override_material(si, _int_mats[key])
 
 # shop awnings are part of the visual Detail mesh: give just those surfaces a collider so you can stand
 # on them (climb from a crate, jump across). Thickened into small slabs so nobody falls through.
