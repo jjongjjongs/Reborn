@@ -152,9 +152,19 @@ func _pick_target() -> Node3D:
 
 ## nothing in sight: go where we last saw / heard someone, else roam the map
 func _wander(delta: float) -> void:
+	# quiet moment: careful bots top up the magazine now (and put the main gun back)
+	if D("cover") >= 3.0 and _reload_t <= 0.0:
+		if wid != loadout[0] and wid != "knife": _equip(loadout[0])
+		elif float(_ammo.get(wid, 0)) / float(Weapons.get_w(wid)["mag"]) < D("hide_ammo"): _reload_t = float(Weapons.get_w(wid)["reload"])
+	if _reload_t > 0.0:
+		_reload_t -= delta
+		if _reload_t <= 0.0: _ammo[wid] = int(Weapons.get_w(wid)["mag"])
+	# chase what we know - but a far-off fight in another lane does not pull us out of ours
 	var latest := -1; var lt := -1.0
 	for k in _mem.keys():
-		if float(_mem[k]["t"]) > lt: lt = float(_mem[k]["t"]); latest = k
+		var mp: Vector3 = _mem[k]["pos"]
+		var near := mp.distance_to(global_position) < 22.0 or _lane_of(mp) == lane or roam_pts.is_empty()
+		if near and float(_mem[k]["t"]) > lt: lt = float(_mem[k]["t"]); latest = k
 	if latest != -1 and latest != _goal_mem:
 		_goal_mem = latest; _goal = _mem[latest]["pos"]; _via = Vector3.INF
 		if randf() < D("flank") and global_position.distance_to(_goal) > 14.0: _via = _flank_point(_goal)
@@ -224,6 +234,118 @@ func _flank_point(goal: Vector3) -> Vector3:
 		if lateral > 8.0 and a.distance_to(q) + q.distance_to(goal) < L * 1.7: cands.append(q)
 	return cands.pick_random() if not cands.is_empty() else Vector3.INF
 
+# ---- combat with cover (map analysis, see MapIntel). Level by difficulty "cover":
+#  0 stand / walk and shoot in the open   1 fight from the nearest cover
+#  2 + peek out to shoot, duck back to reload or when hurt, fall back when low
+#  3 + change spot after taking hits or every few seconds, reload early, fall back toward the team
+var _cover := Vector3.INF        # hiding spot (wall between it and the target)
+var _peek := Vector3.INF         # one step out of it, with a view of the target
+var _cover_t := 0.0
+var _cover_for: Node = null
+var _hits_here := 0
+var _retreat_t := 0.0
+var _retreated := false
+var _strafe := 1.0
+var _hit_t := 99.0
+var _strafe_t := 0.0
+
+func _fight(delta: float, to: Vector3, dist: float) -> void:
+	var lvl := int(D("cover"))
+	var los := _los_cached()
+	_strafe_t -= delta
+	if _strafe_t <= 0.0: _strafe_t = randf_range(0.6, 1.4); _strafe = -_strafe
+	# fall back when badly hurt (once a life): toward cover away from the threat / toward the team
+	if lvl >= 2 and not _retreated and hp < D("retreat_hp"):
+		_retreated = true; _retreat_t = randf_range(4.0, 7.0)
+		var back := global_position - to.normalized() * 10.0
+		if lvl >= 3 and team != -1:
+			var mates := Vector3.ZERO; var n := 0
+			for b in get_tree().get_nodes_in_group("bots"):
+				if b != self and b.team == team and b.alive: mates += (b as Node3D).global_position; n += 1
+			if n > 0: back = mates / n
+		var c := MapIntel.cover_from(back, _target.global_position, 12.0)
+		_cover = c if c != Vector3.INF else back; _peek = Vector3.INF
+	if _retreat_t > 0.0:
+		_retreat_t -= delta
+		_go(_cover, delta)
+		if los: _try_fire(delta)
+		return
+	if lvl == 0 or MapIntel.points.is_empty():
+		_open_fight(delta, to, dist, lvl == 0); return
+	# pick / refresh a fighting spot near us with a wall toward the target
+	_cover_t += delta
+	var stale := _cover == Vector3.INF or _cover_for != _target or (lvl >= 3 and (_hits_here >= 2 or _cover_t > 7.0))
+	if stale and (_cover_t > 0.8 or _cover_for != _target):
+		_cover_for = _target; _cover_t = 0.0; _hits_here = 0
+		_cover = MapIntel.cover_from(global_position, _target.global_position, minf(_combat(), 11.0))
+		_peek = _peek_of(_cover) if _cover != Vector3.INF else Vector3.INF
+	if _cover == Vector3.INF or _cover.distance_to(_target.global_position) > _combat() + 6.0:
+		_open_fight(delta, to, dist, false); return
+	# duck behind the wall to reload / when hurt (2+); otherwise stand at the peek spot and shoot
+	if lvl >= 3 and wid == loadout[0] and int(_ammo.get(wid, 0)) <= 0 and dist < 12.0 and _reload_t <= 0.0:
+		_equip(loadout[1])                       # empty up close: sidearm is faster than a reload
+		return
+	var mag := float(_ammo.get(wid, 0)) / float(Weapons.get_w(wid)["mag"])
+	var duck := lvl >= 2 and (_reload_t > 0.0 or (hp < D("hide_hp") and _hit_t < 1.2) or (mag < D("hide_ammo") and not los and _reload_t <= 0.0))
+	if duck:
+		if _reload_t <= 0.0 and mag < 1.0 and (mag < D("hide_ammo") or int(_ammo.get(wid, 0)) <= 0): _reload_t = float(Weapons.get_w(wid)["reload"])
+		_go(_cover, delta)
+		if _reload_t > 0.0:
+			_reload_t -= delta
+			if _reload_t <= 0.0: _ammo[wid] = int(Weapons.get_w(wid)["mag"])
+		return
+	var spot := _peek if (lvl >= 2 and _peek != Vector3.INF) else _cover
+	if lvl == 1 and not los: spot = global_position          # plain cover user: no view -> push in
+	if not los and global_position.distance_to(spot) < 0.8:
+		_move_to(_target.global_position, to)              # no shot from here: close in
+	else:
+		_go(spot, delta)
+	_face_target()
+	_try_fire(delta)
+
+func _open_fight(delta: float, to: Vector3, dist: float, walk_and_shoot: bool) -> void:
+	if dist > _combat() or not _los_cached():
+		_move_to(_target.global_position, to)      # out of range or blocked by walls: path in
+	elif dist < _min_d():
+		var away := -to.normalized()
+		velocity.x = away.x * _speed(); velocity.z = away.z * _speed()
+	elif walk_and_shoot:                           # rookies keep drifting sideways while they shoot
+		var side := Vector3(-to.z, 0, to.x).normalized() * _strafe
+		velocity.x = side.x * _speed() * 0.6; velocity.z = side.z * _speed() * 0.6
+	else:
+		velocity.x = 0.0; velocity.z = 0.0
+	_face_target()
+	_try_fire(delta)
+
+func _go(p: Vector3, _delta: float) -> void:
+	var tf := p - global_position; tf.y = 0.0
+	if tf.length() < 0.35:
+		velocity.x = 0.0; velocity.z = 0.0
+		return
+	_move_to(p, tf)
+	if tf.length() < 1.2:          # last bit: slow down so we stop on the spot
+		velocity.x *= 0.6; velocity.z *= 0.6
+
+func _face_target() -> void:
+	if _target == null: return
+	var t := _target.global_position - global_position
+	if Vector2(t.x, t.z).length() > 0.1: look_at(global_position + Vector3(t.x, 0, t.z), Vector3.UP)
+
+## the side step out of a cover spot that has a clear line to the target
+func _peek_of(c: Vector3) -> Vector3:
+	if _target == null: return Vector3.INF
+	var to := _target.global_position - c; to.y = 0.0; to = to.normalized()
+	var side := Vector3(-to.z, 0, to.x)
+	var sp := get_world_3d().direct_space_state
+	for s in [1.0, -1.0]:
+		var p: Vector3 = c + side * s * 1.1
+		var q := PhysicsRayQueryParameters3D.create(c + Vector3(0, 1.0, 0), p + Vector3(0, 1.0, 0))
+		if not sp.intersect_ray(q).is_empty(): continue
+		var r := PhysicsRayQueryParameters3D.create(p + Vector3(0, 1.5, 0), _target.global_position + Vector3(0, 1.3, 0))
+		r.exclude = [self, _target.get_rid()]
+		if sp.intersect_ray(r).is_empty(): return p
+	return Vector3.INF
+
 func _ready() -> void:
 	add_to_group("bots")
 	_pick_lane.call_deferred()
@@ -255,6 +377,7 @@ func hit(dmg: int, _is_head: bool = false, attacker = null) -> void:
 	if attacker != null and team != -1 and "team" in attacker and attacker.team == team:
 		return   # no friendly fire
 	hp -= dmg
+	_hit_t = 0.0; _hits_here += 1
 	if attacker != null and attacker is Node3D and _alive_of(attacker):
 		_remember(attacker, (attacker as Node3D).global_position + Vector3(randf_range(-2, 2), 0, randf_range(-2, 2)), false)
 		var to := (attacker as Node3D).global_position - global_position
@@ -281,6 +404,7 @@ func respawn_at(pos: Vector3) -> void:
 	_target = null
 	_mem.clear(); _goal = Vector3.INF; _goal_mem = -1; _via = Vector3.INF
 	_pick_lane()
+	_cover = Vector3.INF; _peek = Vector3.INF; _cover_for = null; _retreated = false; _retreat_t = 0.0; _hits_here = 0
 	_burst = 0
 	_warmup = 0.4
 	nades = 2
@@ -303,6 +427,8 @@ func _physics_process(delta: float) -> void:
 			visible = true
 	_warmup = maxf(0.0, _warmup - delta)
 
+	_hit_t += delta
+	if not MapIntel.ready and not MapIntel.points.is_empty(): MapIntel.finalize(get_world_3d(), global_position)
 	_perc_cd -= delta
 	if _perc_cd <= 0.0:
 		_perc_cd = 0.2 + randf() * 0.05
@@ -359,16 +485,8 @@ func _physics_process(delta: float) -> void:
 				var dr := to.normalized()           # charge in, firing, then knife
 				velocity.x = dr.x * _speed(); velocity.z = dr.z * _speed()
 				_try_fire(delta)
-			elif dist > _combat() or not _los_cached():
-				_move_to(_target.global_position, to)      # out of range or blocked by walls: path in
-				_try_fire(delta)
-			elif dist < _min_d():
-				var away := -to.normalized()
-				velocity.x = away.x * _speed(); velocity.z = away.z * _speed()
-				_try_fire(delta)
 			else:
-				velocity.x = 0.0; velocity.z = 0.0
-				_try_fire(delta)
+				_fight(delta, to, dist)
 		else:
 			velocity.x = 0.0; velocity.z = 0.0
 	elif objective != Vector3.INF:

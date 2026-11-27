@@ -53,6 +53,8 @@ func build_plan(file: String) -> Dictionary:
 		_site_mark("B", _wp(_centroid(plan["siteB"])) + Vector3(0, 0.06, 0), Vector2(0, 0))
 	if String(plan.get("name", "")) != "zombie_reststop" and not MapBuilder.backdrop: _auto_routes()
 	_bake_colliders()
+	if not MapBuilder.backdrop:
+		MapIntel.analyze(nav.get_world_3d(), Rect2(-_hw, -_hh, _hw * 2.0, _hh * 2.0))
 	var att: Array[Vector3] = []
 	for p in plan["att_spawns"]: att.append(_wp(p) + Vector3(0, 1.0, 0))
 	var def: Array[Vector3] = []
