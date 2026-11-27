@@ -34,6 +34,8 @@ func _ready() -> void:
 	Pause.arm()
 	await get_tree().physics_frame
 	await get_tree().physics_frame
+	var good: Array[Vector3] = []
+	good.assign(SpawnUtil.grounded(get_world_3d(), _spawns)); _spawns = good
 	_spawn_bots()
 
 func _build_world() -> void:
@@ -55,7 +57,7 @@ func _add_box(parent: Node, size: Vector3, pos: Vector3, c: Color) -> void:
 func _spawn_bots() -> void:
 	var tints := [Color(0.82, 0.32, 0.30), Color(0.30, 0.55, 0.85), Color(0.55, 0.40, 0.80),
 		Color(0.30, 0.70, 0.45), Color(0.80, 0.60, 0.25)]
-	for i in N_BOTS:
+	for i in Controls.dm_count - 1:           # players picked on the sortie screen (6..12, incl. you)
 		var b := BotPlayer.new()
 		b.bot_name = "봇 %d" % (i + 1)
 		b.tint = tints[i % tints.size()]
@@ -75,7 +77,7 @@ func _free_spawn() -> Vector3:
 				clear = minf(clear, sp.distance_to((c as Node3D).global_position))
 		if clear > best_clear:
 			best_clear = clear; best = sp
-	return best
+	return SpawnUtil.near(get_world_3d(), best, get_tree().get_nodes_in_group("combatant"))   # more players than spawn points
 
 func _on_died(attacker, victim) -> void:
 	if _over:
@@ -108,6 +110,8 @@ func _leader() -> Array:   # [name, kills]
 	return [best_name, best]
 
 func _process(dt: float) -> void:
+	for c in get_tree().get_nodes_in_group("combatant"):    # fell out of the map -> back to a spawn
+		if c.alive and (c as Node3D).global_position.y < SpawnUtil.KILL_Y: c.respawn_at(_free_spawn())
 	if player:
 		CamRig.follow(cam, player)
 	# respawn countdown overlay

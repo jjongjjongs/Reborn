@@ -103,6 +103,7 @@ const BODIES := {"zombie": "res://assets/soldier/MiniZombie.glb",
 	"sniper": "res://assets/soldier/Sniper.glb", "heavy": "res://assets/soldier/Heavy.glb"}
 var gear := "helmet"               # (unused: the old Mini's head gear)
 var skin := {}                     # character skin: material name -> colour (Profile.skin_mats)
+var lod := false                   # bots: the light copy of the body (<Name>_lod.glb, ~17k faces instead of ~50k)
 
 func setup(team_color: Color, kit: Color = Color(0, 0, 0, 0)) -> void:
 	_team = team_color
@@ -115,6 +116,7 @@ func setup(team_color: Color, kit: Color = Color(0, 0, 0, 0)) -> void:
 	pocket_off = Vector3(0.04, 0.0, -0.15 if body != "heavy" else -0.19) if concept else Vector3.ZERO    # thick vest: rifle in front of it
 	hand_back = 0.08                   # measured from the skeleton in _build_gun
 	var path: String = BODIES.get(body, "")
+	if lod and body in CLASSES and ResourceLoader.exists(path.replace(".glb", "_lod.glb")): path = path.replace(".glb", "_lod.glb")
 	var swat: Node3D = (load(path) as PackedScene).instantiate() if path != "" else SWAT.instantiate()
 	var gears := swat.find_children("Gear_*", "", true, false)
 	if gears.size() > 1:   # bodies with swappable head gear (helmet / beret / mask)

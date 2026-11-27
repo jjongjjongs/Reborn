@@ -174,9 +174,9 @@ func _card_panel() -> PanelContainer:
 # ---- mode stack (right) ----
 func _mode_stack() -> void:
 	_mode("웨이브 서바이벌", "PvE · 좀비 방어", "res://Main.tscn", 150, true, "survival")
-	_mode("데스매치", "개인전 · 봇", "res://Deathmatch.tscn", 230, false, "dm")
-	_mode("팀 데스매치", "3 vs 3 · 봇", "res://TeamDeathmatch.tscn", 310, false, "team")
-	_mode("폭파미션", "5 vs 5 · 폭탄 설치/해체", "res://BombMode.tscn", 390, false, "bomb")
+	_mode("데스매치", "개인전 · 최대 12명", "res://Deathmatch.tscn", 230, false, "dm")
+	_mode("팀 데스매치", "최대 6 vs 6 · 봇", "res://TeamDeathmatch.tscn", 310, false, "team")
+	_mode("폭파미션", "최대 6 vs 6 · 폭탄 설치/해체", "res://BombMode.tscn", 390, false, "bomb")
 	_mode("훈련", "훈련장 · 표적 사격", "res://Training.tscn", 470, false, "training")
 	_mode("미니게임", "점프맵 · 기록 도전", "res://JumpMap.tscn", 550, false, "minigame")
 

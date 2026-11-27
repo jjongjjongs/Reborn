@@ -38,12 +38,14 @@ func _ready() -> void:
 	Pause.arm()
 	await get_tree().physics_frame
 	await get_tree().physics_frame
+	var r: Array[Vector3] = []; r.assign(SpawnUtil.grounded(get_world_3d(), _red_spawns)); _red_spawns = r
+	var bl: Array[Vector3] = []; bl.assign(SpawnUtil.grounded(get_world_3d(), _blue_spawns)); _blue_spawns = bl
 	_spawn_bots()
 
 func _spawn_bots() -> void:
-	for i in N_ALLIES:
+	for i in Controls.team_size - 1:          # team size picked on the sortie screen (3..6)
 		_make_bot(RED, "아군 %d" % (i + 1), Color(0.86, 0.40, 0.33))
-	for i in N_ENEMIES:
+	for i in Controls.team_size:
 		_make_bot(BLUE, "적군 %d" % (i + 1), Color(0.33, 0.55, 0.88))
 
 func _make_bot(team: int, nm: String, tint: Color) -> void:
@@ -68,7 +70,7 @@ func _free_spawn(team: int) -> Vector3:
 				clear = minf(clear, sp.distance_to((c as Node3D).global_position))
 		if clear > best_clear:
 			best_clear = clear; best = sp
-	return best
+	return SpawnUtil.near(get_world_3d(), best, get_tree().get_nodes_in_group("combatant"))   # more players than spawn points
 
 func _team_of(n) -> int:
 	if n == player:
@@ -97,6 +99,8 @@ func _on_died(attacker, victim) -> void:
 			victim.respawn_at(_free_spawn(vt)))
 
 func _process(dt: float) -> void:
+	for c in get_tree().get_nodes_in_group("combatant"):    # fell out of the map -> back to a spawn
+		if c.alive and (c as Node3D).global_position.y < SpawnUtil.KILL_Y: c.respawn_at(_free_spawn(_team_of(c)))
 	if player:
 		CamRig.follow(cam, player)
 	if _hp_fill:

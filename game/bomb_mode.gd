@@ -75,12 +75,18 @@ func _ready() -> void:
 	Pause.arm()
 	await get_tree().physics_frame
 	await get_tree().physics_frame
-	for i in TEAM_SIZE - 1:
+	for i in Controls.team_size - 1:          # team size picked on the sortie screen (3..6)
 		_make_bot(RED, "아군 %d" % (i + 1), Color(0.86, 0.40, 0.33))
-	for i in TEAM_SIZE:
+	for i in Controls.team_size:
 		_make_bot(BLUE, "적군 %d" % (i + 1), Color(0.33, 0.55, 0.88))
 	await get_tree().physics_frame
 	_start_round()
+
+## k-th spawn of a side; past the plan's points, halfway between two neighbours (open ground)
+func _spawn_k(sp: Array, k: int) -> Vector3:
+	var n := sp.size()
+	if k < n: return sp[k]
+	return ((sp[k % n] as Vector3) + (sp[(k + 1) % n] as Vector3)) * 0.5
 
 func _make_bot(team: int, nm: String, tint: Color) -> void:
 	var b := BotPlayer.new()
@@ -111,10 +117,10 @@ func _start_round() -> void:
 	var att_sp: Array = info["att"]; var def_sp: Array = info["def"]
 	var k := 0
 	for n in _members(att_team):
-		n.respawn_at(att_sp[k % att_sp.size()]); k += 1
+		n.respawn_at(_spawn_k(att_sp, k)); k += 1
 	k = 0
 	for n in _members(def_team):
-		n.respawn_at(def_sp[k % def_sp.size()]); k += 1
+		n.respawn_at(_spawn_k(def_sp, k)); k += 1
 	for n in _members(RED) + _members(BLUE):
 		n.invuln_t = 0.0; n.visible = true
 		if n is BotPlayer:
@@ -152,6 +158,11 @@ func _next() -> void:
 
 # ---------------------------------------------------------------- per frame
 func _process(dt: float) -> void:
+	if info.has("att"):
+		var atts := _members(att_team)
+		for c in atts + _members(1 - att_team):            # fell out of the map -> back to the side's spawn
+			if c.alive and (c as Node3D).global_position.y < SpawnUtil.KILL_Y:
+				c.respawn_at(_spawn_k(info["att"] if c in atts else info["def"], 0))
 	_camera()
 	_hud(dt)
 	if state == "over": return

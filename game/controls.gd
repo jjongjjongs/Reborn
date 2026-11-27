@@ -30,6 +30,8 @@ var act_progress: float = 0.0            # camera shake amount (decays)
 # loadout (persisted, chosen in the menu 장비 tab): primary / secondary / melee
 var loadout: Array = ["m4", "pistol", "knife"]
 var bot_diff: String = "reg"      # 출격 준비: bot difficulty (persisted)
+var team_size: int = 5            # 출격 준비: players per team in 팀 데스매치 / 폭파미션 (3..6, persisted)
+var dm_count: int = 8             # 출격 준비: players in 데스매치 incl. you (6..12, persisted)
 var sel_map: String = "downtown"     # 출격 준비: map (persisted)
 var slot: int = 0                 # active slot (HUD chip)
 var weapon_id: String = "m4"      # active weapon (mirrors the player)
@@ -231,6 +233,8 @@ func _load_best() -> void:
 		bot_diff = str(data.get("bot_diff", "reg"))
 		if not ["rook", "reg", "vet", "elite"].has(bot_diff): bot_diff = "reg"
 		sel_map = str(data.get("sel_map", "downtown"))
+		team_size = clampi(int(data.get("team_size", 5)), 3, 6)
+		dm_count = clampi(int(data.get("dm_count", 8)), 6, 12)
 		var hl = data.get("hud_layout", {})
 		# layout v2: the new default arrangement replaces older saved layouts once
 		if typeof(hl) == TYPE_DICTIONARY and int(data.get("layout_v", 1)) >= 2:
@@ -248,6 +252,6 @@ func _save_best() -> void:
 		"sfx_on": sfx_on, "vibrate_on": vibrate_on, "sniper_hold": sniper_hold,
 		"look_sens": look_sens, "scope_sens": scope_sens, "view_fp": view_fp, "left_handed": left_handed,
 		"hud_layout": hud_layout, "loadout": loadout,
-		"bot_diff": bot_diff, "sel_map": sel_map, "layout_v": 2,
+		"bot_diff": bot_diff, "sel_map": sel_map, "layout_v": 2, "team_size": team_size, "dm_count": dm_count,
 	}))
 	f.close()

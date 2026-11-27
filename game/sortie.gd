@@ -15,15 +15,15 @@ const SOFT := Color(0.65, 0.71, 0.75)
 
 # maps drawn from their plan (assets/maps/<plan>.json) — see MapPlan
 const BOMB_MAPS := [
-	{"id": "quarter", "plan": "oldquarter", "name": "구도심", "en": "OLD QUARTER", "size": "110×100m · 5 vs 5", "tag": "지하 통로 · 발코니 · 중앙 고지대", "ready": true, "ground": Color("2a2d31")},
-	{"id": "dockside", "plan": "dockside", "name": "항만 창고", "en": "DOCKSIDE", "size": "108×96m · 5 vs 5", "tag": "창고 마당 A · 부두 B · 배수로", "ready": true, "ground": Color("2a2d31")},
-	{"id": "facility", "plan": "facility", "name": "연구 시설", "en": "FACILITY", "size": "108×96m · 5 vs 5", "tag": "반응로실 A · 하역장 B · 실내 복도", "ready": true, "ground": Color("2a2d31")},
+	{"id": "quarter", "plan": "oldquarter", "name": "구도심", "en": "OLD QUARTER", "size": "132×120m · 최대 6 vs 6", "tag": "지하 통로 · 발코니 · 중앙 고지대", "ready": true, "ground": Color("2a2d31")},
+	{"id": "dockside", "plan": "dockside", "name": "항만 창고", "en": "DOCKSIDE", "size": "130×115m · 최대 6 vs 6", "tag": "창고 마당 A · 부두 B · 배수로", "ready": true, "ground": Color("2a2d31")},
+	{"id": "facility", "plan": "facility", "name": "연구 시설", "en": "FACILITY", "size": "130×115m · 최대 6 vs 6", "tag": "반응로실 A · 하역장 B · 실내 복도", "ready": true, "ground": Color("2a2d31")},
 ]
 const MAPS := [
-	{"id": "downtown", "plan": "downtown_v3", "name": "다운타운", "en": "DOWNTOWN", "size": "68×56m · 4–8명", "tag": "주차 데크 · 실내 로비 · 지하철 터널", "ready": true, "ground": Color("2a2d31")},
-	{"id": "bazaar", "plan": "bazaar_v3", "name": "사막 시장", "en": "BAZAAR", "size": "68×56m · 4–8명", "tag": "덮인 시장 · 분수 광장 테라스 · 수로", "ready": true, "ground": Color("3a3226")},
-	{"id": "cell", "plan": "cell_v3", "name": "교도소", "en": "CELLBLOCK", "size": "68×56m · 4–8명", "tag": "감방 복도 · 감시탑 운동장 · 탈옥 터널", "ready": true, "ground": Color("2a2e33")},
-	{"id": "harbor", "plan": "harbor_v3", "name": "컨테이너 항구", "en": "HARBOR", "size": "68×56m · 4–8명", "tag": "창고 실내 · 컨테이너 야적장 · 크레인 부두", "ready": true, "ground": Color("263038")},
+	{"id": "downtown", "plan": "downtown_v3", "name": "다운타운", "en": "DOWNTOWN", "size": "82×67m · 6–12명", "tag": "주차 데크 · 실내 로비 · 지하철 터널", "ready": true, "ground": Color("2a2d31")},
+	{"id": "bazaar", "plan": "bazaar_v3", "name": "사막 시장", "en": "BAZAAR", "size": "82×67m · 6–12명", "tag": "덮인 시장 · 분수 광장 테라스 · 수로", "ready": true, "ground": Color("3a3226")},
+	{"id": "cell", "plan": "cell_v3", "name": "교도소", "en": "CELLBLOCK", "size": "82×67m · 6–12명", "tag": "감방 복도 · 감시탑 운동장 · 탈옥 터널", "ready": true, "ground": Color("2a2e33")},
+	{"id": "harbor", "plan": "harbor_v3", "name": "컨테이너 항구", "en": "HARBOR", "size": "82×67m · 6–12명", "tag": "창고 실내 · 컨테이너 야적장 · 크레인 부두", "ready": true, "ground": Color("263038")},
 ]
 const ZOMBIE_MAPS := [
 	{"id": "reststop", "plan": "zombie_reststop", "name": "폐휴게소", "en": "REST STOP", "size": "64×56m · 좀비 전용", "tag": "편의점 농성 · 주유소 지붕 · 모텔 · 주차장 순환로", "ready": true, "ground": Color("2b2a2e")},
@@ -70,6 +70,7 @@ var _detail: GridContainer
 var _slots: VBoxContainer
 var _summary: Label
 var _view_btns: Array = []   # [1인칭, 3인칭]
+var _count_box: HBoxContainer
 
 func setup(t: String, sub: String, sc: String, k: String) -> SortieScreen:
 	title = t; subtitle = sub; scene = sc; kind = k
@@ -106,6 +107,12 @@ func _ready() -> void:
 	_map_box.add_theme_constant_override("h_separation", 10)
 	_map_box.add_theme_constant_override("v_separation", 10)
 	c1.add_child(_map_box)
+	# players: 팀전 / 폭파 3v3..6v6, 데스매치 6..12 (fewer = lighter on the phone)
+	if kind in ["team", "bomb", "dm"]:
+		var hl := _label("인원", 20, FG); hl.position = Vector2(16, col_h - 118); c1.add_child(hl)
+		var hs := _label("인원이 많으면 폰이 무거워질 수 있어요", 13, MUTED); hs.position = Vector2(70, col_h - 112); c1.add_child(hs)
+		_count_box = HBoxContainer.new(); _count_box.position = Vector2(16, col_h - 84); _count_box.add_theme_constant_override("separation", 10)
+		c1.add_child(_count_box)
 
 	var c2 := _panel(Vector2(592, col_y), Vector2(300, col_h)); add_child(c2)
 	var h2 := _label({"survival": "좀비 강도", "training": "훈련 안내", "minigame": "코스 안내"}.get(kind, "봇 난이도"), 20, FG); h2.position = Vector2(16, 12); c2.add_child(h2)
@@ -250,6 +257,24 @@ func _refresh() -> void:
 		var a := _label(r[0], 14, MUTED); a.custom_minimum_size = Vector2(134, 0); _detail.add_child(a)
 		var v := _label(r[1], 14, FG); v.custom_minimum_size = Vector2(134, 0)
 		v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT; _detail.add_child(v)
+	# player count
+	if _count_box:
+		for c in _count_box.get_children(): c.queue_free()
+		var opts := [6, 8, 10, 12] if kind == "dm" else [3, 4, 5, 6]
+		for n in opts:
+			var on: bool = n == (Controls.dm_count if kind == "dm" else Controls.team_size)
+			var b := Button.new(); b.focus_mode = Control.FOCUS_NONE; b.custom_minimum_size = Vector2(120, 60)
+			b.text = ("%d명" % n) if kind == "dm" else ("%d vs %d" % [n, n])
+			b.add_theme_font_size_override("font_size", 20)
+			b.add_theme_color_override("font_color", FG)
+			for k in ["normal", "hover", "pressed"]: b.add_theme_stylebox_override(k, _sb(SEL_BG if on else CARD, ACCENT if on else LINE2, 2 if on else 1, 10))
+			var nn: int = n
+			b.pressed.connect(func() -> void:
+				Sfx.play("ui")
+				if kind == "dm": Controls.dm_count = nn
+				else: Controls.team_size = nn
+				_refresh())
+			_count_box.add_child(b)
 	# view toggle
 	for i in _view_btns.size():
 		var on: bool = (i == 0) == Controls.view_fp
@@ -277,7 +302,7 @@ func _refresh() -> void:
 	var mname := ""
 	for m in _maps():
 		if m["id"] == Controls.sel_map: mname = m["name"]
-	var who := "혼자 · 5 스테이지 · 기록 도전" if kind == "minigame" else "혼자 · 사격장 · 더미 · 기록 측정" if kind == "training" else "웨이브 5" if surv else ("3 vs 3" if kind == "team" else ("5 vs 5 · 7승" if kind == "bomb" else "개인전 6명"))
+	var who := "혼자 · 5 스테이지 · 기록 도전" if kind == "minigame" else "혼자 · 사격장 · 더미 · 기록 측정" if kind == "training" else "웨이브 5" if surv else ("%d vs %d" % [Controls.team_size, Controls.team_size] if kind == "team" else ("%d vs %d · 7승" % [Controls.team_size, Controls.team_size] if kind == "bomb" else "개인전 %d명" % Controls.dm_count))
 	_summary.text = ("%s · %s" % [mname, who]) if kind in ["training", "minigame"] else ("%s · %s · %s" % [mname, Difficulty.cur()["name"], who])
 
 func _map_card(m: Dictionary) -> Button:

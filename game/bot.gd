@@ -368,6 +368,7 @@ func _ready() -> void:
 	_soldier = Soldier.new()
 	add_child(_soldier)
 	_soldier.body = Soldier.CLASSES.pick_random()       # bots wear the five concept characters, any skin
+	_soldier.lod = true                                 # light model: up to 11 bots on a phone
 	_soldier.skin = Profile.skin_mats(Profile.skins_of(_soldier.body).pick_random())
 	_soldier.setup(tint)
 	loadout = [Weapons.ORDER_PRIMARY.pick_random(), Weapons.ORDER_SECONDARY.pick_random(), "knife"]
