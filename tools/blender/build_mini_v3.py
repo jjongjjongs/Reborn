@@ -28,8 +28,26 @@ def mat(name, rgb, rough=0.8, metal=0.0, alpha=1.0):
 P = {
  "rookie": dict(uniform=(0.37, 0.38, 0.25), uniform2=(0.47, 0.47, 0.34), gear=(0.62, 0.53, 0.37), gear2=(0.52, 0.44, 0.30),
                 helmet=(0.46, 0.44, 0.32), dark=(0.24, 0.24, 0.25), black=(0.11, 0.11, 0.12), boot=(0.29, 0.23, 0.19),
-                team=(0.22, 0.37, 0.75)),
+                team=(0.22, 0.37, 0.75), acc=(0.22, 0.45, 0.85)),
+ # Swift Scout: light khaki shirt / grey cargo, chest rig, tactical cap, teal accents
+ "scout": dict(uniform=(0.33, 0.35, 0.34), uniform2=(0.55, 0.50, 0.40), gear=(0.40, 0.42, 0.36), gear2=(0.32, 0.34, 0.29),
+                helmet=(0.30, 0.32, 0.30), dark=(0.22, 0.23, 0.24), black=(0.11, 0.11, 0.12), boot=(0.33, 0.28, 0.22),
+                team=(0.22, 0.37, 0.75), acc=(0.15, 0.62, 0.62)),
+ # Heavy Gunner: dark fatigues, heavy armour, pauldrons, ammo belt, red accents
+ "heavy": dict(uniform=(0.27, 0.28, 0.24), uniform2=(0.36, 0.36, 0.30), gear=(0.33, 0.33, 0.30), gear2=(0.25, 0.26, 0.24),
+                helmet=(0.30, 0.31, 0.28), dark=(0.20, 0.20, 0.21), black=(0.10, 0.10, 0.11), boot=(0.22, 0.19, 0.17),
+                team=(0.22, 0.37, 0.75), acc=(0.75, 0.18, 0.14)),
+ # Shadow Sniper: hood, face mask, ghillie scarf, purple accents
+ "sniper": dict(uniform=(0.31, 0.33, 0.24), uniform2=(0.40, 0.40, 0.30), gear=(0.42, 0.40, 0.30), gear2=(0.34, 0.33, 0.25),
+                helmet=(0.33, 0.35, 0.25), dark=(0.20, 0.21, 0.20), black=(0.10, 0.10, 0.11), boot=(0.27, 0.22, 0.18),
+                team=(0.22, 0.37, 0.75), acc=(0.52, 0.38, 0.85)),
+ # Tech Support: navy-grey, radio backpack, tool pouches, forearm device, orange accents
+ "tech": dict(uniform=(0.27, 0.30, 0.36), uniform2=(0.38, 0.41, 0.46), gear=(0.50, 0.47, 0.40), gear2=(0.40, 0.38, 0.33),
+                helmet=(0.36, 0.38, 0.40), dark=(0.21, 0.22, 0.24), black=(0.10, 0.10, 0.11), boot=(0.25, 0.22, 0.20),
+                team=(0.22, 0.37, 0.75), acc=(0.95, 0.52, 0.12)),
 }[CLASS]
+HEAVY = CLASS == "heavy"; BULK = 1.10 if HEAVY else 1.0; ARMR = 1.08 if HEAVY else 1.0
+LIGHT_RIG = CLASS in ("scout", "sniper")
 UNI = mat("R_Uniform", P["uniform"], 0.9); UNI2 = mat("R_Sleeve", P["uniform2"], 0.9)
 GEAR = mat("R_Gear", P["gear"], 0.85); GEAR2 = mat("R_Gear2", P["gear2"], 0.85); HELM = mat("R_Helmet", P["helmet"], 0.65)
 DARK = mat("R_Dark", P["dark"], 0.6); BLACK = mat("R_Black", P["black"], 0.5); BOOT = mat("R_Boot", P["boot"], 0.8)
@@ -38,7 +56,7 @@ SKIN = mat("R_Skin", (0.94, 0.75, 0.61), 0.6); SKIN2 = mat("R_Blush", (0.96, 0.6
 HAIR = mat("R_Hair", (0.22, 0.14, 0.10), 0.6); LASH = mat("R_Lash", (0.08, 0.05, 0.04), 0.4)
 EYEW = mat("R_EyeWhite", (0.99, 0.98, 0.96), 0.25); IRIS = mat("R_Iris", (0.55, 0.36, 0.22), 0.2); IRIS2 = mat("R_IrisDark", (0.23, 0.13, 0.08), 0.2)
 PUPIL = mat("R_Pupil", (0.07, 0.04, 0.03), 0.2); SHINE = mat("R_Shine", (1, 1, 1), 0.05)
-LENS = mat("R_Lens", (0.42, 0.45, 0.55), 0.12, 0.0); BAND = mat("R_Bandage", (0.95, 0.85, 0.72), 0.8); BRASS = mat("R_Brass", (0.80, 0.62, 0.28), 0.35, 0.8)
+ACC = mat("R_Accent", P["acc"], 0.45); LENS = mat("R_Lens", (0.42, 0.45, 0.55), 0.12, 0.0); BAND = mat("R_Bandage", (0.95, 0.85, 0.72), 0.8); BRASS = mat("R_Brass", (0.80, 0.62, 0.28), 0.35, 0.8)
 
 SOFT = {}   # group -> [objects] fused by remesh
 HARD = []
@@ -144,6 +162,111 @@ def feat(kind, tree, fx, fz, size, m, out, origin_y=-2.0, spin=0.0, dirv=None):
         o = box((0, 0, 0), size, m, bev=min(size) * 0.45)
     return onto(o, loc, nrm, out, spin)
 
+
+# ================================================================== class gear
+def plate_carrier():
+    box((0, -0.135, 1.05), (0.43, 0.085 * BULK, 0.36), GEAR, bev=0.045)                     # front plate bag
+    box((0, 0.14, 1.06), (0.43, 0.08 * BULK, 0.36), GEAR, bev=0.045)                        # back plate bag
+    mirror_x(lambda s: box((0.215 * s, 0.0, 0.98), (0.05, 0.27, 0.16), GEAR2, bev=0.02))     # cummerbund sides
+    mirror_x(lambda s: box((0.13 * s, 0.0, 1.235), (0.09, 0.30, 0.045), GEAR2, bev=0.018))   # shoulder straps
+    for k, x in enumerate((-0.12, 0.0, 0.12)):                                       # 3 mag pouches
+        box((x, -0.20 * BULK, 0.98), (0.11, 0.075, 0.15), GEAR2, bev=0.022)
+        box((x, -0.20 * BULK, 1.055), (0.115, 0.082, 0.035), GEAR, bev=0.014)
+        box((x, -0.243 * BULK, 1.03), (0.03, 0.01, 0.05), BLACK, bev=0.004)                 # flap tab
+    box((0, -0.19 * BULK, 1.16), (0.22, 0.05, 0.10), DARK, bev=0.02)                        # admin panel
+    box((-0.06, -0.218 * BULK, 1.16), (0.06, 0.012, 0.045), TEAM, bev=0.006)                # team tab
+    for k in range(2):                                                               # white chevron emblem
+        for s in (1, -1):
+            box((0.05 + 0.012 * s, -0.218 * BULK, 1.15 + k * 0.022), (0.03, 0.008, 0.008), WHITE, bev=0.003, rot=(0, 0.6 * s, 0))
+def pack():
+    if CLASS == "rookie":
+        box((0, 0.235, 1.05), (0.34, 0.15, 0.37), GEAR2, bev=0.06)                       # assault pack
+        box((0, 0.315, 1.0), (0.24, 0.05, 0.18), GEAR, bev=0.03)
+        box((0, 0.24, 1.25), (0.12, 0.04, 0.03), BLACK, bev=0.01)
+
+    elif CLASS == "scout":                                                               # small hydration pack + X straps
+        box((0, 0.20, 1.04), (0.24, 0.09, 0.30), GEAR2, bev=0.05)
+        box((0, 0.25, 0.98), (0.16, 0.03, 0.12), GEAR, bev=0.02)
+        tube([Vector((0.0, 0.24, 1.20)), Vector((0.12, 0.10, 1.26)), Vector((0.16, -0.05, 1.22))], 0.008, BLACK)   # drink tube
+    elif HEAVY:                                                                          # ammo can pack
+        box((0, 0.25, 1.03), (0.38, 0.17, 0.36), GEAR2, bev=0.06)
+        box((0, 0.345, 1.0), (0.30, 0.04, 0.22), GEAR, bev=0.03)
+        box((0, 0.25, 1.235), (0.30, 0.12, 0.03), BLACK, bev=0.01)
+        for s in (1, -1): box((0.20 * s, 0.25, 1.0), (0.03, 0.12, 0.2), ACC, bev=0.01)
+    elif CLASS == "sniper":                                                              # slim drag bag strap
+        box((0, 0.19, 1.02), (0.22, 0.08, 0.30), GEAR2, bev=0.04)
+    else:                                                                                # tech: radio pack + antenna
+        box((0, 0.245, 1.04), (0.34, 0.16, 0.38), GEAR2, bev=0.06)
+        box((0, 0.33, 1.06), (0.26, 0.04, 0.24), DARK, bev=0.03)
+        for k in range(3): cyl((-0.07 + 0.07 * k, 0.352, 1.12), 0.018, 0.02, ACC if k == 0 else BLACK, rot=(math.pi / 2, 0, 0))   # dials
+        box((0.08, 0.352, 1.00), (0.08, 0.01, 0.05), ACC, bev=0.005)                         # display
+        cyl((-0.12, 0.27, 1.26), 0.022, 0.06, BLACK)                                         # antenna base
+        tube([Vector((-0.12, 0.27, 1.28)), Vector((-0.14, 0.30, 1.45)), Vector((-0.17, 0.34, 1.60))], 0.008, BLACK, taper=[1.0, 0.8, 0.5])
+        ell((-0.17, 0.34, 1.605), (0.014, 0.014, 0.014), ACC)
+
+def light_rig():                       # scout / sniper: chest rig only (no plates), straps over the shoulders
+    box((0, -0.15, 1.00), (0.36, 0.05, 0.22), GEAR, bev=0.03)                          # rig panel
+    for x in (-0.12, -0.04, 0.04, 0.12):                                               # 4 slim mag pouches
+        box((x, -0.19, 0.97), (0.07, 0.05, 0.14), GEAR2, bev=0.018)
+        box((x, -0.19, 1.035), (0.072, 0.055, 0.025), GEAR, bev=0.01)
+    box((0, -0.185, 1.10), (0.20, 0.035, 0.05), DARK, bev=0.012)                        # top admin strip
+    box((-0.06, -0.205, 1.10), (0.05, 0.01, 0.035), TEAM, bev=0.005)
+    box((0.06, -0.205, 1.10), (0.04, 0.01, 0.025), ACC, bev=0.004)
+    mirror_x(lambda s: box((0.13 * s, 0.0, 1.22), (0.06, 0.30, 0.035), GEAR2, bev=0.012))   # shoulder straps
+    for s in (1, -1):                                                                  # X harness on the back
+        box((0, 0.16, 1.06), (0.05, 0.02, 0.42), GEAR2, bev=0.01, rot=(0, 0.6 * s, 0))
+    mirror_x(lambda s: box((0.20 * s, -0.08, 0.96), (0.05, 0.16, 0.10), GEAR2, bev=0.015))  # side straps
+
+def heavy_extras():                    # pauldrons, neck collar, groin plate, ammo belt
+    for s in (1, -1):                  # rounded shoulder armour hugging the upper arm (moves with it, no flaps)
+        # outside the spine-weighted core: the whole cap rides on the upper arm: the whole cap rides on the upper arm
+        cap_ = ell((0.31 * s, 0.0, 1.18), (0.115, 0.135, 0.12), mat("R_Pauldron", P["gear"], 0.85), seg=32, rings=16)   # rigged to the upper arm only
+        cut(cap_, (0, 0, 1.14), (0, 0, -1))
+        cut(cap_, (0.255 * s, 0, 0), (-s, 0, 0))
+        sol = cap_.modifiers.new("s", "SOLIDIFY"); sol.thickness = 0.02
+        bpy.context.view_layer.objects.active = cap_; bpy.ops.object.modifier_apply(modifier="s")
+        box((0.32 * s, -0.12, 1.22), (0.05, 0.012, 0.03), ACC, bev=0.005, rot=(0.5, 0, 0))
+    torus((0, -0.01, 1.255), 0.15, 0.045, GEAR2, sx=1.05, sy=0.95)                     # neck collar
+    box((0, -0.15, 0.80), (0.16, 0.05, 0.13), GEAR2, bev=0.03)                         # groin plate
+    # ammo belt: shoulder (left) to hip (right) over the front pouches
+    a = Vector((0.20, -0.20, 1.22)); b = Vector((-0.05, -0.27, 1.05)); c = Vector((-0.24, -0.20, 0.90))
+    tube([a, b, c], 0.022, BLACK)
+    for k in range(13):
+        t = k / 12.0
+        p = (a * (1 - t) ** 2 + b * 2 * (1 - t) * t + c * t * t)
+        d = (b - a) * 2 * (1 - t) + (c - b) * 2 * t
+        q = Vector((0, 0, 1)).rotation_difference(d.normalized().cross(Vector((0, -1, 0))).normalized())
+        o = cyl((0, 0, 0), 0.0095, 0.06, BRASS, verts=12)
+        o.data.transform(q.to_matrix().to_4x4()); o.data.transform(Matrix.Translation(p + Vector((0, -0.015, 0))))
+    box((0.0, -0.26, 0.86), (0.14, 0.06, 0.08), ACC, bev=0.02)                          # red ammo pouch
+
+def ghillie():                         # sniper: scarf of hanging fabric strips round the neck and shoulders
+    greens = [mat("R_Ghillie1", (0.33, 0.36, 0.22), 0.95), mat("R_Ghillie2", (0.42, 0.40, 0.26), 0.95), mat("R_Ghillie3", (0.27, 0.30, 0.20), 0.95)]
+    torus((0, -0.01, 1.24), 0.16, 0.045, greens[0], sx=0.9, sy=0.95)                   # wrapped scarf (stays on the chest)
+    for i in range(46):
+        a = i / 46.0 * 2 * math.pi
+        r = 0.20 + 0.03 * random.random()
+        x = math.sin(a) * r * 0.88; y = -math.cos(a) * r * 0.9      # inside |x| < 0.21: rides on the chest, not the arms
+        z0 = 1.25 + 0.02 * random.random()
+        L = 0.10 + 0.12 * random.random() * (1.0 if y > -0.1 else 0.7)
+        out = Vector((math.sin(a) * 0.3, -math.cos(a), 0)) * 0.03
+        p0 = Vector((x, y, z0)); p1 = p0 + out + Vector((0, 0, -L * 0.5)); p2 = p0 + out * 1.5 + Vector((0.01 * random.random(), 0, -L))
+        tube([p0, p1, p2], 0.014, greens[i % 3], taper=[1.0, 0.8, 0.35], flat=0.4)
+    box((0.12, -0.215, 1.10), (0.03, 0.01, 0.03), ACC, bev=0.004)
+
+def tech_extras():                     # tool pouch with wrench, forearm device on the left arm
+    box((-0.24, -0.06, 0.80), (0.08, 0.15, 0.17), GEAR2, bev=0.03)
+    tube([Vector((-0.25, -0.08, 0.86)), Vector((-0.25, -0.08, 0.98))], 0.010, DARK)
+    torus((-0.25, -0.08, 0.995), 0.022, 0.008, DARK, rot=(math.pi / 2, 0, 0))
+    box((-0.25, -0.03, 0.89), (0.03, 0.03, 0.06), ACC, bev=0.006)                        # screwdriver handle
+    x = 0.475                                                                          # forearm computer (left arm, +X)
+    box((x, 0.0, 1.14), (0.13, 0.16, 0.16), DARK, bev=0.03)
+    box((x, -0.04, 1.215), (0.10, 0.08, 0.012), ACC, bev=0.004)                          # screen (orange glow)
+    box((x + 0.03, 0.05, 1.215), (0.03, 0.03, 0.012), BLACK, bev=0.004)
+    torus((x - 0.045, 0.0, 1.14), 0.082, 0.012, BLACK, rot=(0, math.pi / 2, 0))
+    torus((x + 0.045, 0.0, 1.14), 0.08, 0.012, BLACK, rot=(0, math.pi / 2, 0))
+    box((0.24, -0.215, 1.10), (0.04, 0.01, 0.04), ACC, bev=0.005)
+
 # ================================================================== body
 H_HEAD = (0.0, -0.01, 1.56); HR = (0.30, 0.28, 0.29)
 def build_rookie():
@@ -153,13 +276,14 @@ def build_rookie():
     cap((0, -0.01, 1.20), (0, -0.01, 1.34), 0.085, SKIN, "skin")
     mirror_x(lambda s: cap((0.40 * s, 0, 1.14), (0.565 * s, 0, 1.14), 0.07, SKIN, "skin", 0.062))
     # ---------------- uniform: torso, arms (short, rolled sleeves), baggy trousers with folds
-    ell((0, 0.0, 1.02), (0.235, 0.165, 0.22), UNI, "uni")
-    ell((0, 0.0, 1.13), (0.27, 0.17, 0.12), UNI, "uni")
+    ell((0, 0.0, 1.02), (0.235, 0.165 * BULK, 0.22), UNI, "uni")
+    ell((0, 0.0, 1.13), (0.27, 0.17 * BULK, 0.12), UNI, "uni")
     ell((0, 0.0, 0.84), (0.225, 0.165, 0.11), UNI, "uni")
     torus((0, -0.01, 1.255), 0.10, 0.035, UNI, soft="cuff")                     # collar
     def arm(s):
-        cap((0.18 * s, 0, 1.15), (0.39 * s, 0, 1.14), 0.098, UNI, "uni", 0.094)
-        ell((0.25 * s, 0, 1.17), (0.11, 0.115, 0.10), UNI, "uni")                  # shoulder
+        cap((0.18 * s, 0, 1.15), (0.39 * s, 0, 1.14), 0.098 * ARMR, UNI, "uni", 0.094 * ARMR)
+        ell((0.25 * s, 0, 1.17), (0.11 * ARMR, 0.115 * ARMR, 0.10 * ARMR), UNI, "uni")                  # shoulder
+        torus((0.335 * s, 0, 1.145), 0.097 * ARMR, 0.02, TEAM, rot=(0, math.pi / 2, 0))   # team armband (reads at a distance)
         torus((0.395 * s, 0, 1.14), 0.093, 0.028, UNI2, rot=(0, math.pi / 2, 0), soft="cuff")   # rolled cuff
         torus((0.375 * s, 0, 1.14), 0.096, 0.022, UNI2, rot=(0, math.pi / 2, 0), soft="cuff")
     mirror_x(arm)
@@ -204,23 +328,13 @@ def build_rookie():
         box((0.285 * s, -0.04, 0.855), (0.012, 0.03, 0.05), TEAM, bev=0.005)
         box((0.20 * s, -0.16, 0.81), (0.08, 0.06, 0.12), GEAR2, bev=0.025)          # front utility pouch
     mirror_x(hip)
-    # ---------------- plate carrier
-    box((0, -0.135, 1.05), (0.43, 0.085, 0.36), GEAR, bev=0.045)                     # front plate bag
-    box((0, 0.14, 1.06), (0.43, 0.08, 0.36), GEAR, bev=0.045)                        # back plate bag
-    mirror_x(lambda s: box((0.215 * s, 0.0, 0.98), (0.05, 0.27, 0.16), GEAR2, bev=0.02))     # cummerbund sides
-    mirror_x(lambda s: box((0.13 * s, 0.0, 1.235), (0.09, 0.30, 0.045), GEAR2, bev=0.018))   # shoulder straps
-    for k, x in enumerate((-0.12, 0.0, 0.12)):                                       # 3 mag pouches
-        box((x, -0.20, 0.98), (0.11, 0.075, 0.15), GEAR2, bev=0.022)
-        box((x, -0.20, 1.055), (0.115, 0.082, 0.035), GEAR, bev=0.014)
-        box((x, -0.243, 1.03), (0.03, 0.01, 0.05), BLACK, bev=0.004)                 # flap tab
-    box((0, -0.19, 1.16), (0.22, 0.05, 0.10), DARK, bev=0.02)                        # admin panel
-    box((-0.06, -0.218, 1.16), (0.06, 0.012, 0.045), TEAM, bev=0.006)                # team tab
-    for k in range(2):                                                               # white chevron emblem
-        for s in (1, -1):
-            box((0.05 + 0.012 * s, -0.218, 1.15 + k * 0.022), (0.03, 0.008, 0.008), WHITE, bev=0.003, rot=(0, 0.6 * s, 0))
-    box((0, 0.235, 1.05), (0.34, 0.15, 0.37), GEAR2, bev=0.06)                       # assault pack
-    box((0, 0.315, 1.0), (0.24, 0.05, 0.18), GEAR, bev=0.03)
-    box((0, 0.24, 1.25), (0.12, 0.04, 0.03), BLACK, bev=0.01)
+    # ---------------- torso gear (per class)
+    if LIGHT_RIG: light_rig()
+    else: plate_carrier()
+    pack()
+    if HEAVY: heavy_extras()
+    if CLASS == "sniper": ghillie()
+    if CLASS == "tech": tech_extras()
     # shoulder team patches (on the outer upper arm, facing front-out)
     for s in (1, -1):
         p = box((0, 0, 0), (0.085, 0.012, 0.06), TEAM, bev=0.008)
@@ -241,63 +355,7 @@ def build_rookie():
         tube([Vector(((x0 + 0.04) * s, -0.06, 1.13)), Vector(((x0 + 0.08) * s, -0.085, 1.115)), Vector(((x0 + 0.115) * s, -0.075, 1.105))], 0.027, DARK)   # thumb
     mirror_x(glove)
 
-HEAD_SCALE = 0.86; HEAD_PIVOT = Vector((0, -0.01, 1.30))
-def build_head_gear():
-    n_hard0 = len(HARD)
-    skin = [o for o in SOFT["skin"]]
-    tree = bvh_of(skin[:2])
-    hx, hy, hz = H_HEAD
-    # ---------------- face
-    def eye(s):
-        x = 0.105 * s; z = 1.525
-        feat("ell", tree, x, z, (0.058, 0.01, 0.066), EYEW, 0.002)
-        feat("ell", tree, x - 0.006 * s, z - 0.004, (0.044, 0.01, 0.058), IRIS, 0.004)
-        feat("ell", tree, x - 0.006 * s, z + 0.018, (0.044, 0.01, 0.032), IRIS2, 0.0055)     # darker top of the iris
-        feat("ell", tree, x - 0.006 * s, z - 0.002, (0.02, 0.01, 0.03), PUPIL, 0.007)
-        feat("ell", tree, x + 0.012 * s, z + 0.022, (0.013, 0.006, 0.014), SHINE, 0.009)
-        feat("ell", tree, x - 0.02 * s, z - 0.025, (0.007, 0.004, 0.007), SHINE, 0.009)
-        # thick upper lash line, slanted down toward the nose, flick at the outer corner
-        pts = []
-        for k in range(7):
-            t = k / 6.0
-            fx = x + (-0.062 + 0.124 * t) * s
-            fz = z + 0.052 + 0.016 * math.sin(math.pi * t) - 0.018 * (1 - t)
-            loc, nrm = hit(tree, (fx, -2, fz), (0, 1, 0))
-            if loc: pts.append(loc + nrm * 0.006)
-        pts.append(pts[-1] + Vector((0.022 * s, 0.004, 0.012)))
-        tube(pts, 0.0085, LASH, taper=[0.7, 1.0, 1.15, 1.2, 1.2, 1.1, 1.0, 0.4])
-        loc, nrm = hit(tree, (x + 0.06 * s, -2, z - 0.02), (0, 1, 0))                         # lower lid hint
-        # brow: thick, angled down toward the centre
-        bp = []
-        for k in range(5):
-            t = k / 4.0
-            fx = x + (-0.07 + 0.13 * t) * s
-            fz = z + 0.10 - 0.025 * (1 - t) + 0.008 * math.sin(math.pi * t)
-            loc, nrm = hit(tree, (fx, -2, fz), (0, 1, 0))
-            if loc: bp.append(loc + nrm * 0.006)
-        tube(bp, 0.012, HAIR, taper=[1.0, 1.15, 1.1, 0.9, 0.55])
-        feat("ell", tree, 0.17 * s, 1.445, (0.04, 0.006, 0.022), SKIN2, 0.0015)             # blush
-    mirror_x(eye)
-    feat("ell", tree, 0.0, 1.46, (0.016, 0.014, 0.012), SKIN, 0.0)                           # nose
-    mp = []
-    for k in range(5):                                                                       # small frown
-        t = k / 4.0; fx = -0.03 + 0.06 * t; fz = 1.395 + 0.008 * math.sin(math.pi * t)
-        loc, nrm = hit(tree, (fx, -2, fz), (0, 1, 0))
-        if loc: mp.append(loc + nrm * 0.003)
-    tube(mp, 0.0045, LASH)
-    b = feat("box", tree, -0.16, 1.45, (0.075, 0.008, 0.032), BAND, 0.002, spin=0.5)       # cheek bandage
-    for k in (-1, 1):
-        feat("box", tree, -0.16 + 0.025 * k * math.cos(0.5), 1.45 + 0.025 * k * math.sin(0.5), (0.006, 0.006, 0.026), (BAND), 0.005, spin=0.5)
-    # ---------------- hair: fringe spikes under the helmet, sideburns, back
-    for i in range(11):                                       # fringe: spikes lying on the forehead
-        t = i / 10.0; fx = -0.21 + 0.42 * t
-        top, n1 = hit(tree, (fx * 1.05, -2, 1.71), (0, 1, 0)); bot, n2 = hit(tree, (fx, -2, 1.615 + 0.012 * math.cos(t * 9) - 0.01 * random.random()), (0, 1, 0))
-        if top is None or bot is None: continue
-        mid = (top + bot) / 2 + (n1 + n2).normalized() * 0.018
-        tube([top + n1 * 0.012, mid, bot + n2 * 0.006], 0.026, HAIR, taper=[1.0, 0.75, 0.15])
-    mirror_x(lambda s: cap((0.285 * s, -0.06, 1.66), (0.27 * s, -0.08, 1.50), 0.035, HAIR, None, 0.012))
-    ell((0, 0.04, 1.58), (0.29, 0.26, 0.27), HAIR)        # back of the hair (inside the helmet / behind)
-    # ---------------- helmet: high-cut shell, rim, pads, rails, NVG mount, patches
+def helmet_gear(hc0=None):
     shell = ell((0, -0.005, 1.66), (0.355, 0.365, 0.33), HELM, seg=48, rings=32)
     cut(shell, (0, -0.12, 1.60), (0.0, -0.35, -1.0))        # high cut: higher at the front
     sol = shell.modifiers.new("s", "SOLIDIFY"); sol.thickness = 0.025
@@ -347,15 +405,157 @@ def build_head_gear():
         box((0.30 * s, hc.y - 0.215, gz), (0.05, 0.05, 0.11), BLACK, bev=0.02, rot=(0, 0, 0.62 * s))
     strap = torus((0, hc.y + 0.02, gz + 0.01), 0.356, 0.009, BLACK, sy=1.02)
     cut(strap, (0, hc.y - 0.18, 0), (0, -1, 0))
+
+def cap_gear():                        # scout: soft tactical cap with a curved brim, shades on the brim, team patch
+    hc = Vector((0, -0.005, 1.66))
+    crown = ell((0, 0.0, 1.635), (0.335, 0.345, 0.255), HELM, seg=48, rings=32)
+    cut(crown, (0, 0, 1.585), (0, -0.12, -1.0))
+    sol = crown.modifiers.new("s", "SOLIDIFY"); sol.thickness = 0.02
+    bpy.context.view_layer.objects.active = crown; bpy.ops.object.modifier_apply(modifier="s")
+    for k in range(6):                                                                 # panel seams
+        a = k / 6.0 * 2 * math.pi
+        pts = [Vector((math.sin(a) * r * 0.345, -math.cos(a) * r * 0.35, 1.635 + 0.255 * math.sqrt(max(0.0, 1 - r * r)) + 0.004)) for r in (0.95, 0.7, 0.4, 0.05)]
+        tube(pts, 0.004, DARK)
+    ell((0, 0.0, 1.893), (0.03, 0.03, 0.015), HELM)                                   # button
+    brim = ell((0, -0.33, 1.60), (0.25, 0.22, 0.024), HELM, rot=(-0.14, 0, 0))       # long curved brim
+    cut(brim, (0, -0.22, 0), (0, 1, 0))
+    ell((0, -0.335, 1.592), (0.21, 0.18, 0.012), ACC, rot=(-0.14, 0, 0))             # teal brim underside
+    box((0, -0.335, 1.70), (0.10, 0.012, 0.06), TEAM, bev=0.01, rot=(0.25, 0, 0))     # front patch
+    box((0, 0.335, 1.62), (0.12, 0.02, 0.03), BLACK, bev=0.008)                       # back strap
+    # shades resting on the brim
+    for s in (1, -1):
+        ell((0.085 * s, -0.33, 1.645), (0.075, 0.03, 0.04), LENS)
+        tube([Vector((0.16 * s, -0.33, 1.65)), Vector((0.30 * s, -0.20, 1.64)), Vector((0.33 * s, -0.02, 1.62))], 0.007, BLACK)
+    tube([Vector((-0.02, -0.355, 1.655)), Vector((0.02, -0.355, 1.655))], 0.008, BLACK)
+
+def hood_gear(tree):                   # sniper: fitted cloth hood (pointed face opening, thick rolled edge), side-swept
+    # bangs under the edge, lower face mask, flipped-up monocular sight, ghillie strips over the hood
+    greens = [mat("R_Ghillie1", (0.33, 0.36, 0.22), 0.95), mat("R_Ghillie2", (0.42, 0.40, 0.26), 0.95), mat("R_Ghillie3", (0.27, 0.30, 0.20), 0.95)]
+    def inside(x, z):                  # face opening: ellipse with a soft peak at the top centre
+        h = 0.15 + 0.035 * max(0.0, 1.0 - abs(x) / 0.27) ** 1.5
+        return (x / 0.275) ** 2 + ((z - 1.52) / (h if z > 1.52 else 0.20)) ** 2 < 1.0
+    hood = ell((0, 0.03, 1.585), (0.335, 0.35, 0.345), HELM, seg=64, rings=40)       # fitted close to the head
+    bm = bmesh.new(); bm.from_mesh(hood.data)
+    bmesh.ops.delete(bm, geom=[f for f in bm.faces if all(v.co.y < -0.05 and inside(v.co.x, v.co.z) for v in f.verts)] +
+                     [f for f in bm.faces if all(v.co.z < 1.30 and v.co.y < 0.10 for v in f.verts)], context="FACES")
+    bm.to_mesh(hood.data); bm.free()
+    sol = hood.modifiers.new("s", "SOLIDIFY"); sol.thickness = 0.03
+    bpy.context.view_layer.objects.active = hood; bpy.ops.object.modifier_apply(modifier="s")
+    hb = bvh_of([hood])
+    rim = []                                                                           # thick rolled edge round the opening
+    for k in range(41):
+        a = k / 40.0 * 2 * math.pi
+        x = math.sin(a) * 0.275
+        z0 = 1.52 + (math.cos(a) * (0.15 + 0.035 * max(0.0, 1.0 - abs(x) / 0.27) ** 1.5) if math.cos(a) > 0 else math.cos(a) * 0.20)
+        loc, nrm = hit(hb, (x * 1.04, -2, z0), (0, 1, 0))
+        if loc: rim.append(loc + Vector((0, -0.02, 0)))
+    if len(rim) > 3: tube(rim + rim[:2], 0.036, HELM)          # covers the cut edge of the shell
+    seam = []
+    for k in range(9):                                                                 # centre seam over the crown
+        el = math.radians(80 - 22 * k); d = Vector((0, math.cos(el) * (1 if k > 3 else -1) * 0 + (-math.cos(math.radians(70 - 20 * k))), math.sin(math.radians(70 - 20 * k))))
+        loc, nrm = hit(hb, Vector((0, 0.03, 1.585)) + d.normalized() * 2.0, -d.normalized())
+        if loc and (loc.z > 1.55 or loc.y > 0): seam.append(loc + nrm * 0.006)
+    if len(seam) > 2: tube(seam, 0.009, GEAR2)
+    ell((0, 0.25, 1.42), (0.16, 0.09, 0.10), HELM)                                     # hood drapes down the back
+    ell((0, 0.04, 1.33), (0.20, 0.24, 0.07), HELM)                                     # cowl (inside |x| < 0.21: rides on the chest)
+    # side-swept bangs peeking out from under the hood edge
+    for k, (x0, x1, z1, r) in enumerate(((-0.16, -0.20, 1.58, 0.03), (-0.09, -0.15, 1.585, 0.034), (-0.02, -0.08, 1.60, 0.036),
+                                         (0.05, -0.01, 1.62, 0.032), (0.12, 0.08, 1.64, 0.028))):
+        a, na = hit(tree, (x0, -2, 1.71), (0, 1, 0)); b, nb = hit(tree, (x1, -2, z1), (0, 1, 0))
+        if a is None or b is None: continue
+        m_ = (a + b) / 2 + (na + nb).normalized() * 0.02
+        tube([a + na * 0.015, m_, b + nb * 0.008], r, HAIR, taper=[1.0, 0.8, 0.2])
+    mask = ell((0, -0.06, 1.43), (0.25, 0.235, 0.135), DARK, seg=48, rings=24)          # lower face mask
+    cut(mask, (0, 0, 1.475), (0, 0.18, 1.0))
+    sol = mask.modifiers.new("s", "SOLIDIFY"); sol.thickness = 0.012
+    bpy.context.view_layer.objects.active = mask; bpy.ops.object.modifier_apply(modifier="s")
+    torus((0, -0.06, 1.47), 0.245, 0.01, BLACK, sx=1.0, sy=0.95)                       # mask hem
+    box((0.10, -0.29, 1.40), (0.04, 0.01, 0.02), ACC, bev=0.004)                         # purple tag
+    # monocular sight flipped up on the right side of the hood
+    loc, nrm = hit(hb, (-2, -0.10, 1.62), (1, 0, 0))                                 # temple mount, sight flipped up
+    if loc:
+        base = loc + nrm * 0.015
+        box(base, (0.025, 0.05, 0.045), BLACK, bev=0.01)
+        cyl(base + Vector((-0.01, -0.055, 0.04)), 0.028, 0.09, BLACK, rot=(0.7, 0, 0), bev=0.006)
+        cyl(base + Vector((-0.01, -0.085, 0.072)), 0.022, 0.006, ACC, rot=(0.7, 0, 0))
+    for i in range(34):                                                                # ghillie strips over the back of the hood
+        az = math.pi * (0.45 + 1.1 * random.random()); el = 0.15 + 0.9 * random.random()
+        d = Vector((math.sin(az) * math.cos(el), -math.cos(az) * math.cos(el), math.sin(el)))
+        loc, nrm = hit(hb, Vector((0, 0.02, 1.62)) + d * 2.0, -d)
+        if loc is None: continue
+        L = 0.07 + 0.08 * random.random()
+        p0 = loc + nrm * 0.012; p2 = p0 + nrm * 0.02 + Vector((0, 0.01, -L)); p1 = (p0 + p2) / 2 + nrm * 0.02
+        tube([p0, p1, p2], 0.012, greens[i % 3], taper=[1.0, 0.8, 0.3])
+
+HEAD_SCALE = 0.86; HEAD_PIVOT = Vector((0, -0.01, 1.30))
+def build_head_gear():
+    n_hard0 = len(HARD)
+    skin = [o for o in SOFT["skin"]]
+    tree = bvh_of(skin[:2])
+    hx, hy, hz = H_HEAD
+    # ---------------- face
+    def eye(s):
+        x = 0.105 * s; z = 1.525
+        feat("ell", tree, x, z, (0.058, 0.01, 0.066), EYEW, 0.002)
+        feat("ell", tree, x - 0.006 * s, z - 0.004, (0.044, 0.01, 0.058), IRIS, 0.004)
+        feat("ell", tree, x - 0.006 * s, z + 0.018, (0.044, 0.01, 0.032), IRIS2, 0.0055)     # darker top of the iris
+        feat("ell", tree, x - 0.006 * s, z - 0.002, (0.02, 0.01, 0.03), PUPIL, 0.007)
+        feat("ell", tree, x + 0.012 * s, z + 0.022, (0.013, 0.006, 0.014), SHINE, 0.009)
+        feat("ell", tree, x - 0.02 * s, z - 0.025, (0.007, 0.004, 0.007), SHINE, 0.009)
+        # thick upper lash line, slanted down toward the nose, flick at the outer corner
+        pts = []
+        for k in range(7):
+            t = k / 6.0
+            fx = x + (-0.062 + 0.124 * t) * s
+            fz = z + 0.052 + 0.016 * math.sin(math.pi * t) - 0.018 * (1 - t)
+            loc, nrm = hit(tree, (fx, -2, fz), (0, 1, 0))
+            if loc: pts.append(loc + nrm * 0.006)
+        pts.append(pts[-1] + Vector((0.022 * s, 0.004, 0.012)))
+        tube(pts, 0.0085, LASH, taper=[0.7, 1.0, 1.15, 1.2, 1.2, 1.1, 1.0, 0.4])
+        loc, nrm = hit(tree, (x + 0.06 * s, -2, z - 0.02), (0, 1, 0))                         # lower lid hint
+        # brow: thick, angled down toward the centre
+        bp = []
+        for k in range(5):
+            t = k / 4.0
+            fx = x + (-0.07 + 0.13 * t) * s
+            fz = z + 0.10 - 0.025 * (1 - t) + 0.008 * math.sin(math.pi * t)
+            loc, nrm = hit(tree, (fx, -2, fz), (0, 1, 0))
+            if loc: bp.append(loc + nrm * 0.006)
+        tube(bp, 0.012, HAIR, taper=[1.0, 1.15, 1.1, 0.9, 0.55])
+        feat("ell", tree, 0.17 * s, 1.445, (0.04, 0.006, 0.022), SKIN2, 0.0015)             # blush
+    mirror_x(eye)
+    feat("ell", tree, 0.0, 1.46, (0.016, 0.014, 0.012), SKIN, 0.0)                           # nose
+    if CLASS != "sniper":
+        mp = []
+        for k in range(5):                                                                       # small frown
+            t = k / 4.0; fx = -0.03 + 0.06 * t; fz = 1.395 + 0.008 * math.sin(math.pi * t)
+            loc, nrm = hit(tree, (fx, -2, fz), (0, 1, 0))
+            if loc: mp.append(loc + nrm * 0.003)
+        tube(mp, 0.0045, LASH)
+        b = feat("box", tree, -0.16, 1.45, (0.075, 0.008, 0.032), BAND, 0.002, spin=0.5)       # cheek bandage
+        for k in (-1, 1):
+            feat("box", tree, -0.16 + 0.025 * k * math.cos(0.5), 1.45 + 0.025 * k * math.sin(0.5), (0.006, 0.006, 0.026), (BAND), 0.005, spin=0.5)
+    # ---------------- hair: fringe spikes under the helmet, sideburns, back
+    for i in range(11 if CLASS != "sniper" else 0):           # fringe: spikes lying on the forehead (hidden by the hood)
+        t = i / 10.0; fx = -0.21 + 0.42 * t
+        top, n1 = hit(tree, (fx * 1.05, -2, 1.71), (0, 1, 0)); bot, n2 = hit(tree, (fx, -2, 1.615 + 0.012 * math.cos(t * 9) - 0.01 * random.random()), (0, 1, 0))
+        if top is None or bot is None: continue
+        mid = (top + bot) / 2 + (n1 + n2).normalized() * 0.018
+        tube([top + n1 * 0.012, mid, bot + n2 * 0.006], 0.026, HAIR, taper=[1.0, 0.75, 0.15])
+    mirror_x(lambda s: cap((0.285 * s, -0.06, 1.66), (0.27 * s, -0.08, 1.50), 0.035, HAIR, None, 0.012))
+    ell((0, 0.04, 1.58), (0.29, 0.26, 0.27), HAIR)        # back of the hair (inside the helmet / behind)
+    if CLASS == "scout": cap_gear()
+    elif CLASS == "sniper": hood_gear(tree)
+    else: helmet_gear()
     # headset
     def cupf(s):
         cyl((0.305 * s, -0.02, 1.53), 0.105, 0.075, HELM, rot=(0, math.pi / 2, 0), bev=0.02)
         cyl((0.35 * s, -0.02, 1.53), 0.085, 0.02, GEAR2, rot=(0, math.pi / 2, 0), bev=0.006)
         box((0.362 * s, -0.02, 1.53), (0.012, 0.07, 0.03), TEAM, bev=0.004)
         tube([Vector((0.3 * s, -0.02, 1.62)), Vector((0.31 * s, -0.02, 1.70))], 0.02, BLACK)
-    mirror_x(cupf)
-    tube([Vector((-0.30, -0.08, 1.48)), Vector((-0.22, -0.20, 1.42)), Vector((-0.10, -0.27, 1.40))], 0.009, BLACK)   # mic boom
-    ell((-0.085, -0.272, 1.40), (0.02, 0.02, 0.02), BLACK)
+    if CLASS != "sniper": mirror_x(cupf)
+    if CLASS != "sniper": tube([Vector((-0.30, -0.08, 1.48)), Vector((-0.22, -0.20, 1.42)), Vector((-0.10, -0.27, 1.40))], 0.009, BLACK)   # mic boom
+    if CLASS != "sniper": ell((-0.085, -0.272, 1.40), (0.02, 0.02, 0.02), BLACK)
     # chibi head: scale the whole head (skin, face, hair, helmet, goggles, headset) up around the neck
     M = Matrix.Translation(HEAD_PIVOT) @ Matrix.Scale(HEAD_SCALE, 4) @ Matrix.Translation(-HEAD_PIVOT)
     for o in HARD[n_hard0:] + skin[:2]:
@@ -431,7 +631,7 @@ for v in me.vertices:
     a = ao[v.index]; c = cav[v.index]
     f = (1.0 - 0.75 * min(1.0, a)) * (1.0 - 0.9 * max(0.0, c)) * (1.0 + 0.35 * max(0.0, -c))
     mn = mat_of.get(v.index, "")
-    if mn in ("R_Uniform", "R_Sleeve", "R_Gear", "R_Gear2"):              # fabric: coarse mottling + fine weave noise
+    if mn in ("R_Uniform", "R_Sleeve", "R_Gear", "R_Gear2", "R_Pauldron"):              # fabric: coarse mottling + fine weave noise
         f *= 0.9 + 0.12 * noise.noise(v.co * 9.0) + 0.05 * noise.noise(v.co * 90.0)
     if mn in ("R_Boot", "R_Sole", "R_Uniform") and v.co.z < 0.4:             # dust low down
         f *= 0.85 + 0.15 * min(1.0, v.co.z / 0.4)

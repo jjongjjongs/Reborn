@@ -17,6 +17,11 @@ if OWN:
     bpy.ops.wm.open_mainfile(filepath=OWN)
     mesh = [o for o in bpy.data.objects if o.type == "MESH"][0]
     me = mesh.data
+    TARGET = globals().get("TARGET", 0)    # game budget: every bot wears one of these, so keep it light for phones
+    if TARGET and len(me.polygons) > TARGET:
+        bpy.context.view_layer.objects.active = mesh; mesh.select_set(True)
+        md = mesh.modifiers.new("d", "DECIMATE"); md.ratio = TARGET / len(me.polygons)
+        bpy.ops.object.modifier_apply(modifier="d")
     log = ["figure faces %d" % len(me.polygons)]
 else:
     NAME = globals().get("NAME", "char")
@@ -36,6 +41,11 @@ else:
     nn = nt.nodes.new("ShaderNodeNormalMap"); nt.links.new(img("/tmp/tripo_out/%s_normal.png" % NAME, True).outputs["Color"], nn.inputs["Color"]); nt.links.new(nn.outputs[0], bsdf.inputs["Normal"])
     me.materials.clear(); me.materials.append(mat)
     for p in me.polygons: p.use_smooth = True
+    TARGET = globals().get("TARGET", 0)    # game budget: every bot wears one of these, so keep it light for phones
+    if TARGET and len(me.polygons) > TARGET:
+        bpy.context.view_layer.objects.active = mesh; mesh.select_set(True)
+        md = mesh.modifiers.new("d", "DECIMATE"); md.ratio = TARGET / len(me.polygons)
+        bpy.ops.object.modifier_apply(modifier="d")
     log = ["figure faces %d" % len(me.polygons)]
 # ---- 3. face -Y, game height, feet on the ground
 for v in (mesh.data.vertices if not OWN else []):   # turn so the face (+X in the file) looks down -Y: (x, y) -> (y, -x)
@@ -45,6 +55,9 @@ vs = [v.co.copy() for v in mesh.data.vertices]
 zmin = min(v.z for v in vs); zmax = max(v.z for v in vs)
 H = 2.1; s = H / (zmax - zmin)
 cx = sum(v.x for v in vs) / len(vs); cy = sum(v.y for v in vs) / len(vs)
+# OWN class models share one body: scale / centre them all like the Rookie (a cap or hood must not resize the figure)
+REF = globals().get("REF")
+if REF: zmin, s, cx, cy = REF[0], H / (REF[1] - REF[0]), REF[2], REF[3]
 for v in mesh.data.vertices:
     v.co = Vector(((v.co.x - cx) * s, (v.co.y - cy) * s, (v.co.z - zmin) * s))
 mesh.data.update()
@@ -82,6 +95,8 @@ z = 0.05 if not OWN else H * 0.2
 while z < arm_z:
     if any(abs(v.x) < 0.02 for v in band(z, z + 0.02)): crotch = z; break
     z += 0.01
+FIX = globals().get("FIX")      # same body: the Rookie's measured joints (gear such as pauldrons fools the shape scan)
+if FIX: arm_z, shoulder_x, neck_z, crotch = FIX
 leg = [v for v in band(crotch * 0.45, crotch * 0.55) if v.x > 0]
 leg_x = sum(v.x for v in leg) / max(len(leg), 1)
 leg_y = sum(v.y for v in leg) / max(len(leg), 1)
@@ -148,19 +163,37 @@ def seg_d(p, a, c):
     ab = c - a; t = max(0.0, min(1.0, (p - a).dot(ab) / max(ab.length_squared, 1e-9)))
     return (a + ab * t - p).length
 head_segs = [x for x in segs if x[0] in ("Head", "Neck")]
+CLOTH = ("R_Uniform", "R_Sleeve", "R_Skin")
+VMAT = {}
+for poly in mesh.data.polygons:
+    mn = mesh.data.materials[poly.material_index].name if mesh.data.materials else ""
+    for vi in poly.vertices: VMAT[vi] = mn
+CORE_X = globals().get("CORE_X", 0.0)   # wider armour (Heavy): keep its side panels on the spine
 body_segs = [x for x in segs if x[0] != "Head"]
 for v in mesh.data.vertices:
     p = v.co
     # above the neck everything follows the head (the big helmet must not ride on the arms)
     cand = head_segs if p.z > neck_z + 0.02 else body_segs
+    # shoulder seam (arm line, between core and upper arm): blend chest -> upper arm smoothly, no torn cloth
+    ax = abs(p.x)
+    if OWN and VMAT.get(v.index, "") == "R_Pauldron":                # shoulder armour: rigid on its upper arm
+        groups["UpperArm." + ("L" if p.x > 0 else "R")].add([v.index], 1.0, "ADD"); continue
+    if OWN and arm_z - 0.16 < p.z <= neck_z + 0.02 and ax < shoulder_x * 1.1 and VMAT.get(v.index, "") not in CLOTH:
+        groups["Chest"].add([v.index], 1.0, "ADD"); continue     # straps / vest edges on the shoulder: rigid with the chest
+    if OWN and arm_z - 0.16 < p.z <= neck_z + 0.02 and abs(p.y - arm_y) <= 0.13 and shoulder_x * 0.75 < ax < shoulder_x * 1.45 and VMAT.get(v.index, "") in CLOTH:
+        t = (ax - shoulder_x * 0.75) / (shoulder_x * 0.7); t = t * t * (3 - 2 * t)
+        groups["Chest"].add([v.index], 1.0 - t, "ADD")
+        groups["UpperArm." + ("L" if p.x > 0 else "R")].add([v.index], t, "ADD")
+        continue
     # torso core (incl. vest / back pack): spine bones only, so arm motion never drags it
-    if OWN and crotch + 0.05 < p.z <= neck_z + 0.02 and (abs(p.x) < shoulder_x * 1.05 or (abs(p.x) < shoulder_x * 1.6 and abs(p.y - arm_y) > 0.12)):
+    if OWN and crotch + 0.05 < p.z <= neck_z + 0.02 and (abs(p.x) < max(shoulder_x * 1.05, CORE_X) or (abs(p.x) < shoulder_x * 1.6 and abs(p.y - arm_y) > 0.12)):
         cand = [x for x in segs if x[0] in ("Hips", "Abdomen", "Torso", "Chest", "Neck")]
     if p.z > neck_z + 0.09: cand = [x for x in segs if x[0] == "Head"] + [x for x in segs if x[0] == "Head"]
     ds = sorted(((seg_d(p, a, c), n) for n, a, c in cand))
     d0, n0 = ds[0]; d1, n1 = ds[1]
     w0 = 1.0 / max(d0, 1e-4) ** 4; w1 = 1.0 / max(d1, 1e-4) ** 4
     if d1 > d0 * 1.6: w1 = 0.0
+    if OWN and VMAT.get(v.index, "") not in CLOTH and n0 != n1 and {n0[:5], n1[:5]} == {"Chest", "Upper"}: w1 = 0.0   # rigid gear never stretches across the shoulder
     tot = w0 + w1
     groups[n0].add([v.index], w0 / tot, "ADD")
     if w1 > 0: groups[n1].add([v.index], w1 / tot, "ADD")

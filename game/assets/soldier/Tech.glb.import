@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://bv58be6ow0lub"
-path="res://.godot/imported/RookieB.glb-adbb5cb83cd9f212216352e7e3605780.scn"
+uid="uid://covw4wki3cadr"
+path="res://.godot/imported/Tech.glb-e3b9053b45272350934846aa53c4d796.scn"
 
 [deps]
 
-source_file="res://assets/soldier/RookieB.glb"
-dest_files=["res://.godot/imported/RookieB.glb-adbb5cb83cd9f212216352e7e3605780.scn"]
+source_file="res://assets/soldier/Tech.glb"
+dest_files=["res://.godot/imported/Tech.glb-e3b9053b45272350934846aa53c4d796.scn"]
 
 [params]
 

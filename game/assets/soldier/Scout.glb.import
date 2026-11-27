@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://dfx2vd7ort0fw"
-path="res://.godot/imported/MiniV3.glb-90eb37efad472a5804df9d70812c0130.scn"
+uid="uid://cx7dx2827fnt2"
+path="res://.godot/imported/Scout.glb-7e367c0ca9b8233cf0a535b79ce2be65.scn"
 
 [deps]
 
-source_file="res://assets/soldier/MiniV3.glb"
-dest_files=["res://.godot/imported/MiniV3.glb-90eb37efad472a5804df9d70812c0130.scn"]
+source_file="res://assets/soldier/Scout.glb"
+dest_files=["res://.godot/imported/Scout.glb-7e367c0ca9b8233cf0a535b79ce2be65.scn"]
 
 [params]
 

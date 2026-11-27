@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://bd3qnvshctkn0"
-path="res://.godot/imported/MiniSwat.glb-a818df1564073e4e53cfe85d8a284038.scn"
+uid="uid://dfo0otlybt5g"
+path="res://.godot/imported/Heavy.glb-89940b178b46d1f31c574af7f48fd3a1.scn"
 
 [deps]
 
-source_file="res://assets/soldier/MiniSwat.glb"
-dest_files=["res://.godot/imported/MiniSwat.glb-a818df1564073e4e53cfe85d8a284038.scn"]
+source_file="res://assets/soldier/Heavy.glb"
+dest_files=["res://.godot/imported/Heavy.glb-89940b178b46d1f31c574af7f48fd3a1.scn"]
 
 [params]
 

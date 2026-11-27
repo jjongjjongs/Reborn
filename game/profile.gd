@@ -8,17 +8,15 @@ extends RefCounted
 const PATH := "user://profile.json"
 
 # ---------------------------------------------------------------- catalogue
-const CATS := [["body", "캐릭터"], ["gear", "머리 장비"], ["suit", "병사 위장복"], ["kit", "헬멧·조끼 색"], ["finish", "무기 도색"], ["title", "칭호"]]
+const CATS := [["body", "캐릭터"], ["suit", "병사 위장복"], ["kit", "헬멧·조끼 색"], ["finish", "무기 도색"], ["title", "칭호"]]
 const ITEMS := [
 	# body: the soldier model (same skeleton / animations)
+	# the five concept-sheet characters, all built in Blender (tools/blender/build_mini_v3.py -- CLASS)
 	{"id": "body_rookie", "cat": "body", "name": "루키 어썰트", "price": 0},
-	{"id": "body_rookie_b", "cat": "body", "name": "루키 어썰트 (블렌더)", "price": 0},
-	{"id": "body_mini", "cat": "body", "name": "꼬마 병사", "price": 0},
-	{"id": "body_swat", "cat": "body", "name": "꼬마 SWAT", "price": 300},
-	# gear: head gear on the mini
-	{"id": "gear_helmet", "cat": "gear", "name": "고글 헬멧", "price": 0},
-	{"id": "gear_beret", "cat": "gear", "name": "베레모", "price": 150},
-	{"id": "gear_mask", "cat": "gear", "name": "방독면", "price": 250},
+	{"id": "body_scout", "cat": "body", "name": "스위프트 스카우트", "price": 0},
+	{"id": "body_tech", "cat": "body", "name": "테크 서포트", "price": 0},
+	{"id": "body_sniper", "cat": "body", "name": "섀도 스나이퍼", "price": 0},
+	{"id": "body_heavy", "cat": "body", "name": "헤비 거너", "price": 0},
 	# suit: the uniform colour (sleeves / trousers)
 	{"id": "suit_orange", "cat": "suit", "name": "기본 주황", "price": 0, "col": Color(0.95, 0.62, 0.24)},
 	{"id": "suit_desert", "cat": "suit", "name": "사막", "price": 120, "col": Color(0.78, 0.68, 0.48)},
@@ -76,6 +74,8 @@ static func _load() -> void:
 	if not _d.has("recent"): _d["recent"] = []
 	if not _d.get("rookie_default", false):      # v98: Rookie Assault becomes the default body (once, for existing saves too)
 		_d["rookie_default"] = true; _d["equip"]["body"] = "body_rookie"; save()
+	if item(String(_d["equip"]["body"])).is_empty():   # v107: removed bodies (mini / swat / Tripo rookie) -> Rookie
+		_d["equip"]["body"] = "body_rookie"; save()
 
 ## nickname (main menu, top left); 2..12 characters
 static func nick() -> String:
