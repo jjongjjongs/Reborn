@@ -222,5 +222,6 @@ func _build_result(layer: CanvasLayer) -> void:
 	layer.add_child(_result)
 
 func _exit_tree() -> void:
-	if _saved_primary != "": Controls.loadout[0] = _saved_primary
+	if _saved_primary != "":
+		Controls.loadout[0] = _saved_primary; Controls.save_settings()   # never leave the sniper saved as your primary
 	Controls.lock_primary = ""

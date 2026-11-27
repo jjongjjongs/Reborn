@@ -15,15 +15,15 @@ const SOFT := Color(0.65, 0.71, 0.75)
 
 # maps drawn from their plan (assets/maps/<plan>.json) — see MapPlan
 const BOMB_MAPS := [
-	{"id": "quarter", "plan": "oldquarter", "name": "구도심", "en": "OLD QUARTER", "size": "132×120m · 최대 6 vs 6", "tag": "지하 통로 · 발코니 · 중앙 고지대", "ready": true, "ground": Color("2a2d31")},
-	{"id": "dockside", "plan": "dockside", "name": "항만 창고", "en": "DOCKSIDE", "size": "130×115m · 최대 6 vs 6", "tag": "창고 마당 A · 부두 B · 배수로", "ready": true, "ground": Color("2a2d31")},
-	{"id": "facility", "plan": "facility", "name": "연구 시설", "en": "FACILITY", "size": "130×115m · 최대 6 vs 6", "tag": "반응로실 A · 하역장 B · 실내 복도", "ready": true, "ground": Color("2a2d31")},
+	{"id": "quarter", "plan": "oldquarter", "name": "구도심", "en": "OLD QUARTER", "size": "132×120m", "tag": "지하 통로 · 발코니 · 중앙 고지대", "ready": true, "ground": Color("2a2d31")},
+	{"id": "dockside", "plan": "dockside", "name": "항만 창고", "en": "DOCKSIDE", "size": "130×115m", "tag": "창고 마당 A · 부두 B · 배수로", "ready": true, "ground": Color("2a2d31")},
+	{"id": "facility", "plan": "facility", "name": "연구 시설", "en": "FACILITY", "size": "130×115m", "tag": "반응로실 A · 하역장 B · 실내 복도", "ready": true, "ground": Color("2a2d31")},
 ]
 const MAPS := [
 	{"id": "downtown", "plan": "downtown_v3", "name": "다운타운", "en": "DOWNTOWN", "size": "82×67m · 6–12명", "tag": "주차 데크 · 실내 로비 · 지하철 터널", "ready": true, "ground": Color("2a2d31")},
 	{"id": "bazaar", "plan": "bazaar_v3", "name": "사막 시장", "en": "BAZAAR", "size": "82×67m · 6–12명", "tag": "덮인 시장 · 분수 광장 테라스 · 수로", "ready": true, "ground": Color("3a3226")},
 	{"id": "cell", "plan": "cell_v3", "name": "교도소", "en": "CELLBLOCK", "size": "82×67m · 6–12명", "tag": "감방 복도 · 감시탑 운동장 · 탈옥 터널", "ready": true, "ground": Color("2a2e33")},
-	{"id": "snipe", "plan": "snipe", "name": "협곡 전초기지 · 스나전", "en": "CANYON OUTPOST", "size": "106×72m · 저격총 전용", "tag": "저격 발코니 · 절벽 능선 · 모래 언덕 · 지하 터널", "ready": true, "ground": Color("3a3226")},
+	{"id": "snipe", "plan": "snipe", "name": "협곡 전초기지", "en": "CANYON OUTPOST · 스나전", "size": "106×72m", "tag": "스나전 · 저격총만 · 발코니 · 능선 · 터널", "ready": true, "ground": Color("3a3226")},
 	{"id": "harbor", "plan": "harbor_v3", "name": "컨테이너 항구", "en": "HARBOR", "size": "82×67m · 6–12명", "tag": "창고 실내 · 컨테이너 야적장 · 크레인 부두", "ready": true, "ground": Color("263038")},
 ]
 const ZOMBIE_MAPS := [
@@ -103,11 +103,16 @@ func _ready() -> void:
 	var c1 := _panel(Vector2(28, col_y), Vector2(548, col_h)); add_child(c1)
 	var h1 := _label("맵", 20, FG); h1.position = Vector2(16, 12); c1.add_child(h1)
 	var h1b := _label("%d개" % _maps().size(), 14, MUTED); h1b.position = Vector2(46, 17); c1.add_child(h1b)
+	# maps scroll inside their own box (above the 인원 row when there is one)
+	var msc := ScrollContainer.new(); msc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	msc.position = Vector2(16, 48)
+	msc.size = Vector2(548 - 16 - 8, (col_h - 48 - 130) if kind in ["team", "bomb", "dm"] else (col_h - 60))
+	ShopScreen.fat_scrollbar(msc)
+	c1.add_child(msc)
 	_map_box = GridContainer.new(); _map_box.columns = 2
-	_map_box.position = Vector2(16, 48)
 	_map_box.add_theme_constant_override("h_separation", 10)
 	_map_box.add_theme_constant_override("v_separation", 10)
-	c1.add_child(_map_box)
+	msc.add_child(_map_box)
 	# players: 팀전 / 폭파 3v3..6v6, 데스매치 6..12 (fewer = lighter on the phone)
 	if kind in ["team", "bomb", "dm"]:
 		var hl := _label("인원", 20, FG); hl.position = Vector2(16, col_h - 118); c1.add_child(hl)
@@ -310,17 +315,17 @@ func _map_card(m: Dictionary) -> Button:
 	var on: bool = m["id"] == Controls.sel_map
 	var ready: bool = m["ready"]
 	var b := Button.new(); b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(253, 150)
+	b.custom_minimum_size = Vector2(240, 150)
 	for k in ["normal", "hover", "pressed", "disabled"]:
 		b.add_theme_stylebox_override(k, _sb(SEL_BG if on else CARD, ACCENT if on else LINE2, 2 if on else 1, 12))
 	var th := ColorRect.new(); th.color = m["ground"]
-	th.position = Vector2(2, 2); th.size = Vector2(249, 92); th.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	th.position = Vector2(2, 2); th.size = Vector2(236, 92); th.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	th.clip_contents = true
 	b.add_child(th)
 	for r in _thumb_rects(m):
 		var rr := ColorRect.new(); rr.color = Color(str(r[4])); rr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		rr.position = Vector2(float(r[0]) * 2.49, float(r[1]) * 0.92)
-		rr.size = Vector2(float(r[2]) * 2.49, float(r[3]) * 0.92)
+		rr.position = Vector2(float(r[0]) * 2.36, float(r[1]) * 0.92)
+		rr.size = Vector2(float(r[2]) * 2.36, float(r[3]) * 0.92)
 		th.add_child(rr)
 	var en := _label(m["en"], 11, Color(1, 1, 1, 0.8)); en.position = Vector2(8, 4); th.add_child(en)
 	if not ready:
@@ -328,8 +333,8 @@ func _map_card(m: Dictionary) -> Button:
 		dim.mouse_filter = Control.MOUSE_FILTER_IGNORE; th.add_child(dim)
 		var soon := _label("제작 예정", 18, FG); soon.position = Vector2(84, 34); th.add_child(soon)
 	var nm := _label(m["name"], 17, FG if ready else MUTED); nm.position = Vector2(12, 98); b.add_child(nm)
-	var sz := _label(m["size"], 12, MUTED); sz.position = Vector2(140, 102); b.add_child(sz)
-	var tg := _label(m["tag"], 12, SOFT if ready else MUTED); tg.position = Vector2(12, 124); b.add_child(tg)
+	var sz := _label(m["size"], 12, MUTED); sz.position = Vector2(132, 102); sz.size.x = 104; sz.clip_text = true; b.add_child(sz)
+	var tg := _label(m["tag"], 12, SOFT if ready else MUTED); tg.position = Vector2(12, 124); tg.size.x = 222; tg.clip_text = true; b.add_child(tg)
 	var mid: String = m["id"]
 	b.disabled = not ready
 	b.pressed.connect(func() -> void: Sfx.play("ui"); Controls.sel_map = mid; _refresh())
