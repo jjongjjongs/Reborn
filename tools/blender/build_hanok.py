@@ -5,6 +5,7 @@ import bpy, bmesh, math, sys
 from mathutils import Vector
 a = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 OUT = a[0] if a else "/tmp/gbg/hall.blend"; NB = int(a[1]) if len(a) > 1 else 5; ND = int(a[2]) if len(a) > 2 else 3
+PAV = len(a) > 3 and a[3] == "pavilion"     # 경회루-style: stone pillars over water, open wooden upper floor
 bpy.ops.wm.read_factory_settings(use_empty=True)
 def lin(c): return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
 def mat(n, rgb, r=0.7, m=0.0):
@@ -30,29 +31,53 @@ def box(c, s, m, bev=0.02):
 def cyl(c, r, h, m, v=16, r2=None):
     bpy.ops.mesh.primitive_cone_add(vertices=v, radius1=r, radius2=r2 or r * 0.88, depth=h, location=c); return fin(bpy.context.active_object, m)
 BAY = 3.2; W = NB * BAY; D = ND * BAY; CH = 3.6      # column height
-# stone platform (기단) with steps
-box((0, 0, 0.45), (W + 3.0, D + 3.0, 0.9), STONE, 0.05)
-box((0, 0, 0.93), (W + 2.6, D + 2.6, 0.06), STONE2, 0.02)
-for k in range(4):
-    box((0, -(D + 3.0) / 2 - 0.35 - k * 0.35 + 1.05, 0.9 - 0.225 * (k + 1) + 0.11), (3.4, 0.36, 0.225 * (4 - k) * 1.0), STONE, 0.03)
-# columns on round stone bases
+BAY = 3.2; W = NB * BAY; D = ND * BAY
 xs = [-W / 2 + i * BAY for i in range(NB + 1)]; ys = [-D / 2 + j * BAY for j in range(ND + 1)]
-for x in xs:
-    for y in ys:
-        if x not in (xs[0], xs[-1]) and y not in (ys[0], ys[-1]): continue
-        cyl((x, y, 1.0), 0.32, 0.18, STONE2, 16, 0.3)
-        cyl((x, y, 0.96 + CH / 2 + 0.08), 0.21, CH, COL, 16, 0.19)
-# front doors (꽃살문) + side walls
-for i in range(NB):
-    cx = (xs[i] + xs[i + 1]) / 2
-    box((cx, -D / 2 + 0.05, 0.96 + CH * 0.45), (BAY - 0.45, 0.08, CH * 0.85), DOOR, 0.02)
-    for k in range(3):
-        box((cx - BAY * 0.27 + k * BAY * 0.27, -D / 2 - 0.0, 0.96 + CH * 0.5), (BAY * 0.22, 0.09, CH * 0.62), PAPER, 0.01)
-for x in (xs[0], xs[-1]):
-    box((x, 0, 0.96 + CH * 0.45), (0.12, D - 0.4, CH * 0.85), WALL, 0.02)
-box((0, D / 2, 0.96 + CH * 0.45), (W - 0.4, 0.12, CH * 0.85), WALL, 0.02)
+if PAV:
+    FL = 4.0; CH = 3.4                                   # upper floor height, upper column height
+    for x in xs:                                          # square stone pillars (ground floor forest)
+        for y in ys: box((x, y, FL / 2), (0.62, 0.62, FL), STONE, 0.06)
+    box((0, 0, FL + 0.18), (W + 1.6, D + 1.6, 0.36), DOOR, 0.04)          # wooden floor deck
+    box((0, 0, FL - 0.1), (W + 1.0, D + 1.0, 0.25), BEAM, 0.03)
+    for side in (-1, 1):                                                   # railing (난간)
+        for k in range(int((W + 1.4) / 0.9) + 1):
+            box((-(W + 1.4) / 2 + k * 0.9, side * (D + 1.4) / 2, FL + 0.7), (0.08, 0.08, 0.7), DAN1 if k % 4 == 0 else COL, 0.01)
+        box((0, side * (D + 1.4) / 2, FL + 1.08), (W + 1.4, 0.12, 0.08), COL, 0.02)
+        for k in range(int((D + 1.4) / 0.9) + 1):
+            box((side * (W + 1.4) / 2, -(D + 1.4) / 2 + k * 0.9, FL + 0.7), (0.08, 0.08, 0.7), COL, 0.01)
+        box((side * (W + 1.4) / 2, 0, FL + 1.08), (0.12, D + 1.4, 0.08), COL, 0.02)
+    for x in xs:
+        for y in ys:
+            if x not in (xs[0], xs[-1]) and y not in (ys[0], ys[-1]): continue
+            cyl((x, y, FL + 0.36 + CH / 2), 0.2, CH, COL, 16, 0.18)
+    top = FL + 0.36 + CH
+    # water + stone embankment so the render reads as a pond
+    bpy.ops.mesh.primitive_plane_add(size=1, location=(0, 0, 0.35)); o = bpy.context.active_object; o.scale = (W * 2.6, D * 3.2, 1)
+    bpy.ops.object.transform_apply(scale=True); fin(o, mat("H_Water", (0.25, 0.45, 0.52), 0.08))
+else:
+    # stone platform (기단) with steps
+    box((0, 0, 0.45), (W + 3.0, D + 3.0, 0.9), STONE, 0.05)
+    box((0, 0, 0.93), (W + 2.6, D + 2.6, 0.06), STONE2, 0.02)
+    for k in range(4):
+        box((0, -(D + 3.0) / 2 - 0.35 - k * 0.35 + 1.05, 0.9 - 0.225 * (k + 1) + 0.11), (3.4, 0.36, 0.225 * (4 - k) * 1.0), STONE, 0.03)
+    # columns on round stone bases
+    for x in xs:
+        for y in ys:
+            if x not in (xs[0], xs[-1]) and y not in (ys[0], ys[-1]): continue
+            cyl((x, y, 1.0), 0.32, 0.18, STONE2, 16, 0.3)
+            cyl((x, y, 0.96 + CH / 2 + 0.08), 0.21, CH, COL, 16, 0.19)
+    # front doors (꽃살문) + side walls
+    for i in range(NB):
+        cx = (xs[i] + xs[i + 1]) / 2
+        box((cx, -D / 2 + 0.05, 0.96 + CH * 0.45), (BAY - 0.45, 0.08, CH * 0.85), DOOR, 0.02)
+        for k in range(3):
+            box((cx - BAY * 0.27 + k * BAY * 0.27, -D / 2 - 0.0, 0.96 + CH * 0.5), (BAY * 0.22, 0.09, CH * 0.62), PAPER, 0.01)
+    for x in (xs[0], xs[-1]):
+        box((x, 0, 0.96 + CH * 0.45), (0.12, D - 0.4, CH * 0.85), WALL, 0.02)
+    box((0, D / 2, 0.96 + CH * 0.45), (W - 0.4, 0.12, CH * 0.85), WALL, 0.02)
+
+    top = 0.96 + CH
 # beams + dancheong bands (창방 / 평방), brackets (공포) as stacked blocks
-top = 0.96 + CH
 for y in (ys[0], ys[-1]): box((0, y, top + 0.12), (W + 0.5, 0.36, 0.3), BEAM, 0.03); box((0, y, top + 0.12), (W + 0.52, 0.38, 0.08), DAN2, 0.0)
 for x in (xs[0], xs[-1]): box((x, 0, top + 0.12), (0.36, D + 0.5, 0.3), BEAM, 0.03)
 for y in (ys[0], ys[-1]):
