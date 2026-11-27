@@ -26,13 +26,13 @@ func _run() -> void:
 		for i in 8: await process_frame
 		_shot("%s_pre" % id)
 		s.visible = false
-		Engine.time_scale = 0.2
-		FxCos.kill(id, sc, tgt)
-		var waits := [2, 5, 9]
+		FxCos.kill(id, sc, tgt, Color(0.85, 0.45, 0.2))
+		var t0 := Time.get_ticks_msec()
+		var at: Array = {"kill_fire": [0.18, 0.5, 0.85], "kill_bolt": [0.05, 0.2, 0.45], "kill_pixel": [0.08, 0.35, 0.7],
+			"kill_soul": [0.2, 0.6, 1.0], "kill_coin": [0.12, 0.45, 0.8]}[id]
 		for k in 3:
-			for i in waits[k]: await process_frame
+			while (Time.get_ticks_msec() - t0) / 1000.0 < float(at[k]): await process_frame
 			_shot("%s_%d" % [id, k])
-		Engine.time_scale = 1.0
 		s.queue_free()
 		for i in 60: await process_frame
 	# tracers: first person, a long shot down the range
