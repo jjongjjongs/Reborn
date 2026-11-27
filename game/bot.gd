@@ -389,6 +389,7 @@ func hit(dmg: int, _is_head: bool = false, attacker = null) -> void:
 		return
 	if attacker != null and team != -1 and "team" in attacker and attacker.team == team:
 		return   # no friendly fire
+	Radar.contact(attacker, self)
 	hp -= dmg
 	_hit_t = 0.0; _hits_here += 1
 	if attacker != null and attacker is Node3D and _alive_of(attacker):
@@ -677,6 +678,7 @@ func _fire_one(w: Dictionary) -> void:
 		return
 	_ammo[wid] = int(_ammo[wid]) - 1
 	last_shot_t = Time.get_ticks_msec() / 1000.0
+	Radar.contact(self, _target)          # shooting at someone gives the shooter away to that side
 	BotPlayer.noise(global_position, self)
 	var from := _muzzle.global_position
 	Sfx.play_at("shot", from, -4.0)

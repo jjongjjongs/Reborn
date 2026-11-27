@@ -2,8 +2,9 @@ class_name Radar
 extends Control
 ## Top-left radar (replaces the HP bar; HP sits under it). The map image is a
 ## one-time top-down render of the level; the radar turns with the player so
-## "up" is where you look. Teammates always show; enemies only while spotted
-## (in your line of sight) or for a moment after they fire. Zombies always show.
+## "up" is where you look. Teammates always show (live). An enemy shows for a few
+## seconds (fading) when you or a teammate sees it, when it shoots at you / a teammate,
+## or when it hits or is hit by your side. Zombies always show.
 ## Bomb mode adds the A/B sites and the planted bomb via `extras`.
 ## Tapping the radar opens the whole map (north up) with the same markers;
 ## any tap closes it again.
@@ -20,7 +21,10 @@ var _map_tex: Texture2D
 var _map_rect: TextureRect
 var _mat: ShaderMaterial
 var _vp: SubViewport
-var _spotted := {}
+var _spotted := {}            # enemy -> seconds left on the radar
+const SHOW := 3.0             # how long a contact stays (fades over the last second)
+const TEAM_SIGHT := 26.0      # teammates report what they can see within this range
+static var _contacts := []     # [a, b]: a and b met (a shot at / hit b); filled by bots and the player
 var _spot_cd := 0.0
 var _font: Font
 var _big: Control              # full-screen map overlay
@@ -69,6 +73,7 @@ func _ready() -> void:
 	_big.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_big.visible = false
 	_big.draw.connect(_draw_big)
+	_contacts.clear()
 	_add_big.call_deferred()
 
 func _add_big() -> void:
@@ -130,6 +135,9 @@ func _process(dt: float) -> void:
 	var gp := player.global_position
 	_mat.set_shader_parameter("center", Vector2((gp.x - bounds.position.x) / bounds.size.x, (gp.z - bounds.position.y) / bounds.size.y))
 	_mat.set_shader_parameter("rot", -_yaw())
+	for n in _spotted.keys():
+		_spotted[n] = float(_spotted[n]) - dt
+		if _spotted[n] <= 0.0 or not is_instance_valid(n) or not n.alive: _spotted.erase(n)
 	_spot_cd -= dt
 	if _spot_cd <= 0.0:
 		_spot_cd = 0.2
@@ -146,21 +154,41 @@ func _is_enemy(n: Node) -> bool:
 	if pt == -1: return true
 	return "team" in n and int(n.team) != pt
 
+## a met b (a fired at b, or one hit the other): each becomes visible to the other's side
+static func contact(a, b) -> void:
+	if a == null or b == null or not is_instance_valid(a) or not is_instance_valid(b): return
+	_contacts.append([a, b])
+	if _contacts.size() > 64: _contacts = _contacts.slice(-64)
+
+func _on_my_side(n) -> bool:
+	if n == player: return true
+	var pt: int = int(player.team) if "team" in player else -1
+	return pt != -1 and is_instance_valid(n) and "team" in n and int(n.team) == pt
+
 func _update_spotted() -> void:
 	var space := player.get_world_3d().direct_space_state
-	var eye := player.global_position + Vector3(0, 1.5, 0)
+	# eyes on our side: me (radar range) and every living teammate (shorter range)
+	var eyes := [[player, RANGE * 1.2]]
+	for n in get_tree().get_nodes_in_group("combatant"):
+		if n != player and "alive" in n and n.alive and _on_my_side(n): eyes.append([n, TEAM_SIGHT])
 	for n in get_tree().get_nodes_in_group("combatant"):
 		if n == player or not ("alive" in n and n.alive) or not _is_enemy(n): continue
 		var tgt: Vector3 = (n as Node3D).global_position + Vector3(0, 1.2, 0)
-		if eye.distance_to(tgt) > RANGE * 1.2:
-			_spotted.erase(n); continue
-		var q := PhysicsRayQueryParameters3D.create(eye, tgt)
-		q.exclude = [player.get_rid()]
-		var h := space.intersect_ray(q)
-		var seen: bool = h.is_empty() or h["collider"] == n
-		var fired: bool = "last_shot_t" in n and Time.get_ticks_msec() / 1000.0 - float(n.last_shot_t) < 1.5
-		if seen or fired: _spotted[n] = 1.0
-		else: _spotted.erase(n)
+		for e in eyes:
+			var eye: Vector3 = (e[0] as Node3D).global_position + Vector3(0, 1.5, 0)
+			if eye.distance_to(tgt) > float(e[1]): continue
+			var q := PhysicsRayQueryParameters3D.create(eye, tgt)
+			q.exclude = [(e[0] as CollisionObject3D).get_rid()] if e[0] is CollisionObject3D else []
+			var h := space.intersect_ray(q)
+			if h.is_empty() or h["collider"] == n:
+				_spotted[n] = SHOW; break
+	# shots / hits between an enemy and our side
+	for c in _contacts:
+		var a = c[0]; var b = c[1]
+		if not (is_instance_valid(a) and is_instance_valid(b)): continue
+		if _on_my_side(b) and _is_enemy(a): _spotted[a] = SHOW
+		if _on_my_side(a) and _is_enemy(b): _spotted[b] = SHOW
+	_contacts.clear()
 
 func _draw() -> void:
 	var c := Vector2(R, R)
@@ -185,9 +213,10 @@ func _draw() -> void:
 		var p = _to_radar((n as Node3D).global_position)
 		if p == null: continue
 		if _is_enemy(n):
-			if _spotted.has(n): draw_circle(p, 5.5, Color(1.0, 0.25, 0.2))
+			if _spotted.has(n): draw_circle(p, 5.5, Color(1.0, 0.25, 0.2, clampf(float(_spotted[n]), 0.0, 1.0)))
 		else:
 			draw_circle(p, 5.0, Color(0.35, 0.75, 1.0))
+			draw_arc(p, 5.0, 0.0, TAU, 12, Color(1, 1, 1, 0.7), 1.2)
 	for z in get_tree().get_nodes_in_group("zombie"):
 		var p = _to_radar((z as Node3D).global_position)
 		if p != null: draw_circle(p, 5.0, Color(1.0, 0.3, 0.2))
@@ -238,7 +267,7 @@ func _draw_big() -> void:
 		if n == player or not ("alive" in n and n.alive): continue
 		var p := _big_pt((n as Node3D).global_position)
 		if _is_enemy(n):
-			if _spotted.has(n): _big.draw_circle(p, 7.0, Color(1.0, 0.25, 0.2))
+			if _spotted.has(n): _big.draw_circle(p, 7.0, Color(1.0, 0.25, 0.2, clampf(float(_spotted[n]), 0.0, 1.0)))
 		else:
 			_big.draw_circle(p, 7.0, Color(0.35, 0.75, 1.0))
 			_big.draw_arc(p, 7.0, 0.0, TAU, 16, Color(1, 1, 1, 0.8), 1.5)

@@ -97,6 +97,7 @@ func hit(dmg: int, _is_head: bool = false, attacker = null) -> void:
 		return
 	if attacker != null and team != -1 and "team" in attacker and attacker.team == team:
 		return   # no friendly fire
+	Radar.contact(attacker, self)
 	Controls.hp = maxi(0, Controls.hp - dmg)
 	Fx.hurt()
 	Sfx.play("hurt")
