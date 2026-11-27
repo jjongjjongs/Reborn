@@ -46,6 +46,7 @@ var defuser: Node3D = null
 var plan_site := "A"
 var _bomb_vis: Node3D
 var _bomb_light: OmniLight3D
+var _bomb_screen: Label3D
 var _bomb_tag: Label3D
 var _spec: Node3D = null
 # hud
@@ -211,6 +212,10 @@ func _live(dt: float) -> void:
 			Sfx.play_at("beep", bomb_pos + Vector3(0, 0.3, 0))
 			_beep_t = clampf(bomb_t / 10.0, 0.12, 1.0)
 		_bomb_light.visible = fmod(bomb_t, 1.0 if bomb_t > 10.0 else 0.35) < 0.15
+		if _bomb_screen:
+			var bt := maxf(bomb_t, 0.0)
+			_bomb_screen.text = "%02d:%02d" % [int(bt) / 60, int(bt) % 60]
+			_bomb_screen.modulate = Color(1.0, 0.3, 0.25) if bt < 10.0 else Color(0.55, 1.0, 0.6)
 		if defuser != null and (not defuser.alive or defuser.global_position.distance_to(bomb_pos) > 2.0):
 			if defuser is BotPlayer: defuser.busy = false
 			defuser = null; defuse_prog = 0.0
@@ -344,23 +349,28 @@ func _on_died(attacker, victim) -> void:
 # ---------------------------------------------------------------- bomb visual
 func _build_bomb() -> void:
 	_bomb_vis = Node3D.new(); add_child(_bomb_vis)
-	var body := MeshInstance3D.new(); var bm := BoxMesh.new(); bm.size = Vector3(0.45, 0.22, 0.32); body.mesh = bm
-	var mm := StandardMaterial3D.new(); mm.albedo_color = Color(0.18, 0.20, 0.16); body.material_override = mm
-	body.position.y = 0.11; _bomb_vis.add_child(body)
-	var pad := MeshInstance3D.new(); var pb := BoxMesh.new(); pb.size = Vector3(0.18, 0.04, 0.12); pad.mesh = pb
-	var pm := StandardMaterial3D.new(); pm.albedo_color = Color(0.9, 0.2, 0.15); pm.emission_enabled = true; pm.emission = Color(0.9, 0.1, 0.05)
-	pad.material_override = pm; pad.position.y = 0.24; _bomb_vis.add_child(pad)
+	# charge pack (tools/blender/build_bomb.py): blocks, tape, control unit with a live countdown on its screen
+	var model: Node3D = (load("res://assets/bomb/bomb.glb") as PackedScene).instantiate()
+	model.scale = Vector3.ONE * 1.25; _bomb_vis.add_child(model)
+	_bomb_screen = Label3D.new(); _bomb_screen.font_size = 64; _bomb_screen.pixel_size = 0.0006
+	_bomb_screen.modulate = Color(0.55, 1.0, 0.6); _bomb_screen.outline_size = 0; _bomb_screen.double_sided = false
+	_bomb_screen.position = Vector3(0.02, 0.195, 0.0925) * 1.25; _bomb_screen.text = "--:--"
+	_bomb_vis.add_child(_bomb_screen)
 	_bomb_light = OmniLight3D.new(); _bomb_light.light_color = Color(1, 0.2, 0.1); _bomb_light.light_energy = 3.0
 	_bomb_light.omni_range = 4.0; _bomb_light.position.y = 0.5; _bomb_vis.add_child(_bomb_light)
 	_bomb_tag = Label3D.new(); _bomb_tag.text = "폭탄"; _bomb_tag.font_size = 28; _bomb_tag.pixel_size = 0.0012
 	_bomb_tag.fixed_size = true
 	_bomb_tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED; _bomb_tag.no_depth_test = true
-	_bomb_tag.modulate = Color(1.0, 0.45, 0.3); _bomb_tag.position.y = 0.9
+	_bomb_tag.modulate = Color(1.0, 0.45, 0.3); _bomb_tag.position.y = 1.0
 	_bomb_vis.add_child(_bomb_tag)
 	_bomb_vis.visible = false
 
 func _place_bomb(planted: bool) -> void:
-	_bomb_vis.global_position = Vector3(bomb_pos.x, 0.0, bomb_pos.z)
+	var gy := 0.0                      # sit on the real floor (raised sites, hills)
+	var h := get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(bomb_pos + Vector3(0, 1.0, 0), bomb_pos + Vector3(0, -3.0, 0)))
+	if h: gy = (h["position"] as Vector3).y
+	_bomb_vis.global_position = Vector3(bomb_pos.x, gy, bomb_pos.z)
+	if _bomb_screen: _bomb_screen.text = "%02d:%02d" % [int(FUSE) / 60, int(FUSE) % 60] if planted else "--:--"
 	_bomb_vis.visible = true
 	_bomb_tag.visible = true
 	_bomb_tag.text = "설치된 폭탄" if planted else "폭탄"
