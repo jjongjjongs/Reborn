@@ -108,7 +108,13 @@ func _physics_process(delta: float) -> void:
 	_body.drive(clampf(Vector2(velocity.x, velocity.z).length() / 5.0, 0.0, 0.6), true)   # shamble: walk / jog, never sprint
 	if not is_on_floor():
 		velocity.y -= GRAVITY * delta
+	var want := Vector3(velocity.x, 0, velocity.z) * delta
 	move_and_slide()
+	# step up low ledges (stair sides, kerbs) instead of walking into them
+	if is_on_wall() and is_on_floor() and want.length() > 0.001:
+		var up := Vector3(0, 0.32, 0)
+		if not test_move(global_transform, up) and not test_move(global_transform.translated(up), want * 3.0):
+			global_position += up + want
 
 func hit(dmg: int, is_head: bool = false, _attacker = null) -> void:
 	if _dead:

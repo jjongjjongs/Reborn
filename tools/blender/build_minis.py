@@ -267,15 +267,18 @@ def body(vest=True, backpack=True, pouches=2):
     ring((0, -0.05, 0.935), 0.222, 0.168, 0.03, BOOT, "Hips")                                               # belt
     rbox((0.0, -0.222, 0.935), (0.07, 0.018, 0.05), BADGE, "Hips", bevel=0.012)                              # buckle
 
-def limbs(boots=True, mitts=BOOT, pads=True, bare_arm="", bare_leg=""):
+def limbs(boots=True, mitts=BOOT, pads=True, bare_arm="", bare_leg="", shoulder=None):
+    SHOULDER = shoulder or KIT
     for s_ in (1, -1):
         L = "L" if s_ > 0 else "R"
-        apts = [(0.11 * s_, -0.06, 1.42), (0.334 * s_, -0.056, 1.432), (0.568 * s_, -0.086, 1.432)]
+        apts = [(0.0, -0.06, 1.42), (0.15 * s_, -0.06, 1.42), (0.334 * s_, -0.056, 1.432), (0.568 * s_, -0.086, 1.432)]
         o = tube([(0.13 * s_, -0.058, 1.43), (0.334 * s_, -0.056, 1.432), (0.54 * s_, -0.08, 1.432)], [0.088, 0.075, 0.068], SKIN if bare_arm == L else UNIFORM, segs=18)
-        soft.append((o, apts, ["UpperArm." + L, "LowerArm." + L]))
+        soft.append((o, apts, ["Chest", "UpperArm." + L, "LowerArm." + L]))
+        # shoulder pad: rigid on the chest, hides the arm root when the arm swings across
+        ellipsoid((0.165 * s_, -0.05, 1.44), (0.095, 0.115, 0.085), SHOULDER, "Chest")
         if bare_arm == L:   # torn short sleeve, bandaged forearm
             o = tube([(0.13 * s_, -0.058, 1.43), (0.37 * s_, -0.058, 1.432)], [0.098, 0.088], UNIFORM, segs=18, cap1=0.2)
-            soft.append((o, apts, ["UpperArm." + L, "LowerArm." + L]))
+            soft.append((o, apts, ["Chest", "UpperArm." + L, "LowerArm." + L]))
             for k, (xx, dz) in enumerate(((0.375, -0.02), (0.405, 0.015), (0.385, 0.03))):
                 rbox((xx * s_, -0.06 - 0.03 * (k - 1), 1.432 - 0.078 + dz * 0.3), (0.035, 0.04, 0.03), UNIFORM, "UpperArm." + L, bevel=0.01)
             for xx in (0.45, 0.49):
@@ -360,7 +363,7 @@ else:
     rbox((-0.13, -0.215, 0.925), (0.035, 0.03, 0.06), ROPE, "Hips", bevel=0.012)                                # knot
     for (px, pz, r) in ((0.30, 1.505, 0.035), (-0.50, 1.497, 0.03)):                                              # rot patches on arms
         ellipsoid((px, -0.07, pz), (r, r * 0.8, 0.014), mat("ZPatch2", (0.14, 0.28, 0.10, 1)), "UpperArm.L" if px > 0 else "LowerArm.R")
-    limbs(boots=False, mitts=SKIN, pads=False, bare_arm="L", bare_leg="R")
+    limbs(boots=False, mitts=SKIN, pads=False, bare_arm="L", bare_leg="R", shoulder=UNIFORM)
 
 for o, pts, bones in soft:
     chain_weights(o, pts, bones)

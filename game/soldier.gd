@@ -275,6 +275,7 @@ func _retarget() -> void:
 		if par >= 0:
 			pg = _tgt.get_bone_global_pose(par).basis.get_rotation_quaternion()
 		_tgt.set_bone_pose_rotation(_tgt_idx[i], pg.inverse() * d_skel)
+	_level_feet()
 	if _src_hips >= 0 and _swat != null:
 		var hy := (_rs * _src.get_bone_global_pose(_src_hips).origin).y
 		_swat.position.y = (hy - _ref_hips_y) * _hip_ratio
@@ -284,6 +285,34 @@ func _retarget() -> void:
 			var lift := _min_toe_y() - _ref_toe_y
 			if lift > 0.0:
 				_swat.position.y -= minf(lift, 0.2)
+
+# chunky boots: keep the toe direction from the animation but drop the foot roll, so the sole
+# stays level instead of the ankle folding in (the clips roll the foot, which reads as a twisted ankle)
+var _feet := PackedInt32Array()
+func _level_feet() -> void:
+	if _dead or _tgt == null: return
+	if _feet.is_empty():
+		for n in ["Foot.L", "Foot.R"]: _feet.append(_tgt.find_bone(n))
+	var up := (_tgt.global_transform.basis.inverse() * Vector3.UP).normalized()
+	var fwd := (_tgt.global_transform.basis.inverse() * -global_transform.basis.z).normalized()
+	for f in _feet:
+		if f < 0: continue
+		var fr := _tgt.get_bone_global_rest(f)
+		var d0 := fr.basis.y.normalized()                                         # bone axis = heel -> toe
+		var d1 := _tgt.get_bone_global_pose(f).basis.y.normalized()
+		# heading: point the toe where the body faces (the clips splay the feet), keep the pitch
+		var fh := fwd - up * fwd.dot(up)
+		var dh := d1 - up * d1.dot(up)
+		if fh.length() > 0.1 and dh.length() > 0.05:
+			d1 = (fh.normalized() * dh.length() + up * d1.dot(up)).normalized()
+		var u0 := (up - d0 * up.dot(d0)).normalized()
+		var u1 := (up - d1 * up.dot(d1)).normalized()
+		if u0.length() < 0.5 or u1.length() < 0.5: continue
+		var b0 := Basis(d0, u0, d0.cross(u0)); var b1 := Basis(d1, u1, d1.cross(u1))
+		var g: Quaternion = (b1 * b0.transposed()).get_rotation_quaternion() * fr.basis.get_rotation_quaternion()
+		var par := _tgt.get_bone_parent(f)
+		var pg := _tgt.get_bone_global_pose(par).basis.get_rotation_quaternion() if par >= 0 else Quaternion.IDENTITY
+		_tgt.set_bone_pose_rotation(f, pg.inverse() * g)
 
 func _snapshot_ready_arms() -> void:
 	if _ap == null or _src == null: return

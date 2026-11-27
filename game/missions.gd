@@ -93,8 +93,15 @@ static func spend(n: int) -> bool:
 	return true
 
 ## last finished match for the 최근 기록 card (+ career stats)
-static func record(mode: String, map_name: String, result: String, win := false, tag := "") -> void:
+static var last_reward := 0
+## match-end coins: a base for finishing, more per kill (capped), a bonus for winning
+static func match_reward(base: int, kills: int, win_bonus: int, win: bool) -> int:
+	return base + mini(kills * 2, 30) + (win_bonus if win else 0)
+
+static func record(mode: String, map_name: String, result: String, win := false, tag := "", reward := 0) -> void:
 	_load()
+	last_reward = reward
+	if reward > 0: _data["coins"] = int(_data["coins"]) + reward
 	_data["last"] = {"mode": mode, "map": map_name, "result": result}
 	_save()
 	Profile.match_done(mode, map_name, result, win, tag if tag != "" else ("승리" if win else "패배"))

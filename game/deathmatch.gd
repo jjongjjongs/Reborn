@@ -131,13 +131,14 @@ func _end_match(winner) -> void:
 	var win: bool = (winner == player)
 	Missions.add("match")
 	if win: Missions.add("win")
-	Missions.record("데스매치", SortieScreen.map_name(Controls.sel_map), "%s · 처치 %d" % ["1위" if win else "패배", Controls.kills], win, "1위" if win else "패배")
+	Missions.record("데스매치", SortieScreen.map_name(Controls.sel_map), "%s · 처치 %d" % ["1위" if win else "패배", Controls.kills], win, "1위" if win else "패배",
+		Missions.match_reward(20, Controls.kills, 50, win))
 	_result.visible = true
 	var r := _result.get_node("v")
 	(r.get_node("t") as Label).text = "승리!" if win else "패배"
 	var ld := _leader()
 	(r.get_node("s") as Label).text = "최종 처치 — 나 %d\n1위 %s · %d킬\n목표 %d 선취" % [
-		Controls.kills, ld[0], ld[1], KILL_TARGET]
+		Controls.kills, ld[0], ld[1], KILL_TARGET] + "\n획득 코인 +%d" % Missions.last_reward
 
 func _build_hud() -> void:
 	var layer := CanvasLayer.new(); add_child(layer)
