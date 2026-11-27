@@ -205,6 +205,7 @@ func _pose_body(rs: Vector3, ls: Vector3) -> void:
 	var r := Basis(xt, yt, xt.cross(yt)) * Basis(xm, ym, xm.cross(ym)).inverse()
 	var b := r.scaled(Vector3.ONE * k)
 	_body.transform = Transform3D(b, rs - b * rs_m)
+	_body.transform.origin -= b * _body.fp_shift       # short arms: bring the shoulders to the gun
 	_body.fp_gun_xf = _body.transform.affine_inverse() * _holder.transform * Transform3D(Basis.from_scale(Vector3.ONE * k), Vector3.ZERO)
 
 func _place_limb(mi: MeshInstance3D, a: Vector3, b: Vector3) -> void:

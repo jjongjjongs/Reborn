@@ -105,9 +105,9 @@ func setup(team_color: Color, kit: Color = Color(0, 0, 0, 0)) -> void:
 	_kit = kit
 	# visible body (SWAT, or the Mini Soldier test body built on the same skeleton)
 	if test_body != "": body = test_body
-	gun_k = 1.35 if body.begins_with("rookie") else (1.15 if BODIES.has(body) else 1.0)      # chibi Tripo body: bigger guns
+	gun_k = 1.15 if body.begins_with("rookie") else (1.15 if BODIES.has(body) else 1.0)      # chibi Tripo body: bigger guns
 	pocket_off = Vector3(0.04, 0.0, -0.15) if body.begins_with("rookie") else Vector3.ZERO    # thick vest: rifle in front of it
-	hand_back = 0.0 if body.begins_with("rookie") else 0.08
+	hand_back = 0.08                   # measured from the skeleton in _build_gun
 	var path: String = BODIES.get(body, "")
 	var swat: Node3D = (load(path) as PackedScene).instantiate() if path != "" else SWAT.instantiate()
 	var gears := swat.find_children("Gear_*", "", true, false)
@@ -411,12 +411,16 @@ func _build_gun() -> void:
 	_gun = Node3D.new(); add_child(_gun); _gun.top_level = true
 	for b in ["UpperArm.R", "LowerArm.R", "Hand.R", "UpperArm.L", "LowerArm.L", "Hand.L", "Middle2.R", "Middle2.L", "Torso", "Neck"]:
 		_arm[b] = _tgt.find_bone(b) if _tgt else -1
+	# palm centre = halfway from the wrist to the knuckles: put THAT on the grip, whatever the hand size
+	var hb: int = _arm["Hand.R"]; var mk: int = _arm["Middle2.R"]
+	if hb >= 0 and mk >= 0: hand_back = 0.5 * _bone_s(hb).distance_to(_bone_s(mk))
 	set_weapon("m4")
 
 func set_weapon(id: String) -> void:
 	if id == weapon or not WEAPONS.has(id): return
 	weapon = id
 	_wdef = WEAPONS[id]
+	fp_shift = Vector3.ZERO
 	if _wmodel: _wmodel.queue_free()
 	var m: Node3D = (load("res://assets/guns/%s.glb" % id) as PackedScene).instantiate()
 	var a := _model_aabb(m)
@@ -503,7 +507,45 @@ func _pose_weapon() -> void:
 		_gun_s = Transform3D(basis, gp - basis * _anchor("grip"))
 	_place_hands(kind, sh_l)
 
+func _wrist_of(contact: Vector3, f_g: Vector3, n_g: Vector3, pad: float) -> Vector3:
+	var gb := _gun_s.basis
+	var f := (gb * f_g).normalized()
+	var n := gb * n_g
+	n = (n - f * n.dot(f)).normalized()
+	return _gun_s * contact - n * pad - f * hand_back
+
+func _reach(side: String) -> float:
+	var u: int = _arm["UpperArm." + side]; var l: int = _arm["LowerArm." + side]; var h: int = _arm["Hand." + side]
+	return _bone_s(u).distance_to(_bone_s(l)) + _bone_s(l).distance_to(_bone_s(h))
+
+## both hands must be able to reach their grips: if an arm is too short (chibi bodies), slide the gun
+## back toward the body along its own axis until both wrists are within reach (never leave a hand hanging)
+var fp_shift := Vector3.ZERO      # first person: how far the body must move toward the gun (soldier space)
+func _fit_reach(targets: Array) -> void:
+	var back := _gun_s.basis.z.normalized()           # gun +Z = toward the butt / shooter
+	var o0 := _gun_s.origin
+	_fit_loop(targets, back)
+	if fp_gun:                                        # the gun is fixed on screen: move the arms instead
+		fp_shift = fp_shift + (_gun_s.origin - o0)
+		_gun_s.origin = o0
+
+func _fit_loop(targets: Array, back: Vector3) -> void:
+	for it in 6:
+		var worst := 0.0
+		for t in targets:
+			var side: String = t[0]
+			var w: Vector3 = _wrist_of(t[1], t[2], t[3], t[4])
+			var ex := _bone_s(_arm["UpperArm." + side]).distance_to(w) - _reach(side) * 0.96
+			worst = maxf(worst, ex)
+		if worst <= 0.002: return
+		_gun_s.origin += back * (worst + 0.004)
+
 func _place_hands(kind: String, sh_l: Vector3) -> void:
+	if kind == "long":
+		var lf := [Vector3(0.35, -0.55, -0.75), Vector3(1, 0, 0), 0.03] if bool(_wdef.get("vfore", false)) else [Vector3(0.45, 0.25, -0.85), Vector3(0.2, 1, 0), 0.035]
+		_fit_reach([["R", _anchor("grip"), Vector3(-0.45, -0.35, -0.82), Vector3(-1, 0, 0), 0.03], ["L", _anchor("fore"), lf[0], lf[1], lf[2]]])
+	elif kind == "pistol":
+		_fit_reach([["R", _anchor("grip"), Vector3(-0.3, -0.5, -0.8), Vector3(-1, 0, 0), 0.02], ["L", _anchor("grip"), Vector3(0.3, -0.5, -0.8), Vector3(1, 0, 0), 0.05]])
 	if kind == "long":
 		# strong hand wraps the pistol grip (palm on its right side, knuckles forward-down);
 		# support hand cradles the handguard from below, palm up (or wraps a vertical foregrip)
@@ -573,8 +615,7 @@ func _hand(side: String, contact: Vector3, f_g: Vector3, n_g: Vector3, pad: floa
 	var f := (gb * f_g).normalized()
 	var n := gb * n_g
 	n = (n - f * n.dot(f)).normalized()
-	var c := _gun_s * contact
-	var wrist := c - n * pad - f * hand_back
+	var wrist := _wrist_of(contact, f_g, n_g, pad)
 	_ik_hand(side, wrist, pole)
 	var h: int = _arm["Hand." + side]
 	var mi := _tgt.find_bone("Middle2." + side)
