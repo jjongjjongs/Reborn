@@ -40,7 +40,7 @@ def under(i, j):
     """floor character beneath a block / prop (nearest plain floor neighbour)."""
     for di, dj in ((-1, 0), (1, 0), (0, -1), (0, 1), (-2, 0), (2, 0), (0, -2), (0, 2), (-3, 0), (3, 0)):
         c = ch(i + di, j + dj)
-        if c not in BLOCKS and c not in PROPS and c != "#" and c not in RAMPS and c not in "pm": return c
+        if c not in BLOCKS and c not in PROPS and c != "#" and c not in RAMPS and c not in "pmz": return c
     return "."
 def floor_of(c, i=None, j=None):
     if (c in BLOCKS or c in PROPS) and i is not None: c = under(i, j)
@@ -68,7 +68,7 @@ def rects(pred):
 spaces, ramps, blocks = [], [], []
 def fkey(i, j):
     c = ch(i, j)
-    if c in BLOCKS or c in PROPS: c = under(i, j)
+    if c in BLOCKS or c in PROPS or c in "pzm": c = under(i, j)     # spawns take the floor around them (rooms keep their roof)
     if c in FLOORK: return ("sky",) + FLOORK[c]
     if c.isdigit(): return ("sky", "plaza", int(c) * 0.4)
     if c == "o": return ("room", "room", 0.0)

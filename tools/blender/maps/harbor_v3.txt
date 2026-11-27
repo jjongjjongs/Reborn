@@ -1,0 +1,32 @@
+name: harbor_v3
+theme: harbor
+mode: dm
+---
+##################################
+##################################
+######oooooooooooooooooooooo######
+###..#oocopoooooooooooopocoo#..###
+###.LooooooocoooooooocoooooooL.###
+###..ooocoooooooooooooooocooo..###
+###..#oooooooooooooooooooooo#..###
+###.p#####oo###oooo###oo#####p.###
+###..#####oo###oooo###oo#####..###
+###..,,,,,,p,,,,,,,,,,p,,,,,,..###
+#,,,,,,,CC,,,,,cccc,,,,,CC,,,,,,,#
+#,,,,,,pCC,x,,,,,,,,,,x,CCp,,,,,,#
+#aa,,,,,,,,,,,,,,,,,,,,,,,,,,,,dd#
+#aa,,,,x,,,,CC,,pp,,CC,,,,x,,,,dd#
+#aa,,,,,,,,,CC,,,,,,CC,,,,,,,,,dd#
+#aa,,,,,cc,,,,,,,,,,,,,,cc,,,,,dd#
+#,,,,,,,ccX,p,,,,,,,,p,Xcc,,,,,,,#
+#,,,,,,,,,,,,,cc,,cc,,,,,,,,,,,,,#
+###..,,,,,,,,x,,,,,,x,,,,,,,,..###
+###..,,,,,,,,........,,,,,,,,..###
+###...V.....>>888888<<.....V...###
+###.pb...L.b>>888888<<b.L...bp.###
+###............................###
+#wwwww..wwwwwwwwwwwwwwwwww..wwwww#
+#wwwww.pwwwwwwwwwwwwwwwwwwp.wwwww#
+#wwwww..wwwwwwwwwwwwwwwwww..wwwww#
+#wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww#
+##################################

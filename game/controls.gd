@@ -162,6 +162,11 @@ func consume_look() -> Vector2:
 	look = Vector2.ZERO
 	return l
 
+## match over: hide the on-screen controls, crosshair / scope and radar behind the result panel
+func hide_play_hud() -> void:
+	for n in get_tree().root.find_children("*", "", true, false):
+		if n is TouchInput or n is CrossHair or n is Radar: (n as CanvasItem).visible = false
+
 func end_run(win: bool) -> void:
 	if game_over:
 		return
@@ -179,6 +184,7 @@ func end_run(win: bool) -> void:
 	if run_time > best_time:   # longest survival (win or lose)
 		best_time = run_time; new_best = true
 	_save_best()
+	hide_play_hud()
 	get_tree().paused = true
 
 func reset() -> void:

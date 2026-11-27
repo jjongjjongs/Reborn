@@ -114,6 +114,7 @@ func _end_match(winner_team: int) -> void:
 	_over = true
 	Pause.disarm()
 	get_tree().paused = true
+	Controls.hide_play_hud()
 	_result.visible = true
 	var v := _result.get_node("v")
 	(v.get_node("t") as Label).text = "승리!" if winner_team == RED else "패배"

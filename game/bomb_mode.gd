@@ -384,6 +384,7 @@ func _end_match() -> void:
 	Controls.act_label = ""
 	Pause.disarm()
 	get_tree().paused = true
+	Controls.hide_play_hud()
 	_result.visible = true
 	var v := _result.get_node("v")
 	(v.get_node("t") as Label).text = "승리!" if score[RED] > score[BLUE] else "패배"
