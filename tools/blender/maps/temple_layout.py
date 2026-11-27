@@ -29,8 +29,10 @@ def gh(lx, ly):
     cx, cy, r = GYEONGHOERU; a = -math.radians(r)
     X = (cx - 70) + lx * math.cos(a) - ly * math.sin(a); Y = (60 - cy) + lx * math.sin(a) + ly * math.cos(a)
     return (X + 70, 60 - Y)
-GH_ISLAND = [gh(-12.5, -10.2), gh(12.5, -10.2), gh(12.5, 9.8), gh(-12.5, 9.8), gh(-12.5, -10.2)]
-GH_STAIR = (gh(-9.6, -8.3), gh(0.4, -8.3))     # along the front edge, up to the deck (railing open there)
+GH_ISLAND = [gh(-13.0, -10.2), gh(12.5, -10.2), gh(12.5, 9.8), gh(-13.0, 9.8), gh(-13.0, -10.2)]
+GH_STAIR = (gh(-11.0, -8.3), gh(-1.4, -8.3))   # along the front edge, up to the deck
+GH_LANDING = (gh(-1.4, -8.3), gh(0.8, -8.3))   # flat landing at deck height; the railing opens right beside it
+GH_GAP = (-0.3, 2.0)                           # railing opening: centre x, width (pavilion local)
 # ramps / stairs: (x0, y0, h0) -> (x1, y1, h1), width, kind ("stairs" | "path" | "cave")
 RAMPS = [
     ((64, 101, 0.0), (64, 91.0, 2.4), 4.5, "stairs"),       # 일주문 -> 천왕문 단
@@ -47,6 +49,7 @@ RAMPS = [
     ((52, 77, 2.4), (79, 53, 7.2), 3.2, "cave"),            # 석굴 -> A 서쪽 (지하)
     ((54, 23, 4.8), (62, 18, 7.2), 4.0, "stairs"),          # 연못 단 -> 북쪽 (수정전)
     ((GH_STAIR[0][0], GH_STAIR[0][1], GH_BASE), (GH_STAIR[1][0], GH_STAIR[1][1], GH_DECK), 1.6, "stairs"),   # 경회루 2층
+    ((GH_LANDING[0][0], GH_LANDING[0][1], GH_DECK), (GH_LANDING[1][0], GH_LANDING[1][1], GH_DECK), 1.6, "bridge"),   # 계단참
 ]
 # bridges over the pond / stream: (x0,y0) -> (x1,y1), height, width
 BRIDGES = [(gh(12.5, -3.0), gh(21.5, -3.0), 4.8, 3.0), (gh(12.5, 3.0), gh(21.5, 3.0), 4.8, 3.0),   # 경회루 동쪽 다리 2
@@ -63,7 +66,7 @@ BUILDINGS = [
     ("hall", 126, 38, -17, [3, 1]),                # 승방 (동)
     ("pavilion", 100, 54, 0, [3, 2, "pavilion", 5.6]),    # 만세루 (아래 통과)
     ("bell", 70, 70, 12, [1, 1, "gate"]),                 # 범종각
-    ("pavilion", 31, 28, 14, [6, 4, "pavilion", 4.4, -4.6, 2.2]),   # 경회루 (B) on its stone island; railing open at the stair top
+    ("pavilion", 31, 28, 14, [6, 4, "pavilion", 4.4, -0.3, 2.0]),   # 경회루 (B) on its stone island; railing open at the stair top
     ("hall", 92, 77, 6, [3, 2]),                   # 요사채
     ("hall", 106, 82, -9, [3, 2]),
     ("hall", 86, 86, 3, [2, 2]),

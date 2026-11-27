@@ -191,6 +191,10 @@ for dx in (-8, 8):
     box((q.x, q.y, zq + 0.6), (0.4, 0.4, 1.2), STONEM); box((q.x, q.y, zq + 1.45), (0.9, 0.9, 0.5), STONEM, bev=0.05)
     box((q.x, q.y, zq + 1.85), (1.1, 1.1, 0.2), STONEM, bev=0.06)
 # ---------------------------------------------------------------- bridges
+(lx0, ly0), (lx1, ly1) = GH_LANDING                              # stair landing: stone slab on two posts, deck height
+lc = B((lx0 + lx1) / 2, (ly0 + ly1) / 2); lang = math.atan2(-(ly1 - ly0), lx1 - lx0); lL = math.hypot(lx1 - lx0, ly1 - ly0)
+box((lc.x, lc.y, GH_DECK - 0.2), (lL, 1.6, 0.4), STEPM, rot=lang, bev=0.03)
+box((lc.x, lc.y, (GH_BASE - 0.2 + GH_DECK - 0.4) / 2), (lL, 1.7, GH_DECK - 0.2 - GH_BASE), STONEM, rot=lang, bev=0.04)   # solid stone pier under the landing
 isl = [B(x, y) for x, y in GH_ISLAND[:-1]]                     # 경회루 stone island (cut stone, a step above the water)
 mesh_obj("Island", [(q.x, q.y, GH_BASE - 1.5) for q in isl] + [(q.x, q.y, GH_BASE) for q in isl],
     [(0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7), (4, 5, 6, 7)], STONEM)
