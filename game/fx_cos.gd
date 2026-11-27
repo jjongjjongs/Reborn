@@ -287,3 +287,144 @@ static func tracer(id: String, parent: Node, a: Vector3, b: Vector3, hold := 0.0
 			shock(parent, b, Color(0.8, 0.5, 1.0), 0.5, 0.25 + hold * 0.3, true)
 		_:                     # tr_basic: the current yellow streak, softer
 			seg.call(a, b, 0.025, Color(1, 0.92, 0.6, 1.0)); seg.call(a, b, 0.07, Color(1, 0.7, 0.25, 0.3))
+
+# ---------------------------------------------------------------- weapon / character effects (continuous)
+const WEAPONS_FX := ["wfx_ember", "wfx_spark", "wfx_frost", "wfx_void", "wfx_gold"]
+const CHARS_FX := ["cfx_flame", "cfx_stardust", "cfx_aura", "cfx_petal", "cfx_shadow"]
+
+## a looping emitter (world-space particles, so they trail behind when the owner moves)
+static func emitter(o: Dictionary) -> CPUParticles3D:
+	var p := CPUParticles3D.new()
+	p.amount = int(o.get("n", 16)); p.lifetime = float(o.get("life", 0.8)); p.local_coords = false
+	var q := QuadMesh.new(); q.size = Vector2.ONE * float(o.get("size", 0.1)); p.mesh = o.get("mesh", q)
+	p.material_override = o.get("mat", glow_mat(String(o.get("tex", "glow")), bool(o.get("add", true))))
+	p.direction = o.get("dir", Vector3.UP); p.spread = float(o.get("spread", 30.0))
+	var v: Vector2 = o.get("vel", Vector2(0.1, 0.4)); p.initial_velocity_min = v.x; p.initial_velocity_max = v.y
+	p.gravity = o.get("grav", Vector3(0, 0.3, 0))
+	var dmp: Vector2 = o.get("damp", Vector2(0, 0)); p.damping_min = dmp.x; p.damping_max = dmp.y
+	var sc: Vector2 = o.get("scale", Vector2(0.6, 1.2)); p.scale_amount_min = sc.x; p.scale_amount_max = sc.y
+	p.scale_amount_curve = o.get("curve", pop_curve())
+	if o.has("ramp"): p.color_ramp = o["ramp"]
+	if o.has("box"): p.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX; p.emission_box_extents = o["box"]
+	if o.has("ring"):
+		p.emission_shape = CPUParticles3D.EMISSION_SHAPE_RING; p.emission_ring_axis = Vector3.UP
+		p.emission_ring_radius = float(o["ring"]); p.emission_ring_inner_radius = float(o["ring"]) * 0.8; p.emission_ring_height = 0.02
+	if o.has("spin"): p.angular_velocity_min = -float(o["spin"]); p.angular_velocity_max = float(o["spin"])
+	if o.has("rot"): p.angle_min = 0.0; p.angle_max = 360.0
+	if o.has("pos"): p.position = o["pos"]
+	p.emitting = true
+	return p
+
+## follows its parent: switches `moving` emitters on only while the owner walks / runs, and
+## draws flickering electric arcs for the spark weapon effect
+class Follow extends Node3D:
+	var moving: Array = []
+	var arcs := 0.0                 # gun length for electric arcs (0 = none)
+	var arc_col := Color(0.5, 0.8, 1.0)
+	var _last := Vector3.ZERO
+	var _spd := 0.0
+	var _t := 0.0
+	func _ready() -> void: _last = global_position
+	func _process(dt: float) -> void:
+		var p := global_position
+		var v := Vector2(p.x - _last.x, p.z - _last.z).length() / maxf(dt, 0.001)
+		_last = p
+		_spd = lerpf(_spd, v, minf(1.0, dt * 8.0))
+		for e in moving:
+			if is_instance_valid(e): (e as CPUParticles3D).emitting = _spd > 1.0
+		if arcs > 0.0:
+			_t -= dt
+			if _t <= 0.0:
+				_t = randf_range(0.06, 0.2)
+				_arc()
+	func _arc() -> void:
+		var z0 := randf_range(-arcs * 0.45, arcs * 0.3); var n := 4
+		var pts: Array = []
+		for i in n + 1:
+			pts.append(Vector3(randf_range(-0.03, 0.03), randf_range(-0.02, 0.05), z0 - arcs * 0.18 * float(i) / n))
+		for i in n:
+			var a: Vector3 = global_transform * pts[i]; var b: Vector3 = global_transform * pts[i + 1]
+			var m := MeshInstance3D.new(); var bm := BoxMesh.new(); bm.size = Vector3(0.014, 0.014, a.distance_to(b)); m.mesh = bm
+			var mat := StandardMaterial3D.new(); mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+			mat.albedo_color = Color(0.85, 0.95, 1.0); m.material_override = mat
+			get_tree().current_scene.add_child(m) if get_tree().current_scene else add_child(m)
+			m.global_position = (a + b) * 0.5
+			if a.distance_to(b) > 0.001: m.look_at(b, Vector3.UP)
+			get_tree().create_timer(0.06).timeout.connect(m.queue_free)
+
+## attach a weapon effect to a gun holder (gun -Z = muzzle, centred; L = gun length in metres)
+static func weapon_fx(id: String, holder: Node3D, L: float) -> Node3D:
+	var f := Follow.new(); f.name = "WeaponFx"
+	if id == "" or id == "wfx_none": return f
+	var box := Vector3(0.025, 0.03, L * 0.42)
+	match id:
+		"wfx_ember":             # embers rising off the gun, a warm haze
+			f.add_child(emitter({"n": 32, "size": 0.07, "tex": "core", "box": box, "vel": Vector2(0.05, 0.3), "grav": Vector3(0, 0.7, 0), "life": 1.0,
+				"ramp": ramp([Color(1, 0.9, 0.5, 1), Color(1, 0.45, 0.1, 1), Color(0.6, 0.1, 0.0, 0)])}))
+			f.add_child(emitter({"n": 14, "size": 0.24, "box": box, "vel": Vector2(0.02, 0.1), "grav": Vector3(0, 0.25, 0), "life": 0.8,
+				"ramp": ramp([Color(1, 0.4, 0.1, 0.0), Color(1, 0.4, 0.1, 0.35), Color(1, 0.3, 0.05, 0)])}))
+		"wfx_spark":             # crackling electric arcs + blue sparks
+			f.arcs = L
+			f.add_child(emitter({"n": 26, "size": 0.05, "tex": "core", "box": box, "vel": Vector2(0.4, 1.2), "spread": 180.0, "grav": Vector3(0, -2, 0), "life": 0.25,
+				"curve": shrink(), "ramp": ramp([Color(1, 1, 1, 1), Color(0.4, 0.7, 1.0, 0)])}))
+			f.add_child(emitter({"n": 12, "size": 0.22, "box": box, "vel": Vector2(0.0, 0.05), "grav": Vector3.ZERO, "life": 0.3,
+				"ramp": ramp([Color(0.3, 0.6, 1.0, 0.0), Color(0.3, 0.6, 1.0, 0.4), Color(0.3, 0.6, 1.0, 0)])}))
+		"wfx_frost":             # cold mist sliding down + ice glints
+			f.add_child(emitter({"n": 18, "size": 0.3, "tex": "smoke", "box": box, "vel": Vector2(0.02, 0.1), "grav": Vector3(0, -0.3, 0), "life": 1.2,
+				"ramp": ramp([Color(0.8, 0.95, 1.0, 0.0), Color(0.8, 0.95, 1.0, 0.5), Color(0.8, 0.95, 1.0, 0)])}))
+			f.add_child(emitter({"n": 12, "size": 0.14, "tex": "star", "box": box, "vel": Vector2(0.0, 0.05), "grav": Vector3.ZERO, "life": 0.7, "rot": true,
+				"ramp": ramp([Color(0.9, 1.0, 1.0, 1), Color(0.6, 0.85, 1.0, 0)])}))
+		"wfx_void":              # dark violet wisps curling up
+			f.add_child(emitter({"n": 20, "size": 0.26, "tex": "smoke", "add": false, "box": box, "vel": Vector2(0.05, 0.2), "grav": Vector3(0, 0.35, 0), "life": 1.1, "spin": 90.0, "rot": true,
+				"ramp": ramp([Color(0.4, 0.1, 0.65, 0.0), Color(0.45, 0.12, 0.75, 0.75), Color(0.15, 0.0, 0.3, 0)])}))
+			f.add_child(emitter({"n": 14, "size": 0.07, "tex": "core", "box": box, "vel": Vector2(0.05, 0.2), "grav": Vector3(0, 0.4, 0), "life": 0.9,
+				"ramp": ramp([Color(0.8, 0.5, 1.0, 1), Color(0.5, 0.2, 1.0, 0)])}))
+		"wfx_gold":              # golden glints twinkling on the gun
+			f.add_child(emitter({"n": 16, "size": 0.18, "tex": "star", "box": box, "vel": Vector2(0.0, 0.03), "grav": Vector3.ZERO, "life": 0.6, "rot": true,
+				"ramp": ramp([Color(1, 0.95, 0.7, 1), Color(1, 0.8, 0.3, 0)])}))
+			f.add_child(emitter({"n": 14, "size": 0.05, "tex": "core", "box": box, "vel": Vector2(0.02, 0.12), "grav": Vector3(0, -0.2, 0), "life": 1.0,
+				"ramp": ramp([Color(1, 0.85, 0.4, 1), Color(1, 0.7, 0.2, 0)])}))
+	holder.add_child(f)
+	return f
+
+## attach a character effect to a soldier (origin at the feet)
+static func char_fx(id: String, who: Node3D) -> Node3D:
+	var f := Follow.new(); f.name = "CharFx"
+	if id == "" or id == "cfx_none": return f
+	match id:
+		"cfx_flame":             # burning footprints while running
+			var e := emitter({"n": 40, "size": 0.45, "box": Vector3(0.18, 0.02, 0.18), "vel": Vector2(0.2, 0.6), "grav": Vector3(0, 1.6, 0), "life": 0.55,
+				"ramp": ramp([Color(1, 0.85, 0.4, 0.9), Color(1, 0.4, 0.05, 0.7), Color(0.5, 0.05, 0.0, 0)])})
+			var e2 := emitter({"n": 16, "size": 0.06, "tex": "core", "box": Vector3(0.2, 0.02, 0.2), "vel": Vector2(0.4, 1.2), "grav": Vector3(0, 1.0, 0), "life": 0.8,
+				"ramp": ramp([Color(1, 0.9, 0.5, 1), Color(1, 0.4, 0.1, 0)])})
+			f.add_child(e); f.add_child(e2); f.moving = [e, e2]
+		"cfx_stardust":          # pastel star dust trailing behind
+			var e := emitter({"n": 28, "size": 0.18, "tex": "star", "box": Vector3(0.25, 0.4, 0.15), "pos": Vector3(0, 0.6, 0), "vel": Vector2(0.05, 0.3), "grav": Vector3(0, -0.4, 0),
+				"life": 0.9, "rot": true, "ramp": ramp([Color(1, 0.9, 1.0, 1), Color(0.7, 0.8, 1.0, 1), Color(1.0, 0.7, 0.9, 0)])})
+			f.add_child(e); f.moving = [e]
+		"cfx_aura":              # always: a slow blue ring under the feet + rising motes
+			f.add_child(emitter({"n": 22, "size": 0.07, "tex": "core", "ring": 0.55, "vel": Vector2(0.15, 0.4), "spread": 5.0, "grav": Vector3(0, 0.5, 0), "life": 1.4,
+				"ramp": ramp([Color(0.4, 0.8, 1.0, 0), Color(0.5, 0.85, 1.0, 1), Color(0.3, 0.6, 1.0, 0)])}))
+			var ring := MeshInstance3D.new(); var q := QuadMesh.new(); q.size = Vector2(1.5, 1.5); ring.mesh = q
+			var rm := glow_mat("ring"); rm.billboard_mode = BaseMaterial3D.BILLBOARD_DISABLED; rm.vertex_color_use_as_albedo = false
+			rm.albedo_color = Color(0.35, 0.75, 1.0, 0.7); ring.material_override = rm
+			ring.rotation_degrees = Vector3(-90, 0, 0); ring.position = Vector3(0, 0.04, 0); f.add_child(ring)
+			var tw := ring.create_tween().set_loops()
+			tw.tween_property(ring, "scale", Vector3.ONE * 1.12, 0.9).set_trans(Tween.TRANS_SINE)
+			tw.tween_property(ring, "scale", Vector3.ONE * 0.92, 0.9).set_trans(Tween.TRANS_SINE)
+		"cfx_petal":             # pink petals swirling off while moving
+			var pm := QuadMesh.new(); pm.size = Vector2(0.24, 0.13)
+			var mat := glow_mat("core", false)          # oval petals, turning (billboarded so they never go edge-on)
+			var e := emitter({"mesh": pm, "mat": mat, "n": 34, "box": Vector3(0.3, 0.5, 0.2), "pos": Vector3(0, 0.8, 0), "vel": Vector2(0.3, 0.8), "spread": 120.0,
+				"grav": Vector3(0, -0.6, 0), "life": 1.3, "spin": 300.0, "rot": true, "curve": shrink(1.0, 0.4),
+				"ramp": ramp([Color(1, 0.55, 0.75, 1), Color(1, 0.45, 0.7, 1), Color(1, 0.7, 0.85, 0)])})
+			f.add_child(e); f.moving = [e]
+		"cfx_shadow":            # dark smoke curling from the feet while moving
+			var e := emitter({"n": 30, "size": 0.6, "tex": "smoke", "add": false, "box": Vector3(0.2, 0.05, 0.2), "vel": Vector2(0.1, 0.4), "grav": Vector3(0, 0.6, 0),
+				"life": 0.9, "spin": 60.0, "rot": true, "ramp": ramp([Color(0.35, 0.1, 0.6, 0.0), Color(0.4, 0.12, 0.7, 0.8), Color(0.1, 0.0, 0.2, 0)])})
+			var e2 := emitter({"n": 20, "size": 0.08, "tex": "core", "box": Vector3(0.25, 0.3, 0.2), "pos": Vector3(0, 0.3, 0), "vel": Vector2(0.1, 0.4), "grav": Vector3(0, 0.6, 0), "life": 0.8,
+				"ramp": ramp([Color(0.8, 0.4, 1.0, 1), Color(0.5, 0.1, 1.0, 0)])})
+			f.add_child(e); f.add_child(e2); f.moving = [e, e2]
+	who.add_child(f)
+	return f
