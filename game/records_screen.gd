@@ -87,6 +87,7 @@ func _ready() -> void:
 	# recent matches
 	var rp := _panel(Vector2(28 + w1 + w2 + 32, y), Vector2(w3, h))
 	var sc := ScrollContainer.new(); sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; rp.add_child(sc)
+	ShopScreen.fat_scrollbar(sc)
 	var rv := VBoxContainer.new(); rv.add_theme_constant_override("separation", 6); rv.size_flags_horizontal = Control.SIZE_EXPAND_FILL; sc.add_child(rv)
 	rv.add_child(_lbl("최근 경기", 20, FG))
 	var rec := Profile.recent()

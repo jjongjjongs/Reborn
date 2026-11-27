@@ -70,6 +70,7 @@ func _ready() -> void:
 	_cats_box = VBoxContainer.new(); _cats_box.add_theme_constant_override("separation", 8); cp.add_child(_cats_box)
 	var gp := _panel(Vector2(264, 96), Vector2(mid_w, h))
 	var sc := ScrollContainer.new(); sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; gp.add_child(sc)
+	fat_scrollbar(sc)
 	_grid = GridContainer.new(); _grid.columns = maxi(2, int((mid_w - 28) / 206.0))
 	_grid.add_theme_constant_override("h_separation", 10); _grid.add_theme_constant_override("v_separation", 10)
 	sc.add_child(_grid)
@@ -189,13 +190,29 @@ func _refresh() -> void:
 	for k in ["font_color", "font_hover_color", "font_pressed_color"]: _btn.add_theme_color_override(k, Color(0.08, 0.05, 0.02) if col != Color(0.2, 0.26, 0.3) else FG)
 	_rebuild_preview()
 
+## a scroll bar a thumb can actually grab: 30 px wide track, 22 px rounded handle, wide touch target;
+## dragging the list itself scrolls too
+static func fat_scrollbar(sc: ScrollContainer) -> void:
+	sc.scroll_deadzone = 8
+	var vb := sc.get_v_scroll_bar()
+	vb.custom_minimum_size.x = 30
+	var track := StyleBoxFlat.new(); track.bg_color = Color(1, 1, 1, 0.06); track.set_corner_radius_all(15)
+	track.content_margin_left = 4; track.content_margin_right = 4
+	var grab := StyleBoxFlat.new(); grab.bg_color = Color(1, 1, 1, 0.55); grab.set_corner_radius_all(11)
+	var grab_hl := grab.duplicate() as StyleBoxFlat; grab_hl.bg_color = Color(1.0, 0.6, 0.25, 0.9)
+	vb.add_theme_stylebox_override("scroll", track)
+	vb.add_theme_stylebox_override("scroll_focus", track)
+	vb.add_theme_stylebox_override("grabber", grab)
+	vb.add_theme_stylebox_override("grabber_highlight", grab_hl)
+	vb.add_theme_stylebox_override("grabber_pressed", grab_hl)
+
 func _card(it: Dictionary) -> Control:
 	var id: String = it["id"]
 	var cat := String(it["cat"])
 	var price := int(it["price"])
 	var locked: bool = it.has("body") and not Profile.owns(String(it["body"]))     # skin of a character you don't have
 	var owned := Profile.owns(id) and not locked
-	var equipped := (Profile.skin_id(String(it["body"])) == id) if cat == "skin" else Profile.equipped(cat) == id
+	var equipped := (Profile.skin_id(String(it["body"])) == id and not locked) if cat == "skin" else Profile.equipped(cat) == id
 	var mast: bool = it.get("mastery", false)
 	var rar: Array = ["숙련", Color(1.0, 0.85, 0.4)] if mast else rarity(price)
 	var b := Button.new(); b.focus_mode = Control.FOCUS_NONE; b.custom_minimum_size = Vector2(196, 150)
