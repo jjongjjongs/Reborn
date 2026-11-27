@@ -240,7 +240,7 @@ def build_rookie():
         tube([Vector(((x0 + 0.04) * s, -0.06, 1.13)), Vector(((x0 + 0.08) * s, -0.085, 1.115)), Vector(((x0 + 0.115) * s, -0.075, 1.105))], 0.027, DARK)   # thumb
     mirror_x(glove)
 
-HEAD_SCALE = 1.24; HEAD_PIVOT = Vector((0, -0.01, 1.30))
+HEAD_SCALE = 1.0; HEAD_PIVOT = Vector((0, -0.01, 1.30))
 def build_head_gear():
     n_hard0 = len(HARD)
     skin = [o for o in SOFT["skin"]]
@@ -391,7 +391,7 @@ bpy.context.view_layer.objects.active = allo[0]
 bpy.ops.object.join()
 body = bpy.context.active_object; body.name = "Mini_" + CLASS
 me = body.data
-BELT = 0.86; K = 0.80
+BELT = 0.86; K = 0.88
 for v in me.vertices:
     v.co.z = v.co.z * K if v.co.z < BELT else v.co.z - BELT * (1 - K)
 me.update()
