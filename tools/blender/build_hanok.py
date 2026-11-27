@@ -10,7 +10,8 @@ a = globals().get("ARGS") or (sys.argv[sys.argv.index("--") + 1:] if "--" in sys
 OUT = a[0] if a else "/tmp/gbg/hall.blend"; NB = int(a[1]) if len(a) > 1 else 5; ND = int(a[2]) if len(a) > 2 else 3
 PAV = len(a) > 3 and a[3] == "pavilion"
 GATE = len(a) > 3 and a[3] == "gate"       # open gate / corridor: columns + roof only
-FLH = float(a[4]) if len(a) > 4 else 4.0    # pavilion: upper floor height     # 경회루-style: stone pillars over water, open wooden upper floor
+FLH = float(a[4]) if len(a) > 4 else 4.0    # pavilion: upper floor height
+GAPX = float(a[5]) if len(a) > 5 else 1e9; GAPW = float(a[6]) if len(a) > 6 else 0.0   # opening in the front railing (stair top)     # 경회루-style: stone pillars over water, open wooden upper floor
 if not EMBED: bpy.ops.wm.read_factory_settings(use_empty=True)
 def lin(c): return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
 def mat(n, rgb, r=0.7, m=0.0):
@@ -47,8 +48,15 @@ if PAV:
     box((0, 0, FL - 0.1), (W + 1.0, D + 1.0, 0.25), BEAM, 0.03)
     for side in (-1, 1):                                                   # railing (난간)
         for k in range(int((W + 1.4) / 0.9) + 1):
-            box((-(W + 1.4) / 2 + k * 0.9, side * (D + 1.4) / 2, FL + 0.7), (0.08, 0.08, 0.7), DAN1 if k % 4 == 0 else COL, 0.01)
-        box((0, side * (D + 1.4) / 2, FL + 1.08), (W + 1.4, 0.12, 0.08), COL, 0.02)
+            px = -(W + 1.4) / 2 + k * 0.9
+            if side < 0 and abs(px - GAPX) < GAPW / 2: continue
+            box((px, side * (D + 1.4) / 2, FL + 0.7), (0.08, 0.08, 0.7), DAN1 if k % 4 == 0 else COL, 0.01)
+        x0r, x1r = -(W + 1.4) / 2, (W + 1.4) / 2
+        if side < 0 and GAPW > 0:
+            box(((x0r + GAPX - GAPW / 2) / 2, side * (D + 1.4) / 2, FL + 1.08), (GAPX - GAPW / 2 - x0r, 0.12, 0.08), COL, 0.02)
+            box(((GAPX + GAPW / 2 + x1r) / 2, side * (D + 1.4) / 2, FL + 1.08), (x1r - GAPX - GAPW / 2, 0.12, 0.08), COL, 0.02)
+        else:
+            box((0, side * (D + 1.4) / 2, FL + 1.08), (W + 1.4, 0.12, 0.08), COL, 0.02)
         for k in range(int((D + 1.4) / 0.9) + 1):
             box((side * (W + 1.4) / 2, -(D + 1.4) / 2 + k * 0.9, FL + 0.7), (0.08, 0.08, 0.7), COL, 0.01)
         box((side * (W + 1.4) / 2, 0, FL + 1.08), (0.12, D + 1.4, 0.08), COL, 0.02)

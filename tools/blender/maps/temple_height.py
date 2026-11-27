@@ -24,15 +24,17 @@ h[pm] = np.maximum(POND_BED, 4.8 - np.minimum(d_in, 1.2) * 1.2)[pm]; kind[pm] = 
 sm = np.zeros((NY, NX), dtype=bool)
 im = Image.new("L", (NX, NY), 0); ImageDraw.Draw(im).line([((x + M) * RES, (y + M) * RES) for x, y in STREAM], fill=1, width=int(3.2 * RES)); sm = np.array(im, dtype=bool)
 h[sm] = h[sm] - 0.6; kind[sm] = 6
+im_ = mask(GH_ISLAND); h[im_] = GH_BASE; kind[im_] = 1                       # 경회루 stone island
 # ramps / paths / cave (override)
 for (x0, y0, h0), (x1, y1, h1), w, k in RAMPS:
     dx, dy = x1 - x0, y1 - y0; L = math.hypot(dx, dy); ux, uy = dx / L, dy / L
     t = ((xx - x0) * ux + (yy - y0) * uy) / L
     s = np.abs(-(xx - x0) * uy + (yy - y0) * ux)
-    m = (t >= -0.02) & (t <= 1.02) & (s <= w / 2)
+    ww = w - 0.7 if k in ("stairs", "bridge") else w            # slope hidden inside the stone steps / under the bridge deck
+    m = (t >= -0.02) & (t <= 1.02) & (s <= ww / 2)
     tt = np.clip(t, 0, 1)
     if k == "stairs": tt = np.floor(tt * L / 0.45) * 0.45 / L * 0 + tt     # smooth slope (steps are drawn as a mesh)
-    h[m] = h0 + (h1 - h0) * tt[m]; kind[m] = 5 if k == "cave" else 2
+    h[m] = h0 + (h1 - h0) * tt[m]; kind[m] = 5 if k == "cave" else (1 if k == "bridge" else 2)
 # mountains outside the valley
 dist_out = distance_transform_edt(~inside_m) / RES
 mnt = 9.0 + np.minimum(dist_out, 20) * 1.0 + gaussian_filter(rng.normal(0, 1, (NY, NX)), 4) * 8.0

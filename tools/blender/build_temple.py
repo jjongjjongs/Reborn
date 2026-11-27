@@ -127,18 +127,19 @@ mesh_obj("Stream", sv, sf, WATER)
 # ---------------------------------------------------------------- stairs (visual steps over the walkable slope)
 print("stairs")
 for (x0, y0, h0), (x1, y1, h1), w, k in RAMPS:
-    if k == "path":
+    if k in ("path", "bridge"):
         continue
     L = math.hypot(x1 - x0, y1 - y0); n = max(2, int(abs(h1 - h0) / 0.3))
     ang = math.atan2(-(y1 - y0), x1 - x0)
     for s in range(n):
         t = (s + 0.5) / n; x = x0 + (x1 - x0) * t; y = y0 + (y1 - y0) * t; z = h0 + (h1 - h0) * (s + 1) / n
         p = B(x, y)
-        o = box((p.x, p.y, z - 0.25), (L / n + 0.02, w, 0.5), STEPM if k == "stairs" else ROCKM, rot=ang, bev=0.03)
-        o.rotation_euler.z = 0
+        hb = h0 - 0.3                                     # solid flight: each step goes down to the foot
+        o = box((p.x, p.y, (z + hb) / 2), (L / n + 0.02, w, z - hb), STEPM if k == "stairs" else ROCKM, rot=ang, bev=0.03)
     if k == "stairs":                                   # side cheek stones
         for side in (-1, 1):
             dx, dy = x1 - x0, y1 - y0; nx, ny = -dy / L * (w / 2 + 0.25) * side, dx / L * (w / 2 + 0.25) * side
+            if abs(h1 - h0) > 3.5 and side < 0: continue          # 경회루 stair: no cheek on the deck side
             for s in range(n):
                 t = (s + 0.5) / n; x = x0 + dx * t + nx; y = y0 + dy * t + ny; z = h0 + (h1 - h0) * (s + 1) / n
                 p = B(x, y); box((p.x, p.y, z - 0.1), (L / n + 0.05, 0.5, 0.9), STONEM, rot=ang, bev=0.05)
@@ -166,7 +167,7 @@ def building(kind, x, y, rot, args):
     g = {"EMBED": True, "ARGS": ["/tmp/x.blend"] + [str(v) for v in args], "__name__": "hanok"}
     exec(HANOK, g)
     o = g["RESULT"]; o.name = kind
-    z = POND_BED if (x, y) == (31, 28) else hat(x, y)
+    z = GH_BASE if (x, y) == (31, 28) else hat(x, y)
     if kind == "pavilion" and (x, y) != (31, 28): z = hat(x, y + 4)     # 만세루: stands at the foot of the stairs
     p = B(x, y); o.location = (p.x, p.y, z - (0.0 if kind in ("pavilion",) else 0.15)); o.rotation_euler.z = -math.radians(rot)
     if kind == "bell":
@@ -190,11 +191,14 @@ for dx in (-8, 8):
     box((q.x, q.y, zq + 0.6), (0.4, 0.4, 1.2), STONEM); box((q.x, q.y, zq + 1.45), (0.9, 0.9, 0.5), STONEM, bev=0.05)
     box((q.x, q.y, zq + 1.85), (1.1, 1.1, 0.2), STONEM, bev=0.06)
 # ---------------------------------------------------------------- bridges
+isl = [B(x, y) for x, y in GH_ISLAND[:-1]]                     # 경회루 stone island (cut stone, a step above the water)
+mesh_obj("Island", [(q.x, q.y, GH_BASE - 1.5) for q in isl] + [(q.x, q.y, GH_BASE) for q in isl],
+    [(0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7), (4, 5, 6, 7)], STONEM)
 for (x0, y0), (x1, y1), hz, w in BRIDGES:
     L = math.hypot(x1 - x0, y1 - y0); ang = math.atan2(-(y1 - y0), x1 - x0); c = B((x0 + x1) / 2, (y0 + y1) / 2)
     box((c.x, c.y, hz - 0.15), (L, w, 0.3), STONEM, rot=ang, bev=0.05)
     for side in (-1, 1):
-        nx, ny = math.sin(ang) * side * (w / 2), math.cos(ang) * side * (w / 2)
+        nx, ny = -math.sin(ang) * side * (w / 2), math.cos(ang) * side * (w / 2)     # perpendicular to the deck
         box((c.x + nx, c.y + ny, hz + 0.35), (L, 0.2, 0.7), STONEM, rot=ang, bev=0.05)
 # ---------------------------------------------------------------- nature: pines, bamboo, rocks
 print("nature")
