@@ -38,6 +38,7 @@ var _warmup := 0.6
 var _target: Node3D
 var _retarget_cd := 0.0
 var _burst := 0
+var _burst_n := 0          # shots so far in this burst (recoil climb)
 var _shot_cd := 0.0
 var _burst_cd := 0.0
 var loadout := ["m4", "pistol", "knife"]
@@ -152,6 +153,7 @@ func _pick_target() -> Node3D:
 
 ## nothing in sight: go where we last saw / heard someone, else roam the map
 func _wander(delta: float) -> void:
+	if wid == "knife" and _swap_t <= 0.0: _equip(loadout[0])      # fight over: gun back out
 	# quiet moment: careful bots top up the magazine now (and put the main gun back)
 	if D("cover") >= 3.0 and _reload_t <= 0.0:
 		if wid != loadout[0] and wid != "knife": _equip(loadout[0])
@@ -300,7 +302,7 @@ func _fight(delta: float, to: Vector3, dist: float) -> void:
 		_move_to(_target.global_position, to)              # no shot from here: close in
 	else:
 		_go(spot, delta)
-	_face_target()
+	_face_target(delta)
 	_try_fire(delta)
 
 func _open_fight(delta: float, to: Vector3, dist: float, walk_and_shoot: bool) -> void:
@@ -314,7 +316,7 @@ func _open_fight(delta: float, to: Vector3, dist: float, walk_and_shoot: bool) -
 		velocity.x = side.x * _speed() * 0.6; velocity.z = side.z * _speed() * 0.6
 	else:
 		velocity.x = 0.0; velocity.z = 0.0
-	_face_target()
+	_face_target(delta)
 	_try_fire(delta)
 
 func _go(p: Vector3, _delta: float) -> void:
@@ -326,10 +328,20 @@ func _go(p: Vector3, _delta: float) -> void:
 	if tf.length() < 1.2:          # last bit: slow down so we stop on the spot
 		velocity.x *= 0.6; velocity.z *= 0.6
 
-func _face_target() -> void:
+# turn toward the target no faster than the level's turn rate (a flick takes time)
+func _face_target(delta: float = 0.0) -> void:
 	if _target == null: return
 	var t := _target.global_position - global_position
-	if Vector2(t.x, t.z).length() > 0.1: look_at(global_position + Vector3(t.x, 0, t.z), Vector3.UP)
+	if Vector2(t.x, t.z).length() < 0.1: return
+	var want := atan2(-t.x, -t.z)
+	var diff := wrapf(want - rotation.y, -PI, PI)
+	var step := deg_to_rad(D("turn")) * maxf(delta, get_physics_process_delta_time())
+	rotation.y += clampf(diff, -step, step)
+
+func _aim_off() -> float:
+	if _target == null: return PI
+	var t := _target.global_position - global_position
+	return absf(wrapf(atan2(-t.x, -t.z) - rotation.y, -PI, PI))
 
 ## the side step out of a cover spot that has a clear line to the target
 func _peek_of(c: Vector3) -> Vector3:
@@ -449,8 +461,7 @@ func _physics_process(delta: float) -> void:
 		var to := _target.global_position - global_position
 		to.y = 0.0
 		var dist := to.length()
-		if to.length() > 0.1:
-			look_at(global_position + Vector3(to.x, 0, to.z), Vector3.UP)
+		_face_target(delta)
 		_nade_cd -= delta
 		if _windup_t >= 0.0:
 			# arm cocked back: hold still briefly, then release
@@ -633,18 +644,20 @@ func _try_fire(delta: float) -> void:
 	if int(_ammo.get(wid, 0)) <= 0:
 		_reload_t = float(Weapons.get_w(wid)["reload"])
 		return
-	if not _has_los():
+	if not _has_los() or _aim_off() > deg_to_rad(10.0):
 		return
 	var w := Weapons.get_w(wid)
 	var auto := bool(w.get("auto", false))
 	if _burst > 0:
 		if _shot_cd <= 0.0:
 			_fire_one(w)
-			_burst -= 1
+			_burst -= 1; _burst_n += 1
 			# semi-auto/bolt guns: slower human tap rate
 			_shot_cd = Weapons.interval(wid) * (1.0 if auto else 1.6) + (0.0 if auto else randf_range(0.05, 0.25))
 	elif _burst_cd <= 0.0:
-		_burst = randi_range(BURST_MIN, BURST_MAX) if auto else randi_range(1, 3)
+		var far := _target != null and global_position.distance_to(_target.global_position) > 15.0
+		_burst = (int(D("burst_far")) if far else randi_range(int(D("burst_lo")), int(D("burst_hi")))) if auto else randi_range(1, 3)
+		_burst_n = 0
 		_burst_cd = BURST_COOL + (0.6 if wid == "sniper" else 0.0)
 
 func _try_stab(delta: float, dist: float) -> void:
@@ -666,10 +679,10 @@ func _fire_one(w: Dictionary) -> void:
 	var from := _muzzle.global_position
 	Sfx.play_at("shot", from, -4.0)
 	if _soldier: _soldier.shoot()
-	var head_aim := Controls.bot_diff == "elite" and randf() < HEAD_AIM
+	var head_aim := randf() < D("head") or (D("head") > 0.3 and _burst_n == 0)   # elite opens at the head
 	var aim := (_target.global_position + Vector3(0, _aim_h(_target) + (0.45 if head_aim else 0.0), 0)) - from
 	var base := aim.normalized()
-	var acc := D("spread") * (0.45 if wid == "sniper" else 1.0) + (float(w["spread"][0]) if w.has("pellets") else 0.0)
+	var acc := D("spread") * (0.45 if wid == "sniper" else 1.0) * (1.0 + D("climb") * _burst_n) + (float(w["spread"][0]) if w.has("pellets") else 0.0)
 	var s := deg_to_rad(acc)
 	for p in int(w.get("pellets", 1)):
 		var dir := base.rotated(Vector3.UP, randf_range(-s, s))
