@@ -18,6 +18,7 @@ var _atk_cd := 0.0
 var _warmup := 0.6   # idle until the nav map is synced
 var _dead := false
 var _last_head := false
+var _repath_t := 0.0
 var _agent: NavigationAgent3D
 var _body: Soldier
 var _flash := 0.0
@@ -80,7 +81,9 @@ func _physics_process(delta: float) -> void:
 		velocity.x = 0.0; velocity.z = 0.0
 		if dist > 0.1: look_at(global_position + to_player, Vector3.UP)
 	elif _warmup <= 0.0:
-		_agent.target_position = player.global_position
+		_repath_t -= delta
+		if _repath_t <= 0.0 or player.global_position.distance_squared_to(_agent.target_position) > 4.0:   # re-plan ~3x a second, not every frame
+			_agent.target_position = player.global_position; _repath_t = 0.3 + randf() * 0.1
 		var next := _agent.get_next_path_position()
 		var dir := next - global_position
 		dir.y = 0.0

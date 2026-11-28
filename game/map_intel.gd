@@ -19,7 +19,7 @@ static var ready := false          # finalize() ran for this map
 
 static func analyze(world: World3D, bounds: Rect2) -> void:
 	var t0 := Time.get_ticks_usec()
-	points.clear(); ready = false
+	points.clear(); ready = false; _fi = 0; _keep = []
 	var sp := world.direct_space_state
 	var nx := int(bounds.size.x / STEP); var nz := int(bounds.size.y / STEP)
 	for j in nz:
@@ -92,25 +92,34 @@ static func _mark_high(sp: PhysicsDirectSpaceState3D) -> void:
 
 ## once the navigation map has synced: drop spots nobody can walk to (building roofs, sealed
 ## yards) - closest navmesh point must be right there and reachable from `from`
-static func finalize(world: World3D, from: Vector3) -> void:
+## checks the points a few milliseconds per frame (all at once was a ~1 s freeze on the big maps)
+static var _fi := 0
+static var _keep: Array = []
+static var _fstart := Vector3.INF
+static var _fframe := -1
+static func finalize(world: World3D, from: Vector3, budget_us := 3000) -> void:
+	if Engine.get_physics_frames() == _fframe: return          # one slice per physics frame, whoever calls
+	_fframe = Engine.get_physics_frames()
 	var t0 := Time.get_ticks_usec()
 	var map := world.navigation_map
-	var keep: Array = []
-	var start := NavigationServer3D.map_get_closest_point(map, from)
-	for e in points:
+	if _fi == 0: _keep = []; _fstart = NavigationServer3D.map_get_closest_point(map, from)
+	while _fi < points.size() and Time.get_ticks_usec() - t0 < budget_us:
+		var e: Dictionary = points[_fi]; _fi += 1
 		var p: Vector3 = e["p"]
 		var c := NavigationServer3D.map_get_closest_point(map, p)
 		if Vector2(c.x - p.x, c.z - p.z).length() > 0.9 or absf(c.y - p.y) > 0.8: continue
 		if e["high"] or e["peek"]:     # the spots bots travel to: check they connect
-			var path := NavigationServer3D.map_get_path(map, start, c, true)
+			var path := NavigationServer3D.map_get_path(map, _fstart, c, true)
 			if path.is_empty() or path[path.size() - 1].distance_to(c) > 1.0: continue
-		keep.append(e)
-	points = keep; ready = true
+		_keep.append(e)
 	ms += (Time.get_ticks_usec() - t0) / 1000.0
+	if _fi >= points.size():
+		points = _keep; _keep = []; _fi = 0; ready = true
 
 # ---------------------------------------------------------------- queries
 ## a full-cover spot within `radius` of `from` whose wall is between it and `threat`
 static func cover_from(from: Vector3, threat: Vector3, radius := 10.0) -> Vector3:
+	if not ready: return Vector3.INF            # still being checked (a slice per frame)
 	var best := Vector3.INF; var bd := 1e9
 	for e in points:
 		var p: Vector3 = e["p"]
@@ -128,6 +137,7 @@ static func cover_from(from: Vector3, threat: Vector3, radius := 10.0) -> Vector
 	return best
 
 static func high_near(from: Vector3, radius := 25.0) -> Vector3:
+	if not ready: return Vector3.INF            # still being checked (a slice per frame)
 	var best := Vector3.INF; var bd := 1e9
 	for e in points:
 		if not e["high"]: continue

@@ -577,8 +577,12 @@ func _min_d() -> float:
 func _speed() -> float:
 	return SPEED * float(Weapons.get_w(wid)["speed"])
 
+var _repath_t := 0.0
 func _move_to(dest: Vector3, to_flat: Vector3) -> void:
-	_agent.target_position = dest
+	# Godot re-plans the whole route on EVERY target_position assignment (even the same value): only when it moved
+	if dest.distance_squared_to(_agent.target_position) > 0.25 or _agent.is_navigation_finished() and dest.distance_squared_to(global_position) > 4.0 and _repath_t <= 0.0:
+		_agent.target_position = dest; _repath_t = 0.5
+	_repath_t -= get_physics_process_delta_time()
 	var next := _agent.get_next_path_position()
 	var dir := next - global_position
 	dir.y = 0.0

@@ -314,10 +314,21 @@ func _site_center(s: String) -> Vector3:
 	var y := 0.5
 	# sample the ground height (the new maps have hills)
 	var space := get_world_3d().direct_space_state
-	var q := PhysicsRayQueryParameters3D.create(Vector3(c.x, 30, c.y), Vector3(c.x, -5, c.y))
-	var h := space.intersect_ray(q)
-	if h: y = h["position"].y + 0.5
-	return Vector3(c.x, y, c.y)
+	# first floor from the top with head room (not a roof / pagoda top), then onto the navmesh:
+	# a target the bots cannot reach makes every one of them re-plan over the whole map
+	var top := 30.0
+	for k in 8:                                     # the LOWEST floor under the site centre (never a roof / deck top)
+		var h := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(c.x, top, c.y), Vector3(c.x, -5, c.y)))
+		if not h: break
+		var py: float = h["position"].y
+		if (h["normal"] as Vector3).y > 0.7: y = py + 0.5
+		top = py - 0.05
+	var p := Vector3(c.x, y, c.y)
+	var map := get_world_3d().navigation_map
+	if NavigationServer3D.map_get_iteration_id(map) > 0:
+		var np := NavigationServer3D.map_get_closest_point(map, p)
+		if np.distance_to(p) < 12.0: p = np + Vector3(0, 0.5, 0)
+	return p
 
 func _assign_objectives() -> void:
 	var def_team := 1 - att_team
