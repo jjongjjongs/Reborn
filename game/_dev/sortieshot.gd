@@ -12,7 +12,7 @@ func _run() -> void:
 	s.queue_free()
 	var s2 = load("res://sortie.gd").new().setup("웨이브 서바이벌", "PvE · 좀비 방어", "res://Main.tscn", "survival")
 	current_scene.add_child(s2)
-	C.bot_diff = "elite"; s2._refresh()
+	C.bot_diff = "elite"; C.wave_mode = 0; s2._refresh()
 	for i in 20: await process_frame
 	root.get_viewport().get_texture().get_image().save_png("/tmp/so_surv.png")
 	quit()

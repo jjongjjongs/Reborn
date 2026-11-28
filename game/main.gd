@@ -67,7 +67,7 @@ func _process(_dt: float) -> void:
 		elif Controls.prep_left >= 0.0:
 			_wave_lbl.text = "다음 웨이브 %d · 준비 %d" % [Controls.wave + 1, ceili(Controls.prep_left)]
 		else:
-			_wave_lbl.text = "웨이브 %d / %d · 남은 %d" % [Controls.wave, Controls.wave_total, Controls.zombies_left]
+			_wave_lbl.text = "웨이브 %d / %s · 남은 %d" % [Controls.wave, "∞" if Controls.wave_total == 0 else str(Controls.wave_total), Controls.zombies_left]
 	if _hp_fill:
 		_hp_fill.size.x = HP_W * float(Controls.hp) / float(Controls.hp_max)
 

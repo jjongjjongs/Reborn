@@ -29,8 +29,17 @@ var _alive := 0
 var _prep := PREP
 var zones: ZoneGates           # survival maps that open up area by area
 
+const MAX_ALIVE := 26          # long waves trickle in: never more than this many at once (phones)
+
+## wave n (0-based): the hand-made five, then more / tougher / faster each wave
+static func wave_def(n: int) -> Dictionary:
+	if n < WAVES.size(): return WAVES[n]
+	var k := n - WAVES.size() + 1
+	return {"count": mini(22 + 3 * k, 60), "interval": maxf(0.25, 0.5 - 0.02 * k),
+		"hp_mul": 1.35 + 0.08 * k, "spd_mul": minf(1.45, 1.2 + 0.025 * k)}
+
 func _ready() -> void:
-	Controls.wave_total = WAVES.size()
+	Controls.wave_total = Controls.wave_mode          # 0 = endless
 	_start_prep()
 
 func _start_prep() -> void:
@@ -43,7 +52,7 @@ func _start_prep() -> void:
 
 func _start_wave() -> void:
 	_wave += 1
-	if _wave >= WAVES.size():
+	if Controls.wave_mode > 0 and _wave >= Controls.wave_mode:
 		_state = "done"
 		Controls.cleared = true
 		Controls.prep_left = -1.0
@@ -51,7 +60,7 @@ func _start_wave() -> void:
 		return
 	Controls.wave = _wave + 1
 	Controls.prep_left = -1.0
-	var cur: Dictionary = WAVES[_wave]
+	var cur: Dictionary = wave_def(_wave)
 	_to_spawn = int(cur["count"])
 	_spawn_cd = 0.3
 	_state = "spawning"
@@ -65,10 +74,10 @@ func _process(dt: float) -> void:
 				_start_wave()
 		"spawning":
 			_spawn_cd -= dt
-			if _spawn_cd <= 0.0 and _to_spawn > 0:
+			if _spawn_cd <= 0.0 and _to_spawn > 0 and _alive < MAX_ALIVE:
 				_spawn_one()
 				_to_spawn -= 1
-				_spawn_cd = float(WAVES[_wave]["interval"])
+				_spawn_cd = float(wave_def(_wave)["interval"])
 				if _to_spawn == 0:
 					_state = "fighting"
 			Controls.zombies_left = _alive + _to_spawn
@@ -79,7 +88,7 @@ func _process(dt: float) -> void:
 				_start_prep()
 
 func _spawn_one() -> void:
-	var cur: Dictionary = WAVES[_wave]
+	var cur: Dictionary = wave_def(_wave)
 	var z := Zombie.new()
 	z.hp_scale = float(cur["hp_mul"])
 	z.spd_scale = float(cur["spd_mul"])

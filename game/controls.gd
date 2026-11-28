@@ -60,6 +60,22 @@ var run_time: float = 0.0
 # --- wave ---
 var wave: int = 0
 var wave_total: int = 5
+var wave_mode: int = 5                 # 출격 준비: 5 / 10 / 15 waves, 0 = endless (persisted)
+const WAVE_MODES := [5, 10, 15, 0]
+const WAVE_CLEAR_BONUS := {5: 60, 10: 150, 15: 300}
+
+## coins for a survival run: 12 per cleared wave + 1 per kill (cap 8 per wave of the mode) + a finish bonus.
+## endless = the 15-wave rules up to wave 15 (its finish bonus once wave 15 is cleared), then each further
+## wave +40, +5 more every wave, and +100 on every 5th (20, 25, ...)
+static func wave_reward(mode: int, cleared: int, kills: int, win: bool) -> int:
+	var m := 15 if mode == 0 else mode
+	var c := mini(cleared, m)
+	var r := c * 12 + mini(kills, m * 8)
+	if (mode != 0 and win) or (mode == 0 and cleared >= 15): r += int(WAVE_CLEAR_BONUS[m])
+	if mode == 0:
+		for k in range(16, cleared + 1):
+			r += 40 + 5 * (k - 16) + (100 if k % 5 == 0 else 0)
+	return r
 var zombies_left: int = 0
 var prep_left: float = -1.0
 var cleared: bool = false
@@ -179,8 +195,10 @@ func end_run(win: bool) -> void:
 	new_best = false
 	Missions.add("match"); Missions.add("wave", wave)
 	if win: Missions.add("win")
-	Missions.record("웨이브 서바이벌", SortieScreen.map_name(sel_map), "%s · 웨이브 %d · 처치 %d" % ["클리어" if win else "전멸", wave, kills], win, "클리어" if win else "전멸",
-		wave * 12 + mini(kills, 40) + (60 if win else 0))
+	var cleared := wave if win else maxi(0, wave - 1)
+	var mtxt := "무한" if wave_mode == 0 else "%d웨이브" % wave_mode
+	Missions.record("웨이브 서바이벌", SortieScreen.map_name(sel_map), "%s · %s · 웨이브 %d · 처치 %d" % [mtxt, "클리어" if win else "전멸", wave, kills], win, "클리어" if win else "전멸",
+		wave_reward(wave_mode, cleared, kills, win))
 	if wave > best_wave:
 		best_wave = wave; new_best = true
 	if kills > best_kills:
@@ -236,6 +254,7 @@ func _load_best() -> void:
 		sel_map = str(data.get("sel_map", "downtown"))
 		team_size = clampi(int(data.get("team_size", 5)), 3, 6)
 		dm_count = clampi(int(data.get("dm_count", 8)), 6, 12)
+		wave_mode = int(data.get("wave_mode", 5)); if not WAVE_MODES.has(wave_mode): wave_mode = 5
 		var hl = data.get("hud_layout", {})
 		# layout v2: the new default arrangement replaces older saved layouts once
 		if typeof(hl) == TYPE_DICTIONARY and int(data.get("layout_v", 1)) >= 2:
@@ -253,6 +272,6 @@ func _save_best() -> void:
 		"sfx_on": sfx_on, "vibrate_on": vibrate_on, "sniper_hold": sniper_hold,
 		"look_sens": look_sens, "scope_sens": scope_sens, "view_fp": view_fp, "left_handed": left_handed,
 		"hud_layout": hud_layout, "loadout": loadout,
-		"bot_diff": bot_diff, "sel_map": sel_map, "layout_v": 2, "team_size": team_size, "dm_count": dm_count,
+		"bot_diff": bot_diff, "sel_map": sel_map, "layout_v": 2, "team_size": team_size, "dm_count": dm_count, "wave_mode": wave_mode,
 	}))
 	f.close()

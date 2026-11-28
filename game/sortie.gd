@@ -75,6 +75,8 @@ var _slots: VBoxContainer
 var _summary: Label
 var _view_btns: Array = []   # [1인칭, 3인칭]
 var _count_box: HBoxContainer
+var _wave_box: HBoxContainer
+var _wave_info: Panel
 
 func setup(t: String, sub: String, sc: String, k: String) -> SortieScreen:
 	title = t; subtitle = sub; scene = sc; kind = k
@@ -109,7 +111,7 @@ func _ready() -> void:
 	# maps scroll inside their own box (above the 인원 row when there is one)
 	var msc := ScrollContainer.new(); msc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	msc.position = Vector2(16, 48)
-	msc.size = Vector2(548 - 16 - 8, (col_h - 48 - 130) if kind in ["team", "bomb", "dm"] else (col_h - 60))
+	msc.size = Vector2(548 - 16 - 8, (col_h - 48 - 130) if kind in ["team", "bomb", "dm"] else (180.0 if kind == "survival" else col_h - 60))
 	ShopScreen.fat_scrollbar(msc)
 	c1.add_child(msc)
 	_map_box = GridContainer.new(); _map_box.columns = 2
@@ -122,6 +124,15 @@ func _ready() -> void:
 		var hs := _label("인원이 많으면 폰이 무거워질 수 있어요", 13, MUTED); hs.position = Vector2(70, col_h - 112); c1.add_child(hs)
 		_count_box = HBoxContainer.new(); _count_box.position = Vector2(16, col_h - 84); _count_box.add_theme_constant_override("separation", 10)
 		c1.add_child(_count_box)
+
+	# survival: how many waves (5 / 10 / 15 / endless) and what it pays
+	if kind == "survival":
+		_wave_info = Panel.new(); _wave_info.add_theme_stylebox_override("panel", _sb(CARD, LINE2, 1, 10))
+		_wave_info.position = Vector2(16, 236); _wave_info.size = Vector2(516, 150); c1.add_child(_wave_info)
+		var wl := _label("웨이브", 20, FG); wl.position = Vector2(16, col_h - 118); c1.add_child(wl)
+		var ws := _label("길수록 좀비가 많고 강해져요", 13, MUTED); ws.position = Vector2(90, col_h - 112); c1.add_child(ws)
+		_wave_box = HBoxContainer.new(); _wave_box.position = Vector2(16, col_h - 84); _wave_box.add_theme_constant_override("separation", 10)
+		c1.add_child(_wave_box)
 
 	var c2 := _panel(Vector2(592, col_y), Vector2(300, col_h)); add_child(c2)
 	var h2 := _label({"survival": "좀비 강도", "training": "훈련 안내", "minigame": "코스 안내"}.get(kind, "봇 난이도"), 20, FG); h2.position = Vector2(16, 12); c2.add_child(h2)
@@ -284,6 +295,7 @@ func _refresh() -> void:
 				else: Controls.team_size = nn
 				_refresh())
 			_count_box.add_child(b)
+	if _wave_box: _refresh_waves()
 	# view toggle
 	for i in _view_btns.size():
 		var on: bool = (i == 0) == Controls.view_fp
@@ -311,8 +323,34 @@ func _refresh() -> void:
 	var mname := ""
 	for m in _maps():
 		if m["id"] == Controls.sel_map: mname = m["name"]
-	var who := "혼자 · 5 스테이지 · 기록 도전" if kind == "minigame" else "혼자 · 사격장 · 더미 · 기록 측정" if kind == "training" else "웨이브 5" if surv else ("%d vs %d" % [Controls.team_size, Controls.team_size] if kind == "team" else ("%d vs %d · 7승" % [Controls.team_size, Controls.team_size] if kind == "bomb" else "개인전 %d명" % Controls.dm_count))
+	var who := "혼자 · 5 스테이지 · 기록 도전" if kind == "minigame" else "혼자 · 사격장 · 더미 · 기록 측정" if kind == "training" else ("무한 웨이브" if Controls.wave_mode == 0 else "%d 웨이브" % Controls.wave_mode) if surv else ("%d vs %d" % [Controls.team_size, Controls.team_size] if kind == "team" else ("%d vs %d · 7승" % [Controls.team_size, Controls.team_size] if kind == "bomb" else "개인전 %d명" % Controls.dm_count))
 	_summary.text = ("%s · %s" % [mname, who]) if kind in ["training", "minigame"] else ("%s · %s · %s" % [mname, Difficulty.cur()["name"], who])
+
+const GOLD := Color("ffd166")
+func _refresh_waves() -> void:
+	for c in _wave_box.get_children(): c.queue_free()
+	for c in _wave_info.get_children(): c.queue_free()
+	for wm in Controls.WAVE_MODES:
+		var on: bool = wm == Controls.wave_mode
+		var b := Button.new(); b.focus_mode = Control.FOCUS_NONE; b.custom_minimum_size = Vector2(118, 64)
+		for k in ["normal", "hover", "pressed"]: b.add_theme_stylebox_override(k, _sb(SEL_BG if on else CARD, ACCENT if on else LINE2, 2 if on else 1, 10))
+		var n := _label("무한" if wm == 0 else "%d 웨이브" % wm, 18, FG); n.position = Vector2(12, 6); b.add_child(n)
+		var r := _label("15 이후 +40↑" if wm == 0 else "◆%d" % Controls.wave_reward(wm, wm, 9999, true), 13, GOLD); r.position = Vector2(12, 36); b.add_child(r)
+		var ww: int = wm
+		b.pressed.connect(func() -> void: Sfx.play("ui"); Controls.wave_mode = ww; _refresh())
+		_wave_box.add_child(b)
+	var wm2: int = Controls.wave_mode
+	var rows: Array
+	if wm2 == 0:
+		rows = [["1–15 웨이브", "15 웨이브 모드와 같음 (최대 ◆%d)" % Controls.wave_reward(15, 15, 9999, true)], ["16 웨이브부터", "웨이브마다 +40, 매 웨이브 +5씩 증가"],
+			["20·25·30…", "5웨이브마다 +100"], ["예) 20 웨이브 클리어", "◆%d" % Controls.wave_reward(0, 20, 9999, false)]]
+	else:
+		rows = [["웨이브 클리어", "웨이브마다 +12"], ["처치", "+1 · 최대 %d" % (wm2 * 8)], ["완주 보너스", "+%d" % int(Controls.WAVE_CLEAR_BONUS[wm2])],
+			["완주 시 최대", "◆%d" % Controls.wave_reward(wm2, wm2, 9999, true)]]
+	var t := _label("보상  ·  " + ("끝까지 버티기" if wm2 == 0 else "중간에 쓰러지면 완주 보너스 없음"), 16, FG); t.position = Vector2(14, 10); _wave_info.add_child(t)
+	for i in rows.size():
+		var a := _label(rows[i][0], 14, MUTED); a.position = Vector2(14, 42 + i * 26); _wave_info.add_child(a)
+		var v := _label(rows[i][1], 14, GOLD if i == 3 else FG); v.position = Vector2(170, 42 + i * 26); _wave_info.add_child(v)
 
 func _map_card(m: Dictionary) -> Button:
 	var on: bool = m["id"] == Controls.sel_map

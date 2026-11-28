@@ -70,9 +70,9 @@ func _process(_dt: float) -> void:
 	if Controls.game_over and not visible:
 		visible = true
 		_title.text = "승리!" if Controls.victory else "전멸"
-		_stats.text = "처치 %d · 헤드샷 %d · 생존 %s\n도달 웨이브 %d / %d" % [
+		_stats.text = "처치 %d · 헤드샷 %d · 생존 %s\n도달 웨이브 %d / %s" % [
 			Controls.kills, Controls.headshots, _fmt_time(Controls.run_time),
-			Controls.wave, Controls.wave_total]
+			Controls.wave, "∞" if Controls.wave_total == 0 else str(Controls.wave_total)]
 		_coins.text = "획득 코인 +%d" % Missions.last_reward
 		var b := "최고 기록 — 웨이브 %d · 처치 %d · %s" % [
 			Controls.best_wave, Controls.best_kills, _fmt_time(Controls.best_time)]
