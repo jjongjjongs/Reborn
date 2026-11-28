@@ -419,6 +419,7 @@ const WEAPONS := {
 	"knife":    {"len": 0.30, "kind": "knife",  "grip": [0.17, 0.0]},
 	# zombie mode (shop)
 	"dbarrel":  {"len": 0.80, "kind": "long",   "butt": [0.01, -0.03], "grip": [0.36, -0.04], "fore": [0.68, -0.03], "fp": 0.85, "break": true},   # 더블 배럴
+	"flamer":   {"len": 0.82, "kind": "long",   "butt": [0.00, 0.04], "grip": [0.18, -0.06], "fore": [0.79, -0.05], "vfore": true, "fp": 0.72},    # 화염방사기
 	# axe: blade turned to lead the swing (model flipped about the haft)
 	"axe":      {"len": 0.82, "kind": "axe",    "grip": [0.10, 0.02], "flip": true, "swing": 0.7, "fp": 1.1, "head": [0.62, 0.80]},
 }

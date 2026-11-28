@@ -46,6 +46,9 @@ const W := {
 	"dbarrel": {"name": "더블 배럴", "cls": "산탄총", "slot": 0, "zombie": true, "dmg": [14, 14], "pellets": 10, "rpm": 260, "auto": false,
 		"mag": 2, "reload": 2.2, "spread": [5.0, 7.5], "bloom": 1.0, "kick": 4.5, "speed": 0.95, "knock": 1.1, "big_flash": true,
 		"desc": "2발. 근거리 산탄이 좀비를 뒤로 날려버림.", "bars": [10, 4, 2, 9, 5, 1]},
+	"flamer": {"name": "화염방사기", "cls": "특수", "slot": 0, "zombie": true, "flame": true, "dmg": [5, 5], "rpm": 750, "auto": true,
+		"mag": 100, "reload": 3.0, "spread": [0.0, 0.0], "bloom": 0.0, "kick": 0.0, "speed": 0.9, "range": 8.0, "cone": 14.0, "burn": [3.0, 12.0],
+		"desc": "8m 불길이 여러 마리를 관통. 불붙은 좀비는 3초간 타며 느려짐.", "bars": [6, 10, 3, 0, 7, 8]},
 	# a heavy two-handed swing, hits land at `hit_at` s into the swing
 	"axe": {"name": "소방 도끼", "cls": "근접", "slot": 2, "melee": true, "zombie": true, "dmg": [90, 90], "back": 90,
 		"interval": 0.8, "range": 2.6, "arc": 50.0, "hits": 2, "hit_at": 0.25, "knock": 4.5, "speed": 1.0, "mag": 0,

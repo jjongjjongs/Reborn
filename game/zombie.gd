@@ -24,6 +24,11 @@ var _body: Soldier
 var _flash := 0.0
 var _knock := Vector3.ZERO           # heavy hits (axe): shoved back, no walking for a moment
 var _stagger := 0.0
+var _burn := 0.0                     # flamethrower: seconds left on fire
+var _burn_dps := 0.0
+var _burn_by: Node = null
+var _burn_tick := 0.0
+var _fire: CPUParticles3D
 var player: Node3D
 var respawn_pts: Array = []      # where a hopelessly stuck zombie is put back (wave spawns)
 var _stuck_t := 0.0
@@ -63,6 +68,8 @@ func _physics_process(delta: float) -> void:
 	if _climbing:
 		velocity = Vector3.ZERO
 		return
+	if _burn > 0.0: _burning(delta)
+	if _dead: return
 	if _stagger > 0.0:
 		_stagger -= delta
 		velocity.x = _knock.x; velocity.z = _knock.z
@@ -101,8 +108,9 @@ func _physics_process(delta: float) -> void:
 			dir = to_player
 		if dir.length() > 0.05:
 			dir = dir.normalized()
-			velocity.x = dir.x * SPEED * spd_scale * Difficulty.v("z_spd")
-			velocity.z = dir.z * SPEED * spd_scale * Difficulty.v("z_spd")
+			var slow := 0.6 if _burn > 0.0 else 1.0
+			velocity.x = dir.x * SPEED * spd_scale * Difficulty.v("z_spd") * slow
+			velocity.z = dir.z * SPEED * spd_scale * Difficulty.v("z_spd") * slow
 			look_at(global_position + Vector3(dir.x, 0, dir.z), Vector3.UP)
 		# stuck watchdog: barely moved for a while while chasing -> sidestep, then put back at a spawn
 		_stuck_t += delta
@@ -170,12 +178,31 @@ func hit(dmg: int, is_head: bool = false, _attacker = null) -> void:
 	if hp <= 0.0:
 		_die()
 
+## set alight (flamethrower): `t` seconds, `dps` damage a second, flames on the body, 40% slower
+func burn(t: float, dps: float, by: Node = null) -> void:
+	if _dead: return
+	_burn = maxf(_burn, t); _burn_dps = dps; _burn_by = by
+	if _fire == null:
+		_fire = FxCos.emitter({"n": 30, "life": 0.6, "size": 0.55, "mat": FxCos.glow_mat("glow"), "dir": Vector3.UP, "spread": 15.0,
+			"vel": Vector2(1.0, 2.2), "grav": Vector3(0, 1.2, 0), "box": Vector3(0.28, 0.6, 0.22), "scale": Vector2(0.7, 1.4), "rot": true,
+			"ramp": FxCos.ramp([Color(1.0, 0.85, 0.4, 0.8), Color(1.0, 0.45, 0.08, 0.75), Color(0.55, 0.1, 0.04, 0.4), Color(0.1, 0.1, 0.1, 0.0)])})
+		add_child(_fire); _fire.position = Vector3(0, 1.0, 0)
+	_fire.emitting = true
+
+func _burning(delta: float) -> void:
+	_burn -= delta; _burn_tick -= delta
+	if _burn_tick <= 0.0:
+		_burn_tick = 0.25
+		hit(int(ceil(_burn_dps * 0.25)), false, _burn_by)
+	if _burn <= 0.0 and _fire: _fire.emitting = false
+
 func knock(push: Vector3, t := 0.35) -> void:
 	if _dead or _climbing: return
 	_knock = Vector3(push.x, 0, push.z); _stagger = t; _flash = 1.0
 
 func _die() -> void:
 	_dead = true
+	if _fire: _fire.emitting = false
 	FxCos.my_kill(self)
 	_climbing = false
 	if _climb_tw and _climb_tw.is_valid(): _climb_tw.kill()

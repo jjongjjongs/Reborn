@@ -371,6 +371,8 @@ func _eject_shells() -> void:
 func _shoot(w: Dictionary) -> void:
 	_ammo[_wid()] = int(_ammo[_wid()]) - 1
 	_sync_hud()
+	if w.get("flame", false):
+		_flame(w); return
 	Sfx.play("shot", -3.0)
 	Controls.shots += 1
 	BotPlayer.noise(global_position, self)
@@ -498,6 +500,47 @@ func _swing_hit(w: Dictionary) -> void:
 		n += 1
 	if n > 0:
 		Fx.hitmarker(); Sfx.play("hit", 2.0); Controls.add_shake(0.35); Controls.vibrate(40)
+
+## flamethrower tick (every 0.08 s while held): a burst of fire rolling out of the nozzle, and every
+## zombie inside the cone (range / half-angle) that the wall does not hide is singed and set alight
+static var _flame_curve: Curve
+func _flame(w: Dictionary) -> void:
+	if _soldier: _soldier.shoot()
+	var cam := get_viewport().get_camera_3d()
+	if cam == null: return
+	var sc := get_tree().current_scene
+	var fwd := -cam.global_transform.basis.z
+	var mz: Vector3 = ViewModel.muzzle if (Controls.view_fp and ViewModel.active and scope_k < 0.5) else _muzzle.global_position
+	var aim_to: Vector3 = cam.global_position + fwd * float(w["range"])
+	var dir := (aim_to - mz).normalized()
+	if _flame_curve == null:
+		_flame_curve = Curve.new(); _flame_curve.add_point(Vector2(0, 0.35)); _flame_curve.add_point(Vector2(0.35, 1.0)); _flame_curve.add_point(Vector2(1, 1.9))
+	var fp := Controls.view_fp and ViewModel.active and scope_k < 0.5
+	var fm := FxCos.glow_mat("glow")
+	# a rolling tongue of fire: dense near the nozzle, swelling and darkening to smoke at the far end
+	FxCos.burst(sc, mz + dir * (0.45 if fp else 0.1), {"n": 16, "life": 0.55, "size": 0.75, "mat": fm, "dir": dir, "spread": 6.0, "vel": Vector2(12.0, 16.0),
+		"grav": Vector3(0, 3.0, 0), "damp": Vector2(9, 13), "scale": Vector2(0.8, 1.2), "curve": _flame_curve, "expl": 0.75, "rot": true, "spin": 3.0,
+		"ramp": FxCos.ramp([Color(1.0, 0.85, 0.5, 0.35 if fp else 0.6), Color(1.0, 0.55, 0.12, 0.55), Color(0.85, 0.22, 0.05, 0.4), Color(0.12, 0.1, 0.08, 0.0)])})
+	var sm := FxCos.glow_mat("glow", false)
+	FxCos.burst(sc, mz + dir * 4.0, {"n": 3, "life": 0.9, "size": 0.9, "mat": sm, "dir": dir + Vector3(0, 0.4, 0), "spread": 20.0, "vel": Vector2(2.0, 4.0),
+		"grav": Vector3(0, 1.5, 0), "damp": Vector2(1, 2), "scale": Vector2(0.8, 1.6), "color": Color(0.42, 0.4, 0.38, 0.22), "delay": 0.15})
+	if randf() < 0.35: FxCos.flash(sc, mz + dir * 2.0, Color(1.0, 0.55, 0.2), 1.6, 5.0, 0.1)
+	var space := get_world_3d().direct_space_state
+	var cone := cos(deg_to_rad(float(w["cone"])))
+	var any := false
+	for z in get_tree().get_nodes_in_group("zombie") + get_tree().get_nodes_in_group("combatant"):
+		if z == self or not is_instance_valid(z) or not z.has_method("hit"): continue
+		if "alive" in z and not z.alive: continue
+		if z.get("_dead") == true: continue
+		var c: Vector3 = (z as Node3D).global_position + Vector3(0, 1.0, 0)
+		var to := c - mz; var d := to.length()
+		if d > float(w["range"]) or d < 0.01 or dir.dot(to / d) < cone: continue
+		var q := PhysicsRayQueryParameters3D.create(mz, c); q.exclude = [get_rid(), (z as CollisionObject3D).get_rid()]
+		if not space.intersect_ray(q).is_empty(): continue
+		z.hit(int(float(w["dmg"][0]) * Controls.dmg_mult), false, self)
+		if z.has_method("burn"): z.burn(float(w["burn"][0]), float(w["burn"][1]) * Controls.dmg_mult, self)
+		any = true
+	if any and Engine.get_physics_frames() % 4 == 0: Fx.hitmarker()
 
 ## double barrel: a big orange flash + a puff of grey smoke at the muzzle, a hard camera kick
 func _big_flash() -> void:
