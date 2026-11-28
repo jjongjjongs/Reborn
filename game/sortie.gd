@@ -318,7 +318,7 @@ func _map_card(m: Dictionary) -> Button:
 	var on: bool = m["id"] == Controls.sel_map
 	var ready: bool = m["ready"]
 	var b := Button.new(); b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(240, 150)
+	b.custom_minimum_size = Vector2(240, 162)
 	for k in ["normal", "hover", "pressed", "disabled"]:
 		b.add_theme_stylebox_override(k, _sb(SEL_BG if on else CARD, ACCENT if on else LINE2, 2 if on else 1, 12))
 	var th := ColorRect.new(); th.color = m["ground"]
@@ -336,8 +336,11 @@ func _map_card(m: Dictionary) -> Button:
 		dim.mouse_filter = Control.MOUSE_FILTER_IGNORE; th.add_child(dim)
 		var soon := _label("제작 예정", 18, FG); soon.position = Vector2(84, 34); th.add_child(soon)
 	var nm := _label(m["name"], 17, FG if ready else MUTED); nm.position = Vector2(12, 98); b.add_child(nm)
-	var sz := _label(m["size"], 12, MUTED); sz.position = Vector2(132, 102); sz.size.x = 104; sz.clip_text = true; b.add_child(sz)
-	var tg := _label(m["tag"], 12, SOFT if ready else MUTED); tg.position = Vector2(12, 124); tg.size.x = 222; tg.clip_text = true; b.add_child(tg)
+	var sz := _label(m["size"], 12 if String(m["size"]).length() <= 12 else 11, MUTED); sz.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	sz.custom_minimum_size = Vector2(120, 0); b.add_child(sz); sz.position = Vector2(110, 102)
+	# tag line: wraps to a second line inside the card (it used to run past the card's edge)
+	var tg := _label(_wrap_dots(String(m["tag"]), 12, 216.0), 12, SOFT if ready else MUTED)
+	b.add_child(tg); tg.position = Vector2(12, 121)
 	var mid: String = m["id"]
 	b.disabled = not ready
 	b.pressed.connect(func() -> void: Sfx.play("ui"); Controls.sel_map = mid; _refresh())
@@ -355,6 +358,18 @@ func _btn(t: String, fs: int, pos: Vector2, sz: Vector2) -> Button:
 	b.add_theme_font_size_override("font_size", fs)
 	b.add_theme_color_override("font_color", FG)
 	return b
+
+## too long for one line: break at the last " · " that still fits (Godot would split a Korean word mid-syllable)
+func _wrap_dots(t: String, sz: int, w: float) -> String:
+	var f: Font = ThemeDB.fallback_font
+	if f.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, sz).x <= w: return t
+	var parts := t.split(" · "); var line := ""
+	for i in parts.size():
+		var nxt := parts[i] if line == "" else line + " · " + parts[i]
+		if line != "" and f.get_string_size(nxt, HORIZONTAL_ALIGNMENT_LEFT, -1, sz).x > w:
+			return line + " ·\n" + " · ".join(parts.slice(i))
+		line = nxt
+	return t
 
 func _label(txt: String, sz: int, col: Color) -> Label:
 	var l := Label.new(); l.text = txt
