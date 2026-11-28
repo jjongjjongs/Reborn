@@ -462,12 +462,17 @@ func _stab() -> void:
 		if d > reach + 0.4 or d < 0.01: continue
 		if fwd.dot(to / d) < 0.5: continue          # ~60 deg cone in front
 		if d < bd: bd = d; best = c
-	if best == null:
-		for z in get_tree().get_nodes_in_group("zombie"):
+	if best == null:                     # anything else with hit() in front: zombies, training dummies / targets
+		var q := PhysicsShapeQueryParameters3D.new(); var sh := SphereShape3D.new(); sh.radius = reach + 0.4; q.shape = sh
+		q.transform = Transform3D(Basis.IDENTITY, global_position + Vector3(0, 1.0, 0)); q.exclude = [get_rid()]
+		for r in get_world_3d().direct_space_state.intersect_shape(q, 32):
+			var z = r["collider"]
+			if z == null or not z.has_method("hit"): continue
 			var tz: Vector3 = (z as Node3D).global_position - global_position
 			tz.y = 0.0
-			if tz.length() <= reach + 0.4 and tz.length() > 0.01 and fwd.dot(tz.normalized()) > 0.5:
-				best = z; break
+			var dz := tz.length()
+			if dz > reach + 0.4 or (dz > 0.3 and fwd.dot(tz / dz) < 0.5): continue
+			if dz < bd: bd = dz; best = z
 	if best == null or not best.has_method("hit"): return
 	var dmg := int(Weapons.knife_damage(self, best) * Controls.dmg_mult)
 	best.hit(dmg, false, self)
