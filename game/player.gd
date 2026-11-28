@@ -358,9 +358,7 @@ func _start_reload() -> void:
 	_reload_t = float(Weapons.get_w(_wid())["reload"]) * Controls.reload_mult
 	Controls.reloading = true
 	if Soldier.WEAPONS.get(_wid(), {}).get("break", false):
-		Sfx.play("break"); _eject_shells()
-	else:
-		Sfx.play("rel_" + _wid() if Sfx.has("rel_" + _wid()) else "reload", -2.0)
+		_eject_shells()                         # reloads are silent (owner's call); the shells still pop out
 
 ## break-action: the two spent shells pop out of the breech when it opens
 func _eject_shells() -> void:
