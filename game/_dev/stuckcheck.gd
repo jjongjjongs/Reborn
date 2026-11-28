@@ -17,9 +17,10 @@ func _run() -> void:
 			var h: Array = hist.get(b, [])
 			h.append(p); if h.size() > 8: h.pop_front()
 			hist[b] = h
-			if h.size() == 8 and (h[0] as Vector3).distance_to(p) < 1.5 and not b.get("busy"):
+			var wants: bool = b.objective != Vector3.INF and Vector2(b.objective.x - p.x, b.objective.z - p.z).length() > 2.5 and not b._engaged()
+			if h.size() == 8 and (h[0] as Vector3).distance_to(p) < 1.5 and not b.get("busy") and wants:
 				var key := "%d,%d" % [int(p.x / 3), int(p.z / 3)]
-				if not stuck.has(key): stuck[key] = [p, b.bot_name, sc.round_no]
+				if not stuck.has(key): stuck[key] = [p, b.bot_name, sc.round_no, b.objective, "vel %.2f fin %s next %.2f tries %d tgt %s eng %s frozen %s" % [Vector2(b.velocity.x, b.velocity.z).length(), b._agent.is_navigation_finished(), b._agent.get_next_path_position().distance_to(p), b._tries, b._target != null, b._engaged(), b.frozen]]
 	print("STUCK spots %d" % stuck.size())
 	for k in stuck: print("  ", stuck[k])
 	print("ROUNDS ", sc.round_no, " score ", sc.score)

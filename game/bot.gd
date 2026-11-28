@@ -184,7 +184,7 @@ func _wander(delta: float) -> void:
 		velocity.x = 0.0; velocity.z = 0.0
 		return
 	_move_to(dest, tf)
-	_unstick(delta)
+	_unstick(delta, dest)
 	var mv := Vector3(velocity.x, 0, velocity.z)
 	if mv.length() > 0.1: look_at(global_position + mv, Vector3.UP)
 
@@ -384,7 +384,7 @@ func _ready() -> void:
 	add_child(col)
 	_agent = NavigationAgent3D.new()
 	_agent.path_desired_distance = 0.6
-	_agent.target_desired_distance = _combat() * 0.8
+	_agent.target_desired_distance = 1.0              # arrive at the spot itself (a big radius ended the path early, then they walked straight into walls)
 	add_child(_agent)
 
 func hit(dmg: int, _is_head: bool = false, attacker = null) -> void:
@@ -507,7 +507,7 @@ func _physics_process(delta: float) -> void:
 			velocity.x = 0.0; velocity.z = 0.0
 	elif objective != Vector3.INF:
 		var tf := objective - global_position; tf.y = 0.0
-		if tf.length() > 1.4:
+		if tf.length() > 1.4 and not (tf.length() < 3.0 and _agent.is_navigation_finished()):   # (a prop on the spot: close enough)
 			_move_to(objective, tf)
 			_unstick(delta)
 			var mv := Vector3(velocity.x, 0, velocity.z)
@@ -531,7 +531,38 @@ var _stuck_t := 0.0
 var _last_pos := Vector3.ZERO
 var _side_t := 0.0
 var _side_dir := Vector3.ZERO
-func _unstick(delta: float) -> void:
+## wedged while walking somewhere: sidestep; still wedged -> re-plan the path and hop; still wedged after ~5 s
+## -> step onto the next point of its path (or the nearest navmesh point), so a bot never stands stuck for long
+var _wedge_t := 0.0
+var _wedge_from := Vector3.ZERO
+var _tries := 0
+func _unstick(delta: float, dest := Vector3.INF) -> void:
+	_wedge_t += delta
+	if _wedge_t > 2.0:                                # progress check over a longer window: closer to where it is going?
+		var goal: Vector3 = dest if dest != Vector3.INF else objective
+		var gain := 99.0
+		if goal != Vector3.INF: gain = Vector2(goal.x - _wedge_from.x, goal.z - _wedge_from.z).length() - Vector2(goal.x - global_position.x, goal.z - global_position.z).length()
+		else: goal = global_position - transform.basis.z * 3.0
+		if (gain < 1.6 or global_position.distance_to(_wedge_from) < 1.2) and absf(global_position.y - _wedge_from.y) < 0.8:
+			_tries += 1
+			if _tries == 1:
+				_agent.target_position = global_position; _agent.target_position = goal   # fresh path
+				if is_on_floor(): velocity.y = 6.5
+			elif _tries >= 2:
+				var map := get_world_3d().navigation_map
+				# a step along its own path (2 m on, past whatever wedges it), else the navmesh toward the goal
+				var path := _agent.get_current_navigation_path(); var to := Vector3.INF
+				var acc := 0.0; var prev := global_position
+				for pp in path:
+					acc += prev.distance_to(pp); prev = pp
+					if acc >= 2.0: to = pp; break
+				if to == Vector3.INF or to.distance_to(global_position) > 4.0:
+					to = NavigationServer3D.map_get_closest_point(map, global_position + (goal - global_position).normalized() * 2.0)
+				global_position = to + Vector3(0, 0.3, 0); velocity = Vector3.ZERO
+				_tries = 0
+		else:
+			_tries = 0
+		_wedge_t = 0.0; _wedge_from = global_position
 	if _side_t > 0.0:
 		_side_t -= delta
 		velocity.x = _side_dir.x * _speed(); velocity.z = _side_dir.z * _speed()
