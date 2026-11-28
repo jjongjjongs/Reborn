@@ -379,6 +379,8 @@ func _shoot(w: Dictionary) -> void:
 		_nail(w); return
 	if w.get("bolt", false):
 		_bolt(w); return
+	if w.get("tesla", false):
+		_tesla(w); return
 	Sfx.play("dbarrel" if w.get("big_flash", false) else "shot", -1.0 if w.get("big_flash", false) else -3.0)
 	Controls.shots += 1
 	BotPlayer.noise(global_position, self)
@@ -604,6 +606,80 @@ func _bolt(w: Dictionary) -> void:
 	var bd := (aim - mz + Vector3(0, mz.distance_to(aim) * 0.07, 0)).normalized()
 	var b := XbowBolt.fire(get_tree().current_scene, mz + bd * 0.5, bd, self)       # starts past the bow (no giant fletching on screen)
 	b.radius = float(w["radius"]); b.dmg_max = float(w["dmg"][0]); b.dmg_min = float(w["dmg"][1])
+
+## tesla gun: a bolt from the electrodes to what the crosshair is on (or the zombie nearest the aim line in
+## a narrow cone); then it jumps to the nearest not-yet-hit zombie within `jump` m, up to `chain` zombies,
+## each jump a bit weaker; every one hit is stunned and crackles. A miss still throws a short arc forward.
+func _tesla(w: Dictionary) -> void:
+	Sfx.play("zap", -1.0)
+	Controls.shots += 1
+	if _soldier: _soldier.shoot()
+	aim_pitch = clampf(aim_pitch + float(w["kick"]), -45.0, 45.0)
+	var cam := get_viewport().get_camera_3d()
+	if cam == null: return
+	var sc := get_tree().current_scene
+	var fwd := -cam.global_transform.basis.z
+	var mz: Vector3 = ViewModel.muzzle if (Controls.view_fp and ViewModel.active and scope_k < 0.5) else _muzzle.global_position
+	var space := get_world_3d().direct_space_state
+	var rng := float(w["range"])
+	var zs: Array = []
+	for z in get_tree().get_nodes_in_group("zombie") + get_tree().get_nodes_in_group("combatant"):
+		if z == self or not is_instance_valid(z) or not z.has_method("hit"): continue
+		if ("alive" in z and not z.alive) or z.get("_dead") == true: continue
+		zs.append(z)
+	# first target: smallest angle off the crosshair (within ~9 deg), in range, not behind a wall
+	var first: Node3D = null; var best := cos(deg_to_rad(9.0))
+	for z in zs:
+		var c: Vector3 = (z as Node3D).global_position + Vector3(0, 1.0, 0)
+		var to := c - cam.global_position; var d := to.length()
+		if d > rng or d < 0.1: continue
+		var dot := fwd.dot(to / d)
+		if dot < best: continue
+		var q := PhysicsRayQueryParameters3D.create(mz, c); q.exclude = [get_rid(), (z as CollisionObject3D).get_rid()]
+		if not space.intersect_ray(q).is_empty(): continue
+		best = dot; first = z
+	if first == null:
+		var q2 := PhysicsRayQueryParameters3D.create(cam.global_position, cam.global_position + fwd * 7.0); q2.exclude = [get_rid()]
+		var h := space.intersect_ray(q2)
+		var end: Vector3 = h["position"] if h else cam.global_position + fwd * 7.0
+		_arc(sc, mz, end, 0.022)
+		FxCos.pop(sc, end, Color(0.5, 0.75, 1.0), 0.6, 0.1)
+		return
+	var hit: Array = [first]; var from := mz; var cur: Node3D = first; var dmg := float(w["dmg"][0])
+	while true:
+		var at: Vector3 = cur.global_position + Vector3(0, 1.1, 0)
+		_arc(sc, from, at, 0.03 if hit.size() == 1 else 0.024)
+		cur.hit(int(dmg * Controls.dmg_mult), false, self)
+		if cur.has_method("stun"): cur.stun(float(w["stun"]))
+		FxCos.pop(sc, at, Color(0.55, 0.8, 1.0), 1.0, 0.14)
+		FxCos.burst(sc, at, {"n": 10, "life": 0.25, "size": 0.06, "dir": Vector3.UP, "spread": 180.0, "vel": Vector2(2.0, 5.0),
+			"grav": Vector3(0, -6, 0), "color": Color(0.7, 0.9, 1.0)})
+		if hit.size() >= int(w["chain"]): break
+		var nxt: Node3D = null; var nd := float(w["jump"])
+		for z in zs:
+			if z in hit: continue
+			var d := (z as Node3D).global_position.distance_to(cur.global_position)
+			if d < nd: nd = d; nxt = z
+		if nxt == null: break
+		hit.append(nxt); from = at; cur = nxt; dmg *= float(w["falloff"])
+	FxCos.flash(sc, mz, Color(0.5, 0.7, 1.0), 3.0, 6.0, 0.12)
+	Fx.hitmarker(); Sfx.play("hit", -6.0)
+
+## a jagged lightning bolt a -> b (two flickers, offsets across the line, fattest in the middle)
+static func _arc(sc: Node, a: Vector3, b: Vector3, w: float) -> void:
+	var d := b - a; var L := d.length()
+	if L < 0.05: return
+	var side := d.cross(Vector3.UP).normalized(); if side.length() < 0.1: side = Vector3.RIGHT
+	var up := side.cross(d / L)
+	for flick in 2:
+		var n := maxi(4, int(L / 0.6))
+		var pts := [a]
+		for i in range(1, n):
+			var t := float(i) / n; var amp := sin(PI * t) * minf(0.35, L * 0.08)
+			pts.append(a + d * t + side * randf_range(-amp, amp) + up * randf_range(-amp, amp))
+		pts.append(b)
+		if flick == 0: FxCos._bolt_line(sc, pts, w, 0.14)
+		else: sc.get_tree().create_timer(0.05).timeout.connect(func() -> void: if is_instance_valid(sc): FxCos._bolt_line(sc, pts, w * 0.8, 0.12))
 
 static var _nail_mesh: CylinderMesh
 static func _nail_m() -> CylinderMesh:

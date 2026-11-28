@@ -196,6 +196,19 @@ func _burning(delta: float) -> void:
 		hit(int(ceil(_burn_dps * 0.25)), false, _burn_by)
 	if _burn <= 0.0 and _fire: _fire.emitting = false
 
+## tesla: stopped in place for `t` s, crackling blue
+var _zap: CPUParticles3D
+func stun(t: float) -> void:
+	if _dead or _climbing: return
+	_knock = Vector3.ZERO; _stagger = maxf(_stagger, t); _flash = 1.0
+	if _zap == null:
+		_zap = FxCos.emitter({"n": 16, "life": 0.18, "size": 0.12, "mat": FxCos.glow_mat("glow"), "dir": Vector3.UP, "spread": 180.0,
+			"vel": Vector2(1.5, 3.5), "grav": Vector3.ZERO, "box": Vector3(0.3, 0.7, 0.25),
+			"ramp": FxCos.ramp([Color(1, 1, 1, 1), Color(0.5, 0.8, 1.0, 0.9), Color(0.2, 0.4, 1.0, 0.0)])})
+		add_child(_zap); _zap.position = Vector3(0, 1.0, 0)
+	_zap.emitting = true
+	get_tree().create_timer(t).timeout.connect(func() -> void: if is_instance_valid(_zap): _zap.emitting = false)
+
 func knock(push: Vector3, t := 0.35) -> void:
 	if _dead or _climbing: return
 	_knock = Vector3(push.x, 0, push.z); _stagger = t; _flash = 1.0
@@ -203,6 +216,7 @@ func knock(push: Vector3, t := 0.35) -> void:
 func _die() -> void:
 	_dead = true
 	if _fire: _fire.emitting = false
+	if _zap: _zap.emitting = false
 	FxCos.my_kill(self)
 	_climbing = false
 	if _climb_tw and _climb_tw.is_valid(): _climb_tw.kill()

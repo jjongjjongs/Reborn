@@ -36,6 +36,7 @@ func _ready() -> void:
 	_bank["flame"] = _make_flame()
 	_bank["nail"] = _make_nail()
 	_bank["twang"] = _make_twang()
+	_bank["zap"] = _make_zap()
 	for i in 8:
 		var p := AudioStreamPlayer.new()
 		p.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -170,6 +171,18 @@ func _make_twang() -> AudioStreamWAV:
 		y += (randf_range(-1.0, 1.0) - y) * 0.4
 		var knock := sin(t * TAU * 320.0) * exp(-t * 80.0)
 		s[i] = string * 0.6 + knock * 0.5 + y * exp(-t * 40.0) * 0.4
+	return _wav(s)
+
+## tesla: an electric crack - buzzing square-ish tone with random snaps, quick decay
+func _make_zap() -> AudioStreamWAV:
+	var n := _n(0.32); var s := PackedFloat32Array(); s.resize(n)
+	for i in n:
+		var t := float(i) / RATE
+		var buzz: float = sign(sin(t * TAU * (120.0 + 40.0 * sin(t * TAU * 30.0)))) * 0.35
+		var hiss := randf_range(-1.0, 1.0) * 0.5
+		var snap := randf_range(-1.0, 1.0) * (1.0 if randf() < 0.02 else 0.0)
+		var crack := randf_range(-1.0, 1.0) * exp(-t * 70.0)
+		s[i] = (buzz + hiss + snap) * exp(-t * 9.0) * 0.7 + crack * 0.8
 	return _wav(s)
 
 func stream(name: String) -> AudioStream:

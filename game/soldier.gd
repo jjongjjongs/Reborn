@@ -422,6 +422,7 @@ const WEAPONS := {
 	"flamer":   {"len": 0.82, "kind": "long",   "butt": [0.00, 0.04], "grip": [0.18, -0.06], "fore": [0.79, -0.05], "vfore": true, "fp": 0.72},    # 화염방사기
 	"nailgun":  {"len": 0.27, "kind": "pistol", "grip": [0.17, -0.03], "fp": 1.2},    # 네일건 (sized from the hand)
 	"xbow":     {"len": 0.78, "kind": "long",   "butt": [0.00, -0.05], "grip": [0.31, -0.09], "fore": [0.69, -0.07], "fp": 0.8},   # 폭발 석궁
+	"tesla":    {"len": 0.80, "kind": "long",   "butt": [0.00, -0.01], "grip": [0.21, -0.10], "fore": [0.67, -0.09], "vfore": true, "fp": 0.62},   # 테슬라 건
 	# axe: blade turned to lead the swing (model flipped about the haft)
 	"axe":      {"len": 0.82, "kind": "axe",    "grip": [0.10, 0.02], "flip": true, "swing": 0.7, "fp": 1.1, "head": [0.62, 0.80]},
 }

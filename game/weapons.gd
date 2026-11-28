@@ -11,7 +11,7 @@ class_name Weapons
 const ORDER_PRIMARY := ["ak", "m4", "mp5", "shotgun", "sniper", "rpk"]
 const ORDER_SECONDARY := ["pistol", "revolver"]
 const ORDER_MELEE := ["knife"]
-const ORDER_ZOMBIE := ["dbarrel", "flamer", "xbow", "nailgun", "axe"]       # shop items "zw_<id>", wave survival only
+const ORDER_ZOMBIE := ["dbarrel", "flamer", "xbow", "tesla", "nailgun", "axe"]       # shop items "zw_<id>", wave survival only
 const SLOT_NAMES := ["주무기", "보조", "근접"]
 
 const W := {
@@ -56,6 +56,9 @@ const W := {
 	"xbow": {"name": "폭발 석궁", "cls": "특수", "slot": 0, "zombie": true, "bolt": true, "dmg": [140, 35], "rpm": 60, "auto": false,
 		"mag": 1, "reload": 1.4, "spread": [0.4, 1.0], "bloom": 0.0, "kick": 1.5, "speed": 0.95, "radius": 3.0,
 		"desc": "박힌 뒤 0.5초 후 폭발. 반경 3m 범위 피해 + 날려버림.", "bars": [10, 1, 9, 3, 5, 0]},
+	"tesla": {"name": "테슬라 건", "cls": "특수", "slot": 0, "zombie": true, "tesla": true, "dmg": [55, 55], "rpm": 150, "auto": true,
+		"mag": 20, "reload": 2.5, "spread": [0.0, 0.0], "bloom": 0.0, "kick": 1.0, "speed": 0.92, "range": 16.0, "chain": 5, "jump": 4.5, "falloff": 0.85, "stun": 0.7,
+		"desc": "번개가 최대 5마리에게 연쇄. 맞은 좀비는 잠깐 감전돼 멈춤.", "bars": [8, 4, 8, 2, 6, 6]},
 	# a heavy two-handed swing, hits land at `hit_at` s into the swing
 	"axe": {"name": "소방 도끼", "cls": "근접", "slot": 2, "melee": true, "zombie": true, "dmg": [90, 90], "back": 90,
 		"interval": 0.8, "range": 2.6, "arc": 50.0, "hits": 2, "hit_at": 0.25, "knock": 4.5, "speed": 1.0, "mag": 0,
