@@ -29,6 +29,15 @@ var act_progress: float = 0.0            # camera shake amount (decays)
 # --- weapon / player ---
 # loadout (persisted, chosen in the menu 장비 tab): primary / secondary / melee
 var loadout: Array = ["m4", "pistol", "knife"]
+## wave survival keeps its own loadout (it may hold the zombie weapons); `loadout` is the one in use
+var zloadout: Array = ["m4", "pistol", "knife"]
+var zmode := false
+var _pvp_loadout: Array = []
+func set_zmode(on: bool) -> void:
+	if on == zmode: return
+	if on: _pvp_loadout = loadout.duplicate(); loadout = zloadout.duplicate()
+	else: zloadout = loadout.duplicate(); loadout = _pvp_loadout.duplicate() if _pvp_loadout.size() == 3 else ["m4", "pistol", "knife"]
+	zmode = on; weapon_id = str(loadout[0]); slot = 0
 var bot_diff: String = "reg"      # 출격 준비: bot difficulty (persisted)
 var team_size: int = 5            # 출격 준비: players per team in 팀 데스매치 / 폭파미션 (3..6, persisted)
 var lock_primary: String = ""     # 스나전 map: everyone's primary is this (not saved)
@@ -248,6 +257,10 @@ func _load_best() -> void:
 		if typeof(lo) == TYPE_ARRAY and lo.size() == 3:
 			for i in 3:
 				if Weapons.ids_for_slot(i).has(str(lo[i])): loadout[i] = str(lo[i])
+		var zl = data.get("zloadout", [])
+		if typeof(zl) == TYPE_ARRAY and zl.size() == 3:
+			for i in 3:
+				if Weapons.ids_for_slot(i, true).has(str(zl[i])): zloadout[i] = str(zl[i])
 		weapon_id = str(loadout[0])
 		bot_diff = str(data.get("bot_diff", "reg"))
 		if not ["rook", "reg", "vet", "elite"].has(bot_diff): bot_diff = "reg"
@@ -271,7 +284,8 @@ func _save_best() -> void:
 		"best_wave": best_wave, "best_kills": best_kills, "best_time": best_time,
 		"sfx_on": sfx_on, "vibrate_on": vibrate_on, "sniper_hold": sniper_hold,
 		"look_sens": look_sens, "scope_sens": scope_sens, "view_fp": view_fp, "left_handed": left_handed,
-		"hud_layout": hud_layout, "loadout": loadout,
+		"hud_layout": hud_layout, "loadout": (_pvp_loadout if zmode and _pvp_loadout.size() == 3 else loadout),
+		"zloadout": (loadout if zmode else zloadout),
 		"bot_diff": bot_diff, "sel_map": sel_map, "layout_v": 2, "team_size": team_size, "dm_count": dm_count, "wave_mode": wave_mode,
 	}))
 	f.close()

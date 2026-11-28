@@ -83,6 +83,7 @@ func setup(t: String, sub: String, sc: String, k: String) -> SortieScreen:
 	return self
 
 func _ready() -> void:
+	Controls.set_zmode(kind == "survival")
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var bg := ColorRect.new(); bg.color = Color(0.043, 0.055, 0.071)

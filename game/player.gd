@@ -354,8 +354,10 @@ func _start_reload() -> void:
 	Controls.scoped = false
 	_reload_t = float(Weapons.get_w(_wid())["reload"]) * Controls.reload_mult
 	Controls.reloading = true
-	Sfx.play("reload")
-	if Soldier.WEAPONS.get(_wid(), {}).get("break", false): _eject_shells()
+	if Soldier.WEAPONS.get(_wid(), {}).get("break", false):
+		Sfx.play("break"); _eject_shells()
+	else:
+		Sfx.play("reload")
 
 ## break-action: the two spent shells pop out of the breech when it opens
 func _eject_shells() -> void:
@@ -373,7 +375,7 @@ func _shoot(w: Dictionary) -> void:
 	_sync_hud()
 	if w.get("flame", false):
 		_flame(w); return
-	Sfx.play("shot", -3.0)
+	Sfx.play("dbarrel" if w.get("big_flash", false) else "shot", -1.0 if w.get("big_flash", false) else -3.0)
 	Controls.shots += 1
 	BotPlayer.noise(global_position, self)
 	if _soldier: _soldier.shoot()
@@ -465,7 +467,7 @@ func _stab() -> void:
 func _swing() -> void:
 	var w := Weapons.get_w(_wid())
 	if _soldier: _soldier.shoot()
-	Sfx.play("throw", -6.0)
+	Sfx.play("axe_swing", -2.0)
 	var wid := _wid()
 	get_tree().create_timer(float(w["hit_at"])).timeout.connect(func() -> void:
 		if not is_instance_valid(self) or not alive or _wid() != wid: return
@@ -499,7 +501,7 @@ func _swing_hit(w: Dictionary) -> void:
 		_melee_fx(at, push.normalized())
 		n += 1
 	if n > 0:
-		Fx.hitmarker(); Sfx.play("hit", 2.0); Controls.add_shake(0.35); Controls.vibrate(40)
+		Fx.hitmarker(); Sfx.play("axe_hit", 1.0); Sfx.play("hit", -6.0); Controls.add_shake(0.35); Controls.vibrate(40)
 
 ## flamethrower tick (every 0.08 s while held): a burst of fire rolling out of the nozzle, and every
 ## zombie inside the cone (range / half-angle) that the wall does not hide is singed and set alight

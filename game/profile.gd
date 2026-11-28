@@ -8,8 +8,12 @@ extends RefCounted
 const PATH := "user://profile.json"
 
 # ---------------------------------------------------------------- catalogue
-const CATS := [["body", "캐릭터"], ["skin", "캐릭터 스킨"], ["killfx", "킬 이펙트"], ["tracer", "탄환 효과"], ["wfx", "무기 효과"], ["cfx", "캐릭터 효과"], ["bomb", "폭탄 스킨"], ["suit", "완장 색"], ["finish", "무기 도색"], ["title", "칭호"]]
+const CATS := [["zweapon", "좀비 무기"], ["body", "캐릭터"], ["skin", "캐릭터 스킨"], ["killfx", "킬 이펙트"], ["tracer", "탄환 효과"], ["wfx", "무기 효과"], ["cfx", "캐릭터 효과"], ["bomb", "폭탄 스킨"], ["suit", "완장 색"], ["finish", "무기 도색"], ["title", "칭호"]]
 const ITEMS := [
+	# zombie-mode weapons: owned, then picked in the wave survival loadout (no "equip" here)
+	{"id": "zw_axe", "cat": "zweapon", "wid": "axe", "name": "소방 도끼", "price": 500},
+	{"id": "zw_dbarrel", "cat": "zweapon", "wid": "dbarrel", "name": "더블 배럴", "price": 800},
+	{"id": "zw_flamer", "cat": "zweapon", "wid": "flamer", "name": "화염방사기", "price": 1500},
 	# body: the soldier model (same skeleton / animations)
 	# the five concept-sheet characters, all built in Blender (tools/blender/build_mini_v3.py -- CLASS)
 	{"id": "body_rookie", "cat": "body", "name": "루키 어썰트", "price": 0},
@@ -163,6 +167,7 @@ static func owns(id: String) -> bool:
 
 static func equipped(cat: String) -> String:
 	_load()
+	if cat == "zweapon": return ""
 	if cat == "skin": return skin_id(equipped("body"))
 	return String(_d["equip"].get(cat, DEFAULT_EQUIP[cat]))
 
@@ -179,7 +184,7 @@ static func buy(id: String) -> bool:
 static func equip(id: String) -> void:
 	_load()
 	var it := item(id)
-	if it.is_empty() or not owns(id): return
+	if it.is_empty() or not owns(id) or it["cat"] == "zweapon": return
 	if it["cat"] == "skin":
 		if not owns(String(it["body"])): return
 		_d["equip"]["skin_" + String(it["body"]).substr(5)] = id

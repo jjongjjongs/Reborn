@@ -146,16 +146,18 @@ func _refresh() -> void:
 		_slots_box.add_child(p)
 	# cards
 	for c in _cards.get_children(): c.queue_free()
-	for id in Weapons.ids_for_slot(_tab):
+	var ids: Array = Weapons.ids_for_slot(_tab, Controls.zmode)
+	_cards.columns = 3 if ids.size() <= 6 else 4          # zombie weapons added: one more column, same two rows
+	for id in ids:
 		var cw := Weapons.get_w(id)
 		var b := Button.new(); b.focus_mode = Control.FOCUS_NONE
-		b.custom_minimum_size = Vector2(226, 82)
+		b.custom_minimum_size = Vector2(226, 82) if _cards.columns == 3 else Vector2(168, 82)
 		var sel: bool = id == _pick
 		var eq: bool = id == Controls.loadout[_tab]
 		var st := _sb(Color(0.16, 0.11, 0.05) if sel else PANEL, ACCENT if sel else LINE, 2 if sel else 1, 10)
 		for k in ["normal", "hover", "pressed"]: b.add_theme_stylebox_override(k, st)
-		b.text = "%s\n%s" % [cw["name"], ("장착 중" if eq else cw["cls"])]
-		b.add_theme_font_size_override("font_size", 22)
+		b.text = "%s\n%s" % [cw["name"], ("장착 중" if eq else (("좀비 전용 · " if Weapons.is_zombie(id) else "") + String(cw["cls"])))]
+		b.add_theme_font_size_override("font_size", 22 if _cards.columns == 3 else 18)
 		b.add_theme_color_override("font_color", FG)
 		b.add_theme_color_override("font_hover_color", FG)
 		var wid: String = id
@@ -187,8 +189,10 @@ func _refresh() -> void:
 func _rows(w: Dictionary, cur: Dictionary) -> Array:
 	var same: bool = w["name"] == cur["name"]
 	if w.get("melee", false):
-		return [["데미지", 5, "50 (뒤 100)", ["", FG], false], ["공격 속도", 6, "0.6초", ["", FG], false],
-			["사거리", 2, "1.8m", ["", FG], false], ["무게", 0, "이동 +10%", ["", FG], true]]
+		var d0 := int(w["dmg"][0]); var bk := int(w.get("back", d0))
+		return [["데미지", int(w["bars"][0]), ("%d (뒤 %d)" % [d0, bk]) if bk != d0 else ("%d · %d마리까지" % [d0, int(w.get("hits", 1))]), ["", FG], false],
+			["공격 속도", int(w["bars"][1]), "%.1f초" % float(w["interval"]), ["", FG], false],
+			["사거리", int(float(w["range"]) * 1.2), "%.1fm" % float(w["range"]), ["", FG], false], ["무게", 0, "이동 %+d%%" % roundi((float(w["speed"]) - 1.0) * 100.0), ["", FG], true]]
 	var out := []
 	var dmg_txt := "%d–%d" % [w["dmg"][0], w["dmg"][1]]
 	if w.has("pellets"): dmg_txt = "%d×%d발" % [w["dmg"][0], w["pellets"]]

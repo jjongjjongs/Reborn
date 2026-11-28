@@ -25,6 +25,7 @@ var _name: Label
 var _btn: Button
 var _soldier: Soldier
 var _vp: SubViewport
+var _vpc: SubViewportContainer
 var _cam: Camera3D
 var _gun_pv: Node3D
 
@@ -79,7 +80,7 @@ func _ready() -> void:
 	sc.add_child(_grid)
 	var rx := 264 + mid_w + 16
 	_panel(Vector2(rx, 96), Vector2(right_w, h))
-	var svc := SubViewportContainer.new(); svc.stretch = true; svc.position = Vector2(rx + 20, 110); svc.size = Vector2(right_w - 40, h - 160)
+	var svc := SubViewportContainer.new(); _vpc = svc; svc.stretch = true; svc.position = Vector2(rx + 20, 110); svc.size = Vector2(right_w - 40, h - 160)
 	svc.mouse_filter = Control.MOUSE_FILTER_IGNORE; add_child(svc)
 	_vp = SubViewport.new(); _vp.own_world_3d = true; _vp.transparent_bg = true
 	_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS; svc.add_child(_vp)
@@ -111,12 +112,13 @@ func _rebuild_preview() -> void:
 		bm.scale = Vector3.ONE * 2.2; _gun_pv.add_child(bm)
 		Profile.apply_bomb_skin(bm, _sel if String(Profile.item(_sel).get("cat", "")) == "bomb" else Profile.equipped("bomb"))
 		return
-	var gun_view := _cat == "finish" or _sel.begins_with("gold:") or String(Profile.item(_sel).get("cat", "")) == "finish"
+	var zw := String(Profile.item(_sel).get("cat", "")) == "zweapon"
+	var gun_view := _cat == "finish" or _sel.begins_with("gold:") or String(Profile.item(_sel).get("cat", "")) == "finish" or zw
 	if _gun_pv: _gun_pv.queue_free(); _gun_pv = null
 	if gun_view:
 		# the weapon on its own, side on, slowly turning (see the pattern / colour clearly)
 		_cam.fov = 30.0; _cam.position = Vector3(0, 10.0, 2.1); _cam.look_at_from_position(_cam.position, Vector3(0, 10.0, 0))
-		var wid2: String = _sel.substr(5) if _sel.begins_with("gold:") else (Controls.loadout[0] if Controls.loadout[0] != "knife" else "m4")
+		var wid2: String = _sel.substr(5) if _sel.begins_with("gold:") else (String(Profile.item(_sel)["wid"]) if zw else (Controls.loadout[0] if Controls.loadout[0] != "knife" and not Weapons.is_zombie(Controls.loadout[0]) else "m4"))
 		var g: Node3D = (load("res://assets/guns/%s.glb" % wid2) as PackedScene).instantiate()
 		var ab := AABB(); var first := true
 		for mi in g.find_children("*", "MeshInstance3D", true, false):
@@ -124,7 +126,9 @@ func _rebuild_preview() -> void:
 		var sc := 1.1 / maxf(ab.size.x, 0.001)
 		_gun_pv = Node3D.new(); _gun_pv.position = Vector3(0, 10.0, 0); _vp.add_child(_gun_pv)
 		_gun_pv.add_child(g); g.scale = Vector3.ONE * sc; g.position = -ab.get_center() * sc
-		Profile.apply_finish(g, "fin_gold" if _sel.begins_with("gold:") else (_sel if String(Profile.item(_sel).get("cat", "")) == "finish" else ""), wid2)
+		if not zw: Profile.apply_finish(g, "fin_gold" if _sel.begins_with("gold:") else (_sel if String(Profile.item(_sel).get("cat", "")) == "finish" else ""), wid2)
+		if zw: _zw_info(String(Profile.item(_sel)["wid"]))
+		elif _zw_lbl: _zw_lbl.visible = false
 	else:
 		_cam.fov = 34.0; _cam.position = Vector3(-1.7, 1.35, -3.3); _cam.look_at_from_position(_cam.position, Vector3(0.0, 1.05, -0.1))   # whole soldier incl. the mini's big helmet
 	if _soldier: _soldier.queue_free()
@@ -163,7 +167,7 @@ func _refresh() -> void:
 		b.custom_minimum_size = Vector2(150, 56); b.add_theme_font_size_override("font_size", 19)
 		for k in ["normal", "hover", "pressed"]: b.add_theme_stylebox_override(k, _sb(Color(0.118, 0.086, 0.051) if on else CARD, ACCENT if on else LINE, 2 if on else 1))
 		var cid: String = c[0]
-		b.pressed.connect(func() -> void: Sfx.play("ui"); _cat = cid; _sel = Profile.offers()[0] if cid == "today" else Profile.equipped(cid); _refresh())
+		b.pressed.connect(func() -> void: Sfx.play("ui"); _cat = cid; _sel = Profile.offers()[0] if cid == "today" else (Profile.items(cid)[0]["id"] if cid == "zweapon" else Profile.equipped(cid)); _refresh())
 		_cats_box.add_child(b)
 	_cats_box.add_child(_lbl("\n오늘의 임무 3개를\n모두 깨면 하루 ◆ 120~180", 14, MUTED))
 	for c in _grid.get_children(): c.queue_free()
@@ -193,6 +197,8 @@ func _refresh() -> void:
 		var price := Profile.price_today(_sel)
 		if sel.has("body") and not Profile.owns(String(sel["body"])):
 			_btn.text = "%s 먼저 구매" % String(Profile.item(String(sel["body"])).get("name", "캐릭터")); col = Color(0.3, 0.3, 0.32)
+		elif scat == "zweapon" and owned:
+			_btn.text = "보유 · 좀비 모드 장비에서 선택"; col = Color(0.2, 0.26, 0.3)
 		elif equipped:
 			_btn.text = "장착 중"; col = Color(0.2, 0.26, 0.3)
 		elif owned:
@@ -246,6 +252,11 @@ func _card(it: Dictionary) -> Control:
 		var sub: String = {"body_rookie": "기본 · 고글 헬멧, 플레이트 캐리어", "body_scout": "전술 모자 · 가벼운 체스트 리그", "body_tech": "무전기 배낭 · 팔 단말기",
 			"body_sniper": "후드 · 마스크 · 길리 스카프", "body_heavy": "중장갑 · 어깨 보호대 · 탄띠"}.get(id, "")
 		var tl := _lbl(sub, 13, MUTED); tl.position = Vector2(8, 20); sw.add_child(tl)
+	elif cat == "zweapon":
+		sw.color = Color(0.16, 0.08, 0.06)
+		var w := Weapons.get_w(String(it["wid"]))
+		var tl := _lbl("좀비 모드 전용 · " + String(w["cls"]), 13, Color(1.0, 0.6, 0.35)); tl.position = Vector2(8, 8); sw.add_child(tl)
+		var t2 := _lbl(["주무기", "보조", "근접"][int(w["slot"])], 13, MUTED); t2.position = Vector2(8, 28); sw.add_child(t2)
 	elif cat == "skin":                 # the skin's main colours side by side (base = the character's own look)
 		var mats: Dictionary = it.get("mats", {})
 		var cols := [mats.get("R_Helmet", Color(0.42, 0.42, 0.36)), mats.get("R_Gear", Color(0.55, 0.48, 0.36)), mats.get("R_Uniform", Color(0.36, 0.38, 0.28)), mats.get("R_Accent", mats.get("R_Sleeve", Color(0.3, 0.3, 0.3)))]
@@ -312,6 +323,16 @@ func _gold_card(w: String) -> Control:
 	v.add_child(_lbl(("켜짐" if on else "해금 · 누르면 켜기") if done else "처치 %d / %d" % [mini(k, goal), goal], 15, OK if done else MUTED))
 	b.pressed.connect(func() -> void: Sfx.play("ui"); _sel = id; _refresh())
 	return b
+
+## zombie weapon: what it does, over the turning model
+var _zw_lbl: Label
+func _zw_info(wid: String) -> void:
+	if _zw_lbl == null:
+		_zw_lbl = _lbl("", 16, FG); _zw_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_zw_lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0)); _zw_lbl.add_theme_constant_override("outline_size", 6)
+		_vpc.add_child(_zw_lbl); _zw_lbl.position = Vector2(16, 16); _zw_lbl.size = Vector2(_vpc.size.x - 32, 60)
+	_zw_lbl.visible = true
+	_zw_lbl.text = String(Weapons.get_w(wid)["desc"])
 
 func _on_btn() -> void:
 	if _sel.begins_with("gold:"):

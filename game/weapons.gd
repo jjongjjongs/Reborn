@@ -11,6 +11,7 @@ class_name Weapons
 const ORDER_PRIMARY := ["ak", "m4", "mp5", "shotgun", "sniper", "rpk"]
 const ORDER_SECONDARY := ["pistol", "revolver"]
 const ORDER_MELEE := ["knife"]
+const ORDER_ZOMBIE := ["dbarrel", "flamer", "axe"]       # shop items "zw_<id>", wave survival only
 const SLOT_NAMES := ["주무기", "보조", "근접"]
 
 const W := {
@@ -69,8 +70,15 @@ static func interval(id: String) -> float:
 static func is_melee(id: String) -> bool:
 	return bool(get_w(id).get("melee", false))
 
-static func ids_for_slot(slot: int) -> Array:
-	return [ORDER_PRIMARY, ORDER_SECONDARY, ORDER_MELEE][slot]
+static func ids_for_slot(slot: int, zombie := false) -> Array:
+	var out: Array = [ORDER_PRIMARY, ORDER_SECONDARY, ORDER_MELEE][slot].duplicate()
+	if zombie:                        # wave survival: the zombie weapons bought in the shop
+		for id in ORDER_ZOMBIE:
+			if int(W[id]["slot"]) == slot and Profile.owns("zw_" + id): out.append(id)
+	return out
+
+static func is_zombie(id: String) -> bool:
+	return bool(get_w(id).get("zombie", false))
 
 # knife hit: 'back' damage when the attacker stands behind the victim
 static func knife_damage(attacker: Node3D, victim: Node3D) -> int:

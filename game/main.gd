@@ -10,6 +10,7 @@ var _hp_fill: ColorRect
 const HP_W := 360.0
 
 func _ready() -> void:
+	Controls.set_zmode(true)
 	_build_world()
 	_build_player()
 	_build_camera()

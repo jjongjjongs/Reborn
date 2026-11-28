@@ -28,6 +28,12 @@ func _ready() -> void:
 	_bank["defuse"] = _make_click()                     # wire / tool clicks while defusing
 	_bank["defused"] = _make_tone(900.0, 0.35, -0.6)    # falling tone: defused
 	_bank["ding"] = _make_ding()                        # steel plate hit
+	# zombie weapons
+	_bank["axe_swing"] = _make_whoosh(0.28, 0.55)
+	_bank["axe_hit"] = _make_chop()
+	_bank["dbarrel"] = _make_boomstick()
+	_bank["break"] = _make_break()
+	_bank["flame"] = _make_flame()
 	for i in 8:
 		var p := AudioStreamPlayer.new()
 		p.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -63,6 +69,83 @@ func play_at(name: String, pos: Vector3, vol_db: float = 0.0) -> void:
 	p.global_position = pos
 	p.play()
 	p.finished.connect(p.queue_free)
+
+# ---- zombie weapons ----------------------------------------------------------
+## one-pole low-pass over white noise: k small = darker
+func _lp(s: PackedFloat32Array, k: float) -> PackedFloat32Array:
+	var y := 0.0
+	for i in s.size(): y += (s[i] - y) * k; s[i] = y
+	return s
+
+## heavy blade cutting the air: band of noise swelling and fading, pitch of the hiss rising through the swing
+func _make_whoosh(dur: float, peak: float) -> AudioStreamWAV:
+	var n := _n(dur); var s := PackedFloat32Array(); s.resize(n)
+	var y := 0.0; var y2 := 0.0
+	for i in n:
+		var t := float(i) / RATE; var u := t / dur
+		var env := pow(sin(PI * clampf(u / peak * 0.5 if u < peak else 0.5 + (u - peak) / (1.0 - peak) * 0.5, 0.0, 1.0)), 2.0)
+		var k := 0.04 + 0.22 * u
+		y += (randf_range(-1.0, 1.0) - y) * k; y2 += (y - y2) * k
+		s[i] = (y - y2) * env * 3.2
+	return _wav(s)
+
+## axe biting in: low wet thud + short crack
+func _make_chop() -> AudioStreamWAV:
+	var n := _n(0.26); var s := PackedFloat32Array(); s.resize(n)
+	var y := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		y += (randf_range(-1.0, 1.0) - y) * 0.25
+		var thud := sin(t * TAU * (95.0 - t * 120.0)) * exp(-t * 18.0)
+		var crack := randf_range(-1.0, 1.0) * exp(-t * 90.0)
+		s[i] = thud * 0.9 + y * exp(-t * 26.0) * 0.8 + crack * 0.5
+	return _wav(s)
+
+## double barrel: a big boom - crack, low body, long rumbling tail
+func _make_boomstick() -> AudioStreamWAV:
+	var n := _n(0.65); var s := PackedFloat32Array(); s.resize(n)
+	var y := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		y += (randf_range(-1.0, 1.0) - y) * (0.5 - 0.4 * minf(t / 0.3, 1.0))
+		var crack := randf_range(-1.0, 1.0) * exp(-t * 60.0)
+		var body := sin(t * TAU * (70.0 - t * 30.0)) * exp(-t * 9.0)
+		s[i] = clampf(crack * 0.9 + y * exp(-t * 6.0) * 1.4 + body * 0.9, -1.0, 1.0)
+	return _wav(s)
+
+## break-action reload: lever clack + barrels dropping open, two shells thunking in, snapping shut
+func _make_break() -> AudioStreamWAV:
+	var n := _n(1.2); var s := PackedFloat32Array(); s.resize(n)
+	var hits := [[0.0, 1.0, 2400.0], [0.06, 0.8, 900.0], [0.45, 0.5, 1300.0], [0.62, 0.5, 1250.0], [1.0, 1.0, 1800.0], [1.03, 0.6, 700.0]]
+	for i in n:
+		var t := float(i) / RATE; var v := 0.0
+		for h in hits:
+			var dt: float = t - float(h[0])
+			if dt >= 0.0 and dt < 0.08:
+				v += (randf_range(-1.0, 1.0) * 0.6 + sin(dt * TAU * float(h[2])) * 0.5) * exp(-dt * 70.0) * float(h[1])
+		s[i] = v * 0.8
+	return _wav(s)
+
+## flamethrower: a seamless 1 s loop of low roaring noise with crackles (played looped while firing)
+func _make_flame() -> AudioStreamWAV:
+	var n := _n(1.0); var s := PackedFloat32Array(); s.resize(n)
+	var y := 0.0; var y2 := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		y += (randf_range(-1.0, 1.0) - y) * 0.09; y2 += (y - y2) * 0.02
+		var rumble := 0.75 + 0.25 * sin(t * TAU * 7.0) * sin(t * TAU * 3.0)
+		var crackle := randf_range(-1.0, 1.0) * (1.0 if randf() < 0.004 else 0.0)
+		s[i] = (y * 2.2 + y2 * 3.0) * rumble + crackle * 0.6
+	var fade := _n(0.05)                   # cross-fade the ends so the loop has no click
+	for i in fade:
+		var a := float(i) / fade
+		s[i] = s[i] * a + s[n - fade + i] * (1.0 - a)
+	var w := _wav(s.slice(0, n - fade))
+	w.loop_mode = AudioStreamWAV.LOOP_FORWARD; w.loop_begin = 0; w.loop_end = n - fade
+	return w
+
+func stream(name: String) -> AudioStream:
+	return _bank.get(name)
 
 # ---- synthesis helpers ----------------------------------------------------
 func _wav(samples: PackedFloat32Array) -> AudioStreamWAV:

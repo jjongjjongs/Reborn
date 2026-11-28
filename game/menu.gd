@@ -23,6 +23,7 @@ func _on_update_checked(has_update: bool, latest: int) -> void:
 		_upd_btn.add_theme_color_override("font_color", MUTED)
 
 func _ready() -> void:
+	Controls.set_zmode(false)
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	var bg := ColorRect.new()
 	bg.color = Color(0.05, 0.06, 0.08)

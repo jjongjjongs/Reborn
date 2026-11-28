@@ -9,6 +9,7 @@ var _body: CPUParticles3D
 var _smoke: CPUParticles3D
 var _cone: MeshInstance3D
 var _light: OmniLight3D
+var _snd: AudioStreamPlayer
 var _on_t := 0.0
 var _fed := false
 var _t := 0.0
@@ -52,6 +53,7 @@ func _ready() -> void:
 	m.albedo_color = Color(1.0, 0.6, 0.2, 0.55); m.albedo_texture = FxCos.tex("glow")
 	_cone.material_override = m; _cone.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(_cone); _cone.rotation_degrees = Vector3(-90, 0, 0); _cone.position = Vector3(0, 0, -0.55)
+	_snd = AudioStreamPlayer.new(); _snd.stream = Sfx.stream("flame"); _snd.volume_db = -4.0; add_child(_snd)
 	_light = OmniLight3D.new(); _light.light_color = Color(1.0, 0.55, 0.2); _light.omni_range = 7.0; _light.light_energy = 0.0
 	add_child(_light); _light.position = Vector3(0, 0, -2.5)
 
@@ -65,6 +67,9 @@ func _process(dt: float) -> void:
 	var on := _on_t > 0.0
 	_core.emitting = on; _body.emitting = on; _smoke.emitting = on
 	_cone.visible = on
+	if on and not _snd.playing and Controls.sfx_on: _snd.play()
+	elif not on and _snd.playing: _snd.volume_db = move_toward(_snd.volume_db, -40.0, dt * 160.0); if _snd.volume_db <= -39.0: _snd.stop()
+	if on: _snd.volume_db = -4.0
 	var k := 0.42 if fp else 1.0                      # first person: the flame fills the screen, so much dimmer
 	for e in [_core, _body]: (e.material_override as StandardMaterial3D).albedo_color = Color(1, 1, 1, k)
 	var fl := 0.8 + 0.35 * sin(_t * 47.0) * sin(_t * 23.0)
