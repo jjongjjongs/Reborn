@@ -27,6 +27,8 @@ func _fire_strip(tag: String, view_cam: Camera3D) -> void:
 			game_cam.current = true
 			pl._shoot(Weapons.get_w("flamer"))
 			if view_cam: view_cam.current = true
+		if k == 3 and t >= float(marks[k]) and is_instance_valid(pl._jet):
+			print("JET pos %s fwd %s emit %s vis %s parent %s" % [pl._jet.global_position, -pl._jet.global_transform.basis.z, pl._jet._core.emitting, pl._jet.is_visible_in_tree(), pl._jet.get_parent().name])
 		if t >= float(marks[k]):
 			root.get_viewport().get_texture().get_image().save_png("/tmp/fl_%s_%d.png" % [tag, k]); k += 1
 	for i in 120: await process_frame

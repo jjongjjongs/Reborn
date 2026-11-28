@@ -503,28 +503,21 @@ func _swing_hit(w: Dictionary) -> void:
 
 ## flamethrower tick (every 0.08 s while held): a burst of fire rolling out of the nozzle, and every
 ## zombie inside the cone (range / half-angle) that the wall does not hide is singed and set alight
-static var _flame_curve: Curve
+var _jet: FlameJet
 func _flame(w: Dictionary) -> void:
 	if _soldier: _soldier.shoot()
 	var cam := get_viewport().get_camera_3d()
 	if cam == null: return
 	var sc := get_tree().current_scene
 	var fwd := -cam.global_transform.basis.z
-	var mz: Vector3 = ViewModel.muzzle if (Controls.view_fp and ViewModel.active and scope_k < 0.5) else _muzzle.global_position
+	var fp := Controls.view_fp and ViewModel.active and scope_k < 0.5
+	var mz: Vector3 = ViewModel.muzzle if fp else _muzzle.global_position
 	var aim_to: Vector3 = cam.global_position + fwd * float(w["range"])
 	var dir := (aim_to - mz).normalized()
-	if _flame_curve == null:
-		_flame_curve = Curve.new(); _flame_curve.add_point(Vector2(0, 0.35)); _flame_curve.add_point(Vector2(0.35, 1.0)); _flame_curve.add_point(Vector2(1, 1.9))
-	var fp := Controls.view_fp and ViewModel.active and scope_k < 0.5
-	var fm := FxCos.glow_mat("glow")
-	# a rolling tongue of fire: dense near the nozzle, swelling and darkening to smoke at the far end
-	FxCos.burst(sc, mz + dir * (0.45 if fp else 0.1), {"n": 16, "life": 0.55, "size": 0.75, "mat": fm, "dir": dir, "spread": 6.0, "vel": Vector2(12.0, 16.0),
-		"grav": Vector3(0, 3.0, 0), "damp": Vector2(9, 13), "scale": Vector2(0.8, 1.2), "curve": _flame_curve, "expl": 0.75, "rot": true, "spin": 3.0,
-		"ramp": FxCos.ramp([Color(1.0, 0.85, 0.5, 0.35 if fp else 0.6), Color(1.0, 0.55, 0.12, 0.55), Color(0.85, 0.22, 0.05, 0.4), Color(0.12, 0.1, 0.08, 0.0)])})
-	var sm := FxCos.glow_mat("glow", false)
-	FxCos.burst(sc, mz + dir * 4.0, {"n": 3, "life": 0.9, "size": 0.9, "mat": sm, "dir": dir + Vector3(0, 0.4, 0), "spread": 20.0, "vel": Vector2(2.0, 4.0),
-		"grav": Vector3(0, 1.5, 0), "damp": Vector2(1, 2), "scale": Vector2(0.8, 1.6), "color": Color(0.42, 0.4, 0.38, 0.22), "delay": 0.15})
-	if randf() < 0.35: FxCos.flash(sc, mz + dir * 2.0, Color(1.0, 0.55, 0.2), 1.6, 5.0, 0.1)
+	if not is_instance_valid(_jet):
+		_jet = FlameJet.new(); sc.add_child(_jet)
+	_jet.fp = fp
+	_jet.feed(mz + dir * (0.25 if fp else 0.05), dir)
 	var space := get_world_3d().direct_space_state
 	var cone := cos(deg_to_rad(float(w["cone"])))
 	var any := false
