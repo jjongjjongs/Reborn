@@ -375,6 +375,8 @@ func _shoot(w: Dictionary) -> void:
 	_sync_hud()
 	if w.get("flame", false):
 		_flame(w); return
+	if w.get("nail", false):
+		_nail(w); return
 	Sfx.play("dbarrel" if w.get("big_flash", false) else "shot", -1.0 if w.get("big_flash", false) else -3.0)
 	Controls.shots += 1
 	BotPlayer.noise(global_position, self)
@@ -536,6 +538,79 @@ func _flame(w: Dictionary) -> void:
 		if z.has_method("burn"): z.burn(float(w["burn"][0]), float(w["burn"][1]) * Controls.dmg_mult, self)
 		any = true
 	if any and Engine.get_physics_frames() % 4 == 0: Fx.hitmarker()
+
+## nail gun: one nail along the aim (with spread); it passes through up to `pierce` zombies, a nail stays
+## stuck in each one it hits (a spark, a tiny blood puff), the last one / a wall stops it with a spark
+func _nail(w: Dictionary) -> void:
+	Sfx.play("nail", -2.0)
+	Controls.shots += 1
+	if _soldier: _soldier.shoot()
+	_bloom = minf(_bloom + float(w["bloom"]), float(w["spread"][1]))
+	aim_pitch = clampf(aim_pitch + float(w["kick"]), -45.0, 45.0)
+	var cam := get_viewport().get_camera_3d()
+	if cam == null: return
+	var sc := get_tree().current_scene
+	var s := deg_to_rad(Controls.spread_deg)
+	var dir := (-cam.global_transform.basis.z).rotated(cam.global_transform.basis.x, randf_range(-s, s))
+	dir = dir.rotated(cam.global_transform.basis.y, randf_range(-s, s))
+	var space := get_world_3d().direct_space_state
+	var from := cam.global_position
+	var ex: Array[RID] = [get_rid()]
+	var left := int(w["pierce"]); var end := from + dir * 60.0; var any := false
+	while true:
+		var q := PhysicsRayQueryParameters3D.create(from, from + dir * 60.0); q.exclude = ex
+		var h := space.intersect_ray(q)
+		if h.is_empty(): break
+		var col = h.collider
+		if col and col.has_method("hit") and left > 0:
+			var head: bool = h.position.y > (col.global_position.y + 1.55)
+			var dmg := int(randi_range(int(w["dmg"][0]), int(w["dmg"][1])) * (HEAD_MULT if head else 1.0) * Controls.dmg_mult)
+			col.hit(dmg, head, self); any = true
+			_stick_nail(col, h.position, dir)
+			FxCos.burst(sc, h.position, {"n": 10, "life": 0.35, "size": 0.1, "mat": FxCos.glow_mat("glow", false), "dir": -dir, "spread": 50.0,
+				"vel": Vector2(1.5, 3.5), "grav": Vector3(0, -10, 0), "color": Color(0.6, 0.04, 0.04)})
+			FxCos.burst(sc, h.position, {"n": 8, "life": 0.22, "size": 0.06, "dir": -dir, "spread": 70.0, "vel": Vector2(3.0, 6.0),
+				"grav": Vector3(0, -9, 0), "color": Color(1.0, 0.85, 0.45)})
+			FxCos.pop(sc, h.position, Color(1.0, 0.9, 0.6), 0.5, 0.08)
+			left -= 1
+			ex.append((col as CollisionObject3D).get_rid()); from = h.position
+			if left <= 0: end = h.position; break
+		else:
+			end = h.position
+			FxCos.burst(sc, h.position, {"n": 8, "life": 0.25, "size": 0.05, "dir": h.normal, "spread": 60.0, "vel": Vector2(2.0, 4.0),
+				"grav": Vector3(0, -9, 0), "color": Color(1.0, 0.8, 0.4)})
+			break
+	var mz: Vector3 = ViewModel.muzzle if (Controls.view_fp and ViewModel.active and scope_k < 0.5) else _muzzle.global_position
+	_fly_nail(mz, end)
+	FxCos.pop(sc, mz, Color(1.0, 0.9, 0.6), 0.35, 0.05)
+	if any:
+		Fx.hitmarker(); Sfx.play("hit", -8.0)
+
+static var _nail_mesh: CylinderMesh
+static func _nail_m() -> CylinderMesh:
+	if _nail_mesh == null:
+		_nail_mesh = CylinderMesh.new(); _nail_mesh.top_radius = 0.022; _nail_mesh.bottom_radius = 0.009; _nail_mesh.height = 0.2   # chunky so it reads on a phone
+		_nail_mesh.radial_segments = 6; _nail_mesh.rings = 1
+		var m := StandardMaterial3D.new(); m.albedo_color = Color(0.85, 0.87, 0.9); m.metallic = 0.6; m.roughness = 0.25
+		m.emission_enabled = true; m.emission = Color(0.35, 0.36, 0.4); _nail_mesh.material = m
+	return _nail_mesh
+
+## the nail itself flying (fast, but you see it) with a thin bright streak
+func _fly_nail(a: Vector3, b: Vector3) -> void:
+	var n := MeshInstance3D.new(); n.mesh = _nail_m(); n.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	get_tree().current_scene.add_child(n)
+	var d := (b - a); var L := d.length()
+	if L < 0.05: n.queue_free(); return
+	n.global_transform = Transform3D(Basis.looking_at(d / L) * Basis(Vector3.RIGHT, PI * 0.5), a)
+	var tw := n.create_tween(); tw.tween_property(n, "global_position", b, L / 38.0); tw.tween_callback(n.queue_free)
+	FxCos.tracer("tr_basic", get_tree().current_scene, a, b)
+
+## a nail left sticking out of the zombie where it went in (falls away with it)
+func _stick_nail(z: Node, at: Vector3, dir: Vector3) -> void:
+	var n := MeshInstance3D.new(); n.mesh = _nail_m(); n.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	z.add_child(n)
+	n.global_transform = Transform3D(Basis.looking_at(dir) * Basis(Vector3.RIGHT, PI * 0.5), at - dir * 0.04)
+	get_tree().create_timer(4.0).timeout.connect(func() -> void: if is_instance_valid(n): n.queue_free())
 
 ## double barrel: a big orange flash + a puff of grey smoke at the muzzle, a hard camera kick
 func _big_flash() -> void:

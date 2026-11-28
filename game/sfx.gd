@@ -34,6 +34,7 @@ func _ready() -> void:
 	_bank["dbarrel"] = _make_boomstick()
 	_bank["break"] = _make_break()
 	_bank["flame"] = _make_flame()
+	_bank["nail"] = _make_nail()
 	for i in 8:
 		var p := AudioStreamPlayer.new()
 		p.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -143,6 +144,19 @@ func _make_flame() -> AudioStreamWAV:
 	var w := _wav(s.slice(0, n - fade))
 	w.loop_mode = AudioStreamWAV.LOOP_FORWARD; w.loop_begin = 0; w.loop_end = n - fade
 	return w
+
+## nail gun: pneumatic "tchk" - a sharp metallic snap and a short burst of air
+func _make_nail() -> AudioStreamWAV:
+	var n := _n(0.14); var s := PackedFloat32Array(); s.resize(n)
+	var y := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		y += (randf_range(-1.0, 1.0) - y) * 0.6
+		var snap := (sin(t * TAU * 2600.0) * 0.5 + sin(t * TAU * 3900.0) * 0.3) * exp(-t * 110.0)
+		var air := y * exp(-t * 35.0) * (1.0 if t > 0.01 else 0.3)
+		var thud := sin(t * TAU * 180.0) * exp(-t * 60.0)
+		s[i] = snap * 0.8 + air * 0.6 + thud * 0.5
+	return _wav(s)
 
 func stream(name: String) -> AudioStream:
 	return _bank.get(name)

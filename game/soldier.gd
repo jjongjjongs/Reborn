@@ -420,6 +420,7 @@ const WEAPONS := {
 	# zombie mode (shop)
 	"dbarrel":  {"len": 0.80, "kind": "long",   "butt": [0.01, -0.03], "grip": [0.36, -0.04], "fore": [0.68, -0.03], "fp": 0.85, "break": true},   # 더블 배럴
 	"flamer":   {"len": 0.82, "kind": "long",   "butt": [0.00, 0.04], "grip": [0.18, -0.06], "fore": [0.79, -0.05], "vfore": true, "fp": 0.72},    # 화염방사기
+	"nailgun":  {"len": 0.27, "kind": "pistol", "grip": [0.17, -0.03], "fp": 1.2},    # 네일건 (sized from the hand)
 	# axe: blade turned to lead the swing (model flipped about the haft)
 	"axe":      {"len": 0.82, "kind": "axe",    "grip": [0.10, 0.02], "flip": true, "swing": 0.7, "fp": 1.1, "head": [0.62, 0.80]},
 }
@@ -477,7 +478,7 @@ func _anchor(key: String) -> Vector3:
 
 # handguns and the knife are sized from the hand (real pistol ~2.2 palm lengths, revolver ~2.8, knife ~3.2),
 # so a big glove never swallows a tiny pistol on any body
-const HAND_K := {"pistol": 2.2, "revolver": 2.8, "knife": 3.2}
+const HAND_K := {"pistol": 2.2, "revolver": 2.8, "knife": 3.2, "nailgun": 3.4}
 # first person looks straight down the barrel, so a real-size handgun disappears behind the fists;
 # like other shooters' view models, the handgun is drawn larger than the hands there
 const FP_HAND_GUN := 1.45
