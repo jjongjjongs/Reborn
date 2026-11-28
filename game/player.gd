@@ -360,7 +360,7 @@ func _start_reload() -> void:
 	if Soldier.WEAPONS.get(_wid(), {}).get("break", false):
 		Sfx.play("break"); _eject_shells()
 	else:
-		Sfx.play("reload")
+		Sfx.play("rel_" + _wid() if Sfx.has("rel_" + _wid()) else "reload", -2.0)
 
 ## break-action: the two spent shells pop out of the breech when it opens
 func _eject_shells() -> void:
@@ -384,7 +384,11 @@ func _shoot(w: Dictionary) -> void:
 		_bolt(w); return
 	if w.get("tesla", false):
 		_tesla(w); return
-	Sfx.play("dbarrel" if w.get("big_flash", false) else "shot", -1.0 if w.get("big_flash", false) else -3.0)
+	var snd := "dbarrel" if w.get("big_flash", false) else ("shot_" + _wid() if Sfx.has("shot_" + _wid()) else "shot")
+	Sfx.play(snd, -1.0 if w.get("big_flash", false) else -3.0)
+	if _wid() in ["shotgun", "sniper"] and int(_ammo.get(_wid(), 0)) > 0:      # pump / work the bolt after the shot
+		var wid := _wid()
+		get_tree().create_timer(0.38 if wid == "shotgun" else 0.5).timeout.connect(func() -> void: if _wid() == wid: Sfx.play("pump" if wid == "shotgun" else "bolt", -4.0))
 	Controls.shots += 1
 	BotPlayer.noise(global_position, self)
 	if _soldier: _soldier.shoot()

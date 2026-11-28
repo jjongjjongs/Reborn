@@ -37,6 +37,13 @@ func _ready() -> void:
 	_bank["nail"] = _make_nail()
 	_bank["twang"] = _make_twang()
 	_bank["zap"] = _make_zap()
+	# every gun its own report + its own reload (shot_<id>, rel_<id>; anything without one falls back)
+	for id in GUN:
+		var g: Dictionary = GUN[id]
+		_bank["shot_" + id] = _make_gun(g)
+	for id in RELOAD: _bank["rel_" + id] = _make_seq(RELOAD[id])
+	_bank["pump"] = _make_seq([[0.0, 0.8, 700.0], [0.12, 1.0, 1400.0]])
+	_bank["bolt"] = _make_seq([[0.0, 0.7, 1800.0], [0.09, 0.6, 900.0], [0.25, 0.7, 1100.0], [0.33, 0.9, 2200.0]])
 	for i in 8:
 		var p := AudioStreamPlayer.new()
 		p.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -61,7 +68,7 @@ func play_at(name: String, pos: Vector3, vol_db: float = 0.0) -> void:
 	var tree := get_tree()
 	if tree == null or tree.current_scene == null:
 		return
-	var r: Array = RANGE.get(name, [8.0, 60.0])
+	var r: Array = RANGE.get(name, RANGE["shot"] if name.begins_with("shot_") else [8.0, 60.0])
 	var cam := tree.root.get_viewport().get_camera_3d()
 	if cam and cam.global_position.distance_to(pos) > float(r[1]): return
 	var p := AudioStreamPlayer3D.new()
@@ -184,6 +191,63 @@ func _make_zap() -> AudioStreamWAV:
 		var crack := randf_range(-1.0, 1.0) * exp(-t * 70.0)
 		s[i] = (buzz + hiss + snap) * exp(-t * 9.0) * 0.7 + crack * 0.8
 	return _wav(s)
+
+## gun reports: crack (sharp transient), noise blast (low-passed, how dark), body (low thump, the calibre),
+## tail (room / echo length), ring (metal), all scaled; numbers picked by ear per weapon class
+const GUN := {
+	"m4":       {"crack": 1.0, "dark": 0.45, "body": 120.0, "bodyk": 0.7, "tail": 0.28, "decay": 16.0, "ring": 0.0},   # 5.56: sharp, snappy
+	"ak":       {"crack": 0.9, "dark": 0.32, "body": 85.0, "bodyk": 1.0, "tail": 0.36, "decay": 12.0, "ring": 0.0},    # 7.62: heavier, rougher
+	"mp5":      {"crack": 0.7, "dark": 0.55, "body": 165.0, "bodyk": 0.45, "tail": 0.16, "decay": 28.0, "ring": 0.0},  # 9 mm SMG: light, quick
+	"shotgun":  {"crack": 0.8, "dark": 0.22, "body": 62.0, "bodyk": 1.2, "tail": 0.55, "decay": 8.0, "ring": 0.0},     # 12 ga: deep boom
+	"sniper":   {"crack": 1.2, "dark": 0.38, "body": 70.0, "bodyk": 1.1, "tail": 0.95, "decay": 5.0, "ring": 0.0},     # big rifle: crack + long echo
+	"rpk":      {"crack": 0.9, "dark": 0.28, "body": 75.0, "bodyk": 1.1, "tail": 0.32, "decay": 13.0, "ring": 0.0},    # LMG: deep and fat
+	"pistol":   {"crack": 0.9, "dark": 0.6, "body": 180.0, "bodyk": 0.4, "tail": 0.14, "decay": 32.0, "ring": 0.15},   # 9 mm pistol: snappy pop
+	"revolver": {"crack": 1.1, "dark": 0.35, "body": 95.0, "bodyk": 1.0, "tail": 0.45, "decay": 9.0, "ring": 0.35},    # magnum: heavy boom, metal ring
+}
+## reload sequences: [time, loudness, pitch] clicks / clacks spread over the reload
+const RELOAD := {
+	"m4":       [[0.0, 0.7, 900.0], [0.45, 0.6, 600.0], [0.9, 1.0, 1300.0], [1.35, 0.9, 1900.0], [1.45, 0.8, 1100.0]],    # mag out, mag in, slap, charging handle
+	"ak":       [[0.0, 0.8, 700.0], [0.5, 0.7, 500.0], [1.0, 1.0, 1000.0], [1.55, 1.0, 1500.0], [1.65, 0.9, 900.0]],
+	"mp5":      [[0.0, 0.6, 1100.0], [0.4, 0.6, 800.0], [0.8, 0.9, 1500.0], [1.2, 1.0, 2100.0]],
+	"shotgun":  [[0.2, 0.7, 600.0], [0.6, 0.7, 620.0], [1.0, 0.7, 640.0], [1.4, 0.7, 600.0], [1.8, 0.7, 620.0], [2.4, 0.9, 700.0], [2.52, 1.0, 1400.0]],   # shells in, pump
+	"sniper":   [[0.0, 0.7, 1800.0], [0.15, 0.7, 900.0], [0.7, 0.6, 600.0], [1.3, 0.9, 1000.0], [1.9, 0.7, 1100.0], [2.0, 0.9, 2200.0]],               # bolt back, mag, bolt home
+	"rpk":      [[0.0, 0.9, 800.0], [0.5, 0.8, 500.0], [1.2, 1.0, 700.0], [1.9, 0.8, 1200.0], [2.4, 1.0, 900.0], [2.9, 1.0, 1600.0]],                  # cover up, box, belt, cover shut, handle
+	"pistol":   [[0.0, 0.6, 1400.0], [0.45, 0.8, 1000.0], [0.9, 1.0, 2000.0]],                                                                       # mag out, in, slide
+	"revolver": [[0.0, 0.7, 1600.0], [0.35, 0.5, 2400.0], [0.8, 0.4, 2600.0], [1.1, 0.4, 2500.0], [1.4, 0.4, 2600.0], [1.9, 0.9, 1500.0]],         # swing out, eject, rounds, snap shut
+}
+
+func _make_gun(g: Dictionary) -> AudioStreamWAV:
+	var tail: float = g["tail"]
+	var n := _n(tail + 0.05); var s := PackedFloat32Array(); s.resize(n)
+	var y := 0.0; var y2 := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		var nz := randf_range(-1.0, 1.0)
+		y += (nz - y) * float(g["dark"]); y2 += (y - y2) * 0.08
+		var crack := nz * exp(-t * 140.0) * float(g["crack"])
+		var blast := (y * 1.3 + y2 * 1.6) * exp(-t * float(g["decay"]))
+		var f: float = float(g["body"]) * (1.0 - 0.35 * minf(t / 0.08, 1.0))
+		var body := sin(t * TAU * f) * exp(-t * 24.0) * float(g["bodyk"])
+		var ring := (sin(t * TAU * 2300.0) + 0.6 * sin(t * TAU * 3400.0)) * exp(-t * 18.0) * float(g["ring"]) * 0.4
+		s[i] = clampf((crack * 0.8 + blast + body * 0.8 + ring) * 0.85, -1.0, 1.0)
+	return _wav(s)
+
+## a run of metallic clicks / clacks: each a noise tick + a short tone, decaying fast
+func _make_seq(hits: Array) -> AudioStreamWAV:
+	var last := 0.0
+	for h in hits: last = maxf(last, float(h[0]))
+	var n := _n(last + 0.12); var s := PackedFloat32Array(); s.resize(n)
+	for i in n:
+		var t := float(i) / RATE; var v := 0.0
+		for h in hits:
+			var dt: float = t - float(h[0])
+			if dt >= 0.0 and dt < 0.09:
+				v += (randf_range(-1.0, 1.0) * 0.55 + sin(dt * TAU * float(h[2])) * 0.5 + sin(dt * TAU * float(h[2]) * 0.5) * 0.3) * exp(-dt * 75.0) * float(h[1])
+		s[i] = clampf(v * 0.8, -1.0, 1.0)
+	return _wav(s)
+
+func has(name: String) -> bool:
+	return _bank.has(name)
 
 func stream(name: String) -> AudioStream:
 	return _bank.get(name)

@@ -688,7 +688,7 @@ func _fire_one(w: Dictionary) -> void:
 	Radar.contact(self, _target)          # shooting at someone gives the shooter away to that side
 	BotPlayer.noise(global_position, self)
 	var from := _muzzle.global_position
-	Sfx.play_at("shot", from, -4.0)
+	Sfx.play_at("shot_" + wid if Sfx.has("shot_" + wid) else "shot", from, -4.0)
 	if _soldier: _soldier.shoot()
 	var head_aim := randf() < D("head") or (D("head") > 0.3 and _burst_n == 0)   # elite opens at the head
 	var aim := (_target.global_position + Vector3(0, _aim_h(_target) + (0.45 if head_aim else 0.0), 0)) - from
