@@ -6,9 +6,11 @@ var life := 0.16
 var col := Color(1.0, 0.97, 0.9, 0.55)
 var _pts: Array = []            # [inner, outer, t]
 var _im := ImmediateMesh.new()
+var world := true               # false: points are in the parent's space (first-person view model)
 
-func _init() -> void:
-	top_level = true; mesh = _im
+func _init(in_world := true) -> void:
+	world = in_world
+	top_level = world; mesh = _im
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var m := StandardMaterial3D.new(); m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
@@ -21,7 +23,7 @@ func add(inner: Vector3, outer: Vector3) -> void:
 func _process(dt: float) -> void:
 	for p in _pts: p[2] += dt
 	while not _pts.is_empty() and float(_pts[0][2]) > life: _pts.pop_front()
-	global_transform = Transform3D.IDENTITY
+	if world: global_transform = Transform3D.IDENTITY
 	_im.clear_surfaces()
 	if _pts.size() < 2: return
 	_im.surface_begin(Mesh.PRIMITIVE_TRIANGLE_STRIP)

@@ -27,11 +27,11 @@ const POSE := {
 }
 ## axe swing on screen (camera space): s, grip, haft pitch / yaw / roll (deg) - like Soldier.AXE_KEYS
 const AXE_FP := [
-	[0.00, Vector3(0.17, -0.42, -0.60), 40.0, 14.0, -16.0],      # ready: fist low right, head up in the top-right corner
-	[0.22, Vector3(0.36, -0.06, -0.42), 128.0, -24.0, 10.0],    # wind-up: arm cocked up-right, head tipped back over the shoulder
-	[0.36, Vector3(0.04, -0.24, -0.66), 4.0, 30.0, -42.0],      # impact: diagonal slash, head through the crosshair
-	[0.56, Vector3(-0.22, -0.50, -0.55), -56.0, 60.0, -48.0],   # follow-through out the bottom-left
-	[1.00, Vector3(0.17, -0.42, -0.60), 40.0, 14.0, -16.0],
+	[0.00, Vector3(0.17, -0.42, -0.60), 40.0, 14.0, -16.0, Vector3(0.6, -1.0, 0.3)],     # ready: fist low right, head up in the top-right corner
+	[0.22, Vector3(0.36, -0.06, -0.42), 128.0, -24.0, 10.0, Vector3(1.0, 0.2, 0.3)],     # wind-up: elbow out, arm cocked up-right, head back
+	[0.36, Vector3(0.04, -0.24, -0.66), 4.0, 30.0, -42.0, Vector3(0.6, -1.0, 0.2)],      # impact: diagonal slash, head through the crosshair
+	[0.56, Vector3(-0.22, -0.50, -0.55), -56.0, 60.0, -48.0, Vector3(0.3, -1.0, 0.4)],   # follow-through out the bottom-left
+	[1.00, Vector3(0.17, -0.42, -0.60), 40.0, 14.0, -16.0, Vector3(0.6, -1.0, 0.3)],
 ]
 
 var player: PlayerBody
@@ -190,13 +190,23 @@ func _process(dt: float) -> void:
 	var target: Vector3 = grip + bob + rec + Vector3(-0.02 * _push, -0.10 * _reload_k - 0.30 * _raise - 0.05 * _push, 0.08 * _push)
 	if _kind == "axe":                     # the swing owns the pose (lowering for swaps / grenades still applies)
 		var ap := _axe_fp(1.0 - kick if kick > 0.0 else 0.0)
-		bas = Basis(Vector3.RIGHT, deg_to_rad(-40.0 * _raise)) * (ap[1] as Basis)
 		target = (ap[0] as Vector3) + bob + Vector3(0, -0.30 * _raise, 0)
+		bas = Basis(Vector3.RIGHT, deg_to_rad(-40.0 * _raise)) * (ap[1] as Basis)
+		if _body and _body._tgt:                 # straight wrist: hand along the forearm (as in third person)
+			var kk := _len / maxf(_body._len(), 0.001)
+			var sh_m: Vector3 = _body._bone_s(_body._arm["UpperArm.R"]); var el_m: Vector3 = _body._bone_s(_body._arm["LowerArm.R"])
+			var ua: float = sh_m.distance_to(el_m) * kk; var la: float = el_m.distance_to(_body._bone_s(_body._arm["Hand.R"])) * kk
+			var rs0: Vector3 = target + Vector3(0.10, -0.30, 0.95).normalized() * (ua + la) * 0.92
+			var want := bas * Vector3.FORWARD
+			var hb: float = _body.hand_back * kk
+			for it in 3:
+				bas = Soldier.straight_grip(rs0, target - (bas * Soldier.AXE_F).normalized() * hb, ua, la, ap[2], want, Soldier.AXE_F)
+			_body._axe_pole = _body.transform.basis.inverse() * (ap[2] as Vector3)
 		var sw := 1.0 - kick if kick > 0.0 else 0.0
 		if sw > 0.2 and sw < 0.5:
-			if _trail == null: _trail = SwingTrail.new(); add_child(_trail); _trail.life = 0.12
+			if _trail == null: _trail = SwingTrail.new(false); add_child(_trail); _trail.life = 0.12
 			var hd: Array = _wdef["head"]
-			var ht := cam.global_transform * Transform3D(bas, target - bas * _anchor("grip"))
+			var ht := Transform3D(bas, target - bas * _anchor("grip"))          # camera space, like the holder
 			_trail.add(ht * Vector3(0, 0, (0.5 - float(hd[0])) * _len), ht * Vector3(0, -0.12 * _len, (0.5 - float(hd[1])) * _len))
 	_holder.transform = Transform3D(bas, target - bas * _anchor("grip"))
 	# hands + forearms
@@ -218,7 +228,7 @@ func _process(dt: float) -> void:
 		var kk := _len / maxf(_body._len(), 0.001) if _body and _body._tgt else 1.0
 		var rr: float = _body._reach("R") * kk if _body and _body._tgt else 0.18
 		var sw: float = _body._bone_s(_body._arm["UpperArm.R"]).distance_to(_body._bone_s(_body._arm["UpperArm.L"])) * kk if _body and _body._tgt else 0.24
-		rs = hr + bas * (Vector3(0.10, -0.30, 0.95).normalized() * rr * 0.92)
+		rs = hr + ((Vector3(0.10, -0.30, 0.95).normalized() * rr * 0.92) if _kind == "axe" else bas * (Vector3(0.10, -0.30, 0.95).normalized() * rr * 0.92))   # axe: shoulder fixed in camera space (the wrist solve used it)
 		ls = rs + Vector3(-sw, 0.0, 0.0 if _kind == "pistol" else 0.04)
 	_pose_body(rs, ls)
 	_hand_l.visible = false; _arm_l.visible = false; _hand_r.visible = false; _arm_r.visible = false
@@ -233,7 +243,7 @@ static func _axe_fp(s: float) -> Array:
 	var a: Array = AXE_FP[i]; var b: Array = AXE_FP[i + 1]
 	var t := clampf((s - float(a[0])) / maxf(float(b[0]) - float(a[0]), 0.001), 0.0, 1.0)
 	t = t * t * (3.0 - 2.0 * t)
-	return [(a[1] as Vector3).lerp(b[1], t), Basis(Vector3.UP, deg_to_rad(lerpf(a[3], b[3], t))) * Basis(Vector3.RIGHT, deg_to_rad(lerpf(a[2], b[2], t))) * Basis(Vector3.BACK, deg_to_rad(lerpf(a[4], b[4], t)))]
+	return [(a[1] as Vector3).lerp(b[1], t), Basis(Vector3.UP, deg_to_rad(lerpf(a[3], b[3], t))) * Basis(Vector3.RIGHT, deg_to_rad(lerpf(a[2], b[2], t))) * Basis(Vector3.BACK, deg_to_rad(lerpf(a[4], b[4], t))), (a[5] as Vector3).lerp(b[5], t)]
 
 func _pose_body(rs: Vector3, ls: Vector3) -> void:
 	if _body == null or _body._tgt == null: return
