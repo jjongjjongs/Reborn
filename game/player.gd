@@ -355,6 +355,18 @@ func _start_reload() -> void:
 	_reload_t = float(Weapons.get_w(_wid())["reload"]) * Controls.reload_mult
 	Controls.reloading = true
 	Sfx.play("reload")
+	if Soldier.WEAPONS.get(_wid(), {}).get("break", false): _eject_shells()
+
+## break-action: the two spent shells pop out of the breech when it opens
+func _eject_shells() -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam == null: return
+	var fwd := -cam.global_transform.basis.z
+	var at: Vector3 = (ViewModel.muzzle - fwd * 0.42) if (Controls.view_fp and ViewModel.active) else (_muzzle.global_position - fwd * 0.45)
+	var cm := CylinderMesh.new(); cm.top_radius = 0.012; cm.bottom_radius = 0.012; cm.height = 0.06; cm.radial_segments = 10; cm.rings = 1
+	var mt := StandardMaterial3D.new(); mt.albedo_color = Color(0.78, 0.14, 0.1); mt.roughness = 0.5; cm.material = mt
+	FxCos.burst(get_tree().current_scene, at, {"n": 2, "life": 0.9, "mesh": cm, "mat": mt, "dir": (Vector3.UP - fwd * 0.6).normalized(), "spread": 18.0,
+		"vel": Vector2(2.2, 3.0), "grav": Vector3(0, -9.8, 0), "scale": Vector2(1, 1), "curve": FxCos.shrink(1.0, 1.0), "spin": 8.0, "expl": 0.8, "delay": 0.25})
 
 func _shoot(w: Dictionary) -> void:
 	_ammo[_wid()] = int(_ammo[_wid()]) - 1
@@ -374,6 +386,7 @@ func _shoot(w: Dictionary) -> void:
 	var s := deg_to_rad(Controls.spread_deg)
 	var any_hit := false
 	var last_end := from + fwd * 200.0
+	var shoved := {}                     # zombie -> pellets that landed (knock-back scales with them)
 	for p in int(w.get("pellets", 1)):
 		var dir := fwd.rotated(cam.global_transform.basis.x, randf_range(-s, s))
 		dir = dir.rotated(cam.global_transform.basis.y, randf_range(-s, s))
@@ -398,13 +411,21 @@ func _shoot(w: Dictionary) -> void:
 				col.hit(dmg, is_head, self)
 				Profile.bump("hits")
 				any_hit = true
+				if w.has("knock") and col.has_method("knock"):
+					shoved[col] = int(shoved.get(col, 0)) + 1
+					if int(shoved[col]) == 1: _blood_fx(hit.position, dir)
 		if p == 0 or randf() < 0.35:
 			_tracer(ViewModel.muzzle if (Controls.view_fp and ViewModel.active and scope_k < 0.5) else _muzzle.global_position, end)
 		last_end = end
+	for z in shoved:                    # close range = most pellets = thrown back hard
+		if is_instance_valid(z) and z.has_method("knock"):
+			var push: Vector3 = (z as Node3D).global_position - global_position; push.y = 0.0
+			z.knock(push.normalized() * float(w["knock"]) * float(shoved[z]), 0.25 + 0.04 * float(shoved[z]))
 	if any_hit:
 		Fx.hitmarker()
 		Sfx.play("hit")
 	_muzzle_flash()
+	if w.get("big_flash", false): _big_flash()
 
 # knife: short sweep in front; from behind = 'back' damage (one-shot)
 func _stab() -> void:
@@ -477,6 +498,24 @@ func _swing_hit(w: Dictionary) -> void:
 		n += 1
 	if n > 0:
 		Fx.hitmarker(); Sfx.play("hit", 2.0); Controls.add_shake(0.35); Controls.vibrate(40)
+
+## double barrel: a big orange flash + a puff of grey smoke at the muzzle, a hard camera kick
+func _big_flash() -> void:
+	var sc := get_tree().current_scene
+	var mz: Vector3 = ViewModel.muzzle if (Controls.view_fp and ViewModel.active and scope_k < 0.5) else _muzzle.global_position
+	var fwd := -get_viewport().get_camera_3d().global_transform.basis.z
+	FxCos.pop(sc, mz + fwd * 0.25, Color(1.0, 0.7, 0.3), 1.3, 0.08)
+	FxCos.flash(sc, mz, Color(1.0, 0.75, 0.4), 2.5, 4.0, 0.08)
+	var sm := FxCos.glow_mat("glow", false)
+	FxCos.burst(sc, mz + fwd * 0.9, {"n": 12, "life": 0.9, "size": 0.32, "mat": sm, "dir": fwd, "spread": 22.0, "vel": Vector2(1.0, 2.6),
+		"grav": Vector3(0, 0.6, 0), "damp": Vector2(2, 3), "scale": Vector2(0.8, 1.8), "color": Color(0.9, 0.9, 0.88, 0.32)})
+	Controls.add_shake(0.5); Controls.vibrate(60)
+
+## a smaller splash where shot lands on a zombie
+func _blood_fx(at: Vector3, dir: Vector3) -> void:
+	var bm := FxCos.glow_mat("glow", false)
+	FxCos.burst(get_tree().current_scene, at, {"n": 16, "life": 0.45, "size": 0.1, "mat": bm, "dir": (dir + Vector3(0, 0.4, 0)).normalized(), "spread": 35.0,
+		"vel": Vector2(2.0, 4.5), "grav": Vector3(0, -12, 0), "scale": Vector2(0.6, 1.3), "color": Color(0.6, 0.04, 0.04)})
 
 ## blood splash + a short white impact ring where a heavy blow lands
 func _melee_fx(at: Vector3, dir: Vector3) -> void:

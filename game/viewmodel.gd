@@ -185,9 +185,10 @@ func _process(dt: float) -> void:
 	var want_push: float = (reach - cam.global_position.distance_to(h["position"])) if h else 0.0
 	_push = lerpf(_push, clampf(want_push / 0.45, 0.0, 1.0), minf(1.0, dt * 12.0))   # 0..1 how blocked
 	# pose the weapon: grip anchor at `grip`
-	var rot: Vector3 = pose["rot"] + Vector3(rec_rot.x - 28.0 * _reload_k - 40.0 * _raise - 32.0 * _push, rec_rot.y + 28.0 * _push, rec_rot.z + 22.0 * _reload_k)
+	var brk := 1.0 if bool(_wdef.get("break", false)) else 0.0      # break-action: muzzle tipped down, gun rolled and brought in so the open breech faces the eye
+	var rot: Vector3 = pose["rot"] + Vector3(rec_rot.x - (28.0 - 10.0 * brk) * _reload_k - 40.0 * _raise - 32.0 * _push, rec_rot.y + 28.0 * _push + 8.0 * brk * _reload_k, rec_rot.z + (22.0 - 10.0 * brk) * _reload_k)
 	var bas := Basis.from_euler(Vector3(deg_to_rad(rot.x), deg_to_rad(rot.y), deg_to_rad(rot.z)))
-	var target: Vector3 = grip + bob + rec + Vector3(-0.02 * _push, -0.10 * _reload_k - 0.30 * _raise - 0.05 * _push, 0.08 * _push)
+	var target: Vector3 = grip + bob + rec + Vector3(-0.02 * _push - 0.07 * brk * _reload_k, -(0.10 - 0.17 * brk) * _reload_k - 0.30 * _raise - 0.05 * _push, 0.08 * _push + 0.05 * brk * _reload_k)
 	if _kind == "axe":                     # the swing owns the pose (lowering for swaps / grenades still applies)
 		var ap := _axe_fp(1.0 - kick if kick > 0.0 else 0.0)
 		target = (ap[0] as Vector3) + bob + Vector3(0, -0.30 * _raise, 0)

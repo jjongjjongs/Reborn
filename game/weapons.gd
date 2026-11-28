@@ -42,7 +42,11 @@ const W := {
 	"knife": {"name": "대검", "cls": "근접", "slot": 2, "melee": true, "dmg": [50, 50], "back": 100,
 		"interval": 0.6, "range": 1.8, "speed": 1.10, "mag": 0,
 		"desc": "탄약 없음. 앞에서 찌르면 50, 뒤에서 찌르면 한 방.", "bars": [5, 6, 0, 0, 0, 0]},
-	# zombie-mode weapons (shop): a heavy two-handed swing, hits land at `hit_at` s into the swing
+	# zombie-mode weapons (shop)
+	"dbarrel": {"name": "더블 배럴", "cls": "산탄총", "slot": 0, "zombie": true, "dmg": [14, 14], "pellets": 10, "rpm": 260, "auto": false,
+		"mag": 2, "reload": 2.2, "spread": [5.0, 7.5], "bloom": 1.0, "kick": 4.5, "speed": 0.95, "knock": 1.1, "big_flash": true,
+		"desc": "2발. 근거리 산탄이 좀비를 뒤로 날려버림.", "bars": [10, 4, 2, 9, 5, 1]},
+	# a heavy two-handed swing, hits land at `hit_at` s into the swing
 	"axe": {"name": "소방 도끼", "cls": "근접", "slot": 2, "melee": true, "zombie": true, "dmg": [90, 90], "back": 90,
 		"interval": 0.8, "range": 2.6, "arc": 50.0, "hits": 2, "hit_at": 0.25, "knock": 4.5, "speed": 1.0, "mag": 0,
 		"desc": "넓게 휘둘러 앞의 2마리까지. 사거리 2.6m.", "bars": [9, 3, 0, 0, 0, 0]},

@@ -13,7 +13,8 @@ func _run() -> void:
 	var we := WorldEnvironment.new(); var e := Environment.new(); e.background_mode = Environment.BG_COLOR; e.background_color = Color(0.8, 0.82, 0.85)
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR; e.ambient_light_color = Color(0.9, 0.9, 0.9); e.ambient_light_energy = 0.6; we.environment = e; w.add_child(we)
 	var cam := Camera3D.new(); w.add_child(cam); cam.current = true; cam.fov = 30
-	var ids := ["m4", "ak", "mp5", "shotgun", "sniper", "rpk", "pistol", "revolver", "knife"]
+	var ids: Array = ["m4", "ak", "mp5", "shotgun", "sniper", "rpk", "pistol", "revolver", "knife"]
+	if a.size() > 1: ids = Array(a[1].split(","))
 	var k := 0
 	for id in ids:
 		var s := Soldier.new(); s.body = body; w.add_child(s); s.setup(Color(0.22, 0.36, 0.72)); s.set_weapon(id)

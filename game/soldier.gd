@@ -417,7 +417,9 @@ const WEAPONS := {
 	"pistol":   {"len": 0.20, "kind": "pistol", "grip": [0.17, -0.07], "fp": 1.3},
 	"revolver": {"len": 0.26, "kind": "pistol", "grip": [0.13, -0.09], "fp": 1.2},
 	"knife":    {"len": 0.30, "kind": "knife",  "grip": [0.17, 0.0]},
-	# zombie mode (shop) - axe: blade turned to lead the swing (model flipped about the haft)
+	# zombie mode (shop)
+	"dbarrel":  {"len": 0.80, "kind": "long",   "butt": [0.01, -0.03], "grip": [0.36, -0.04], "fore": [0.68, -0.03], "fp": 0.85, "break": true},   # 더블 배럴
+	# axe: blade turned to lead the swing (model flipped about the haft)
 	"axe":      {"len": 0.82, "kind": "axe",    "grip": [0.10, 0.02], "flip": true, "swing": 0.7, "fp": 1.1, "head": [0.62, 0.80]},
 }
 const READY_PITCH := 35.0      # low ready: muzzle down (deg)
