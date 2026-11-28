@@ -25,7 +25,7 @@ def mat(n, rgb, rough=0.8, metal=0.0, emit=0.0, grime=0.35, scale=3.0, alpha=1.0
         dark = (rgb[0] * (1 - grime), rgb[1] * (1 - grime), rgb[2] * (1 - grime))
         cr.color_ramp.elements[0].color = L3(dark); cr.color_ramp.elements[1].color = L3(rgb)
         nt.links.new(nz.outputs["Fac"], cr.inputs["Fac"]); nt.links.new(cr.outputs["Color"], b.inputs["Base Color"])
-        bump = nt.nodes.new("ShaderNodeBump"); bump.inputs["Strength"].default_value = 0.25
+        bump = nt.nodes.new("ShaderNodeBump"); bump.inputs["Strength"].default_value = 0.08 if metal > 0.2 else 0.18
         nt.links.new(nz.outputs["Fac"], bump.inputs["Height"]); nt.links.new(bump.outputs["Normal"], b.inputs["Normal"])
     else:
         b.inputs["Base Color"].default_value = L3(rgb)
@@ -63,7 +63,7 @@ FRAME = mat("frame", (0.2, 0.2, 0.21), 0.5, 0.4, grime=0.2); GLASS = mat("glass"
 LIT = mat("lit", (1.0, 0.72, 0.38), 0.5, 0, 4.0, grime=0); HOLE = mat("hole", (0.02, 0.02, 0.02), 1.0, grime=0)
 RUST = mat("rust", (0.38, 0.19, 0.1), grime=0.5); STEEL = mat("steel", (0.55, 0.56, 0.58), 0.35, 0.8, grime=0.3)
 TYRE = mat("tyre", (0.04, 0.04, 0.04), 0.9, grime=0); CHROME = mat("chrome", (0.8, 0.8, 0.8), 0.2, 1.0, grime=0)
-CARC = [mat("cc%d" % i, c, 0.35, 0.3, grime=0.35) for i, c in enumerate([(0.24, 0.36, 0.55), (0.6, 0.12, 0.1), (0.78, 0.78, 0.76), (0.12, 0.12, 0.13), (0.3, 0.42, 0.3)])]
+CARC = [mat("cc%d" % i, c, 0.35, 0.3, grime=0.25, scale=1.2) for i, c in enumerate([(0.24, 0.36, 0.55), (0.6, 0.12, 0.1), (0.78, 0.78, 0.76), (0.12, 0.12, 0.13), (0.3, 0.42, 0.3)])]
 BURNT = mat("burnt", (0.1, 0.08, 0.07), 0.9, grime=0.5)
 BUS = mat("bus", (0.88, 0.64, 0.1), 0.4, 0.2); TANK = mat("tank", (0.72, 0.72, 0.7), 0.35, 0.7)
 SAND = mat("sand", (0.6, 0.52, 0.36), 0.95, grime=0.4, scale=8); OLIVE = mat("olive", (0.28, 0.31, 0.2), grime=0.4)
@@ -81,6 +81,7 @@ def bev(o, w=0.04, seg=2):
 def box(c, s, m, rz=0.0, rx=0.0, ry=0.0, b=0.04):
     bpy.ops.mesh.primitive_cube_add(size=1, location=c, rotation=(rx, ry, rz)); o = bpy.context.active_object
     o.scale = s; o.data.materials.append(m)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)     # textures at true size (no stretched bricks)
     if b and min(s) > b * 2.5: bev(o, b)
     return o
 def cyl(c, r, d, m, rot=(0, 0, 0), v=16, r2=None):
@@ -109,9 +110,9 @@ for k in range(8): box(P(500 + k * 12, 300, 0.01), (0.6, 2.6, 0.02), mat("zebra"
 for i in range(120):                                                                         # cracks
     x, y = random.uniform(0, 760), random.uniform(0, 600)
     box(P(x, y, 0.012), (random.uniform(0.6, 3.5), random.uniform(0.04, 0.1), 0.01), HOLE, rz=random.uniform(0, 3.14), b=0)
-for i in range(14):                                                                          # puddles (reflect the sky)
+for i in range(6):                                                                           # puddles (reflect the sky)
     x, y = random.uniform(380, 740), random.uniform(300, 580)
-    o = cyl(P(x, y, 0.015), random.uniform(0.8, 2.0), 0.01, mat("pud", (0.06, 0.06, 0.07), 0.02, 0.0, grime=0), v=20); o.scale.x = random.uniform(1, 2)
+    o = cyl(P(x, y, 0.015), random.uniform(0.5, 1.2), 0.01, mat("pud", (0.2, 0.2, 0.22), 0.05, 0.0, grime=0), v=20); o.scale.x = random.uniform(1, 1.8)
 for i in range(18):                                                                          # blood
     x, y = random.uniform(40, 720), random.uniform(40, 580)
     o = cyl(P(x, y, 0.02), random.uniform(0.3, 0.9), 0.01, BLOOD, v=10); o.scale.x = random.uniform(1, 3); o.rotation_euler.z = random.uniform(0, 3)
@@ -248,8 +249,8 @@ cyl(tc, 1.35, 8.0, TANK, rot=(math.radians(90), 0, ta + math.pi / 2), v=28)     
 box(tc + Vector((-math.cos(ta) * 5.4, -math.sin(ta) * 5.4, -0.1)), (2.6, 2.5, 2.7), BURNT, rz=ta, b=0.15)
 for k in range(22):
     c = tc + Vector((random.uniform(-3.5, 3.5), random.uniform(-1.6, 1.6), 1.0 + random.uniform(0, 1.8)))
-    o = cyl(c, random.uniform(0.3, 0.8), random.uniform(1.2, 3.8), random.choice([FIRE, FIRE2]), v=7, r2=0.02); o.rotation_euler = (random.uniform(-.2, .2), random.uniform(-.2, .2), 0)
-for k in range(8): cyl(tc + Vector((random.uniform(-6, 6), random.uniform(-4, 4), -1.35)), random.uniform(0.2, 0.5), 0.6, FIRE, v=6, r2=0.02)   # burning puddles
+    rr = random.uniform(0.35, 0.8); sph(c, rr, random.choice([FIRE, FIRE2]), (1, 1, random.uniform(1.6, 2.6)), 2)
+for k in range(8): sph(tc + Vector((random.uniform(-6, 6), random.uniform(-4, 4), -1.2)), random.uniform(0.2, 0.45), FIRE, (1, 1, 1.8), 1)   # burning puddles
 L1 = bpy.data.lights.new("fire", "POINT"); L1.energy = 12000; L1.color = (1.0, 0.42, 0.12); L1.shadow_soft_size = 2.5
 o = bpy.data.objects.new("fire", L1); sc.collection.objects.link(o); o.location = tc + Vector((0, 0, 3.0))
 o = cyl(tc + Vector((0, 0, -1.38)), 7.0, 0.01, mat("scorch", (0.03, 0.03, 0.03), grime=0), v=24)
