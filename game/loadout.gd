@@ -147,17 +147,17 @@ func _refresh() -> void:
 	# cards
 	for c in _cards.get_children(): c.queue_free()
 	var ids: Array = Weapons.ids_for_slot(_tab, Controls.zmode)
-	_cards.columns = 3 if ids.size() <= 6 else 4          # zombie weapons added: one more column, same two rows
+	_cards.columns = maxi(3, ceili(ids.size() / 2.0))      # zombie weapons added: more columns, always two rows
 	for id in ids:
 		var cw := Weapons.get_w(id)
 		var b := Button.new(); b.focus_mode = Control.FOCUS_NONE
-		b.custom_minimum_size = Vector2(226, 82) if _cards.columns == 3 else Vector2(168, 82)
+		b.custom_minimum_size = Vector2(minf(226.0, (700.0 - 8.0 * (_cards.columns - 1)) / _cards.columns), 82)
 		var sel: bool = id == _pick
 		var eq: bool = id == Controls.loadout[_tab]
 		var st := _sb(Color(0.16, 0.11, 0.05) if sel else PANEL, ACCENT if sel else LINE, 2 if sel else 1, 10)
 		for k in ["normal", "hover", "pressed"]: b.add_theme_stylebox_override(k, st)
 		b.text = "%s\n%s" % [cw["name"], ("장착 중" if eq else (("좀비 전용 · " if Weapons.is_zombie(id) else "") + String(cw["cls"])))]
-		b.add_theme_font_size_override("font_size", 22 if _cards.columns == 3 else 18)
+		b.add_theme_font_size_override("font_size", 22 if _cards.columns == 3 else (18 if _cards.columns == 4 else 15))
 		b.add_theme_color_override("font_color", FG)
 		b.add_theme_color_override("font_hover_color", FG)
 		var wid: String = id

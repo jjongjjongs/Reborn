@@ -91,6 +91,9 @@ func _sync_hud() -> void:
 		Controls.slot_mag[i] = _mag_of(id)
 	Controls.ammo = int(_ammo.get(_wid(), 0))
 	Controls.ammo_max = _mag_of(_wid())
+	if _soldier and _soldier._wmodel and _wid() == "xbow":          # the loaded bolt leaves the bow when fired
+		var bn := _soldier._wmodel.find_child("Bolt", true, false) as Node3D
+		if bn: bn.visible = Controls.ammo > 0
 
 func hit(dmg: int, _is_head: bool = false, attacker = null) -> void:
 	if not alive or invuln_t > 0.0:

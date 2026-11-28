@@ -8,13 +8,13 @@ func _shot(n: String) -> void:
 func _run() -> void:
 	await process_frame
 	var C = root.get_node("Controls"); var M = load("res://missions.gd"); var P = load("res://profile.gd")
-	M.earn(3000)
-	for id in ["zw_axe", "zw_dbarrel", "zw_flamer"]: print("BUY ", id, " ", P.buy(id) or P.owns(id))
+	M.earn(9000)
+	for id in ["zw_axe", "zw_dbarrel", "zw_flamer", "zw_nailgun", "zw_xbow", "zw_tesla"]: print("BUY ", id, " ", P.buy(id) or P.owns(id))
 	change_scene_to_file("res://Menu.tscn")
 	for i in 30: await process_frame
 	var sh = load("res://shop_screen.gd").new(); current_scene.add_child(sh)
 	for i in 10: await process_frame
-	sh._cat = "zweapon"; sh._sel = "zw_flamer"; sh._refresh()
+	sh._cat = "zweapon"; sh._sel = "zw_tesla"; sh._refresh()
 	await _shot("shop")
 	sh.queue_free()
 	var so = load("res://sortie.gd").new().setup("웨이브 서바이벌", "PvE · 좀비 방어", "res://Main.tscn", "survival")
@@ -23,8 +23,10 @@ func _run() -> void:
 	print("ZMODE ", C.zmode, " loadout ", C.loadout)
 	var lo = load("res://loadout.gd").new(); so.add_child(lo)
 	for i in 10: await process_frame
-	lo._tab = 0; lo._pick = "flamer"; lo._refresh(); lo._equip_btn.pressed.emit()
+	lo._tab = 0; lo._pick = "xbow"; lo._refresh(); lo._equip_btn.pressed.emit()
 	await _shot("loadout_primary")
+	lo._tab = 1; lo._pick = "nailgun"; lo._refresh(); lo._equip_btn.pressed.emit()
+	await _shot("loadout_secondary")
 	lo._tab = 2; lo._pick = "axe"; lo._refresh(); lo._equip_btn.pressed.emit()
 	await _shot("loadout_melee")
 	lo.queue_free()
@@ -49,14 +51,30 @@ func _run() -> void:
 	for z in current_scene.get_tree().get_nodes_in_group("zombie"):
 		z.player = null; z._warmup = 99.0; z.hp = 99999.0
 		z.global_position = pl.global_position + fwd * randf_range(3.5, 6.0) + fwd.cross(Vector3.UP) * randf_range(-1.0, 1.0)
-	for k in 14:
-		pl._shoot(Weapons.get_w("flamer")); await process_frame
-	await _shot("game_tp_flamer")
+	var bolt = pl._soldier._wmodel.find_child("Bolt", true, false)
+	print("XBOW bolt loaded visible ", bolt.visible if bolt else "none")
+	await _shot("game_tp_xbow")
+	pl._shoot(Weapons.get_w("xbow")); await process_frame
+	print("XBOW after shot visible ", bolt.visible, " ammo ", C.ammo)
+	for i in 60: await process_frame
+	pl._start_reload()
+	for i in 200:
+		await process_frame
+		if not C.reloading: break
+	print("XBOW after reload visible ", bolt.visible, " ammo ", C.ammo)
 	C.view_fp = true
 	for i in 20: await process_frame
-	for k in 14:
-		pl._shoot(Weapons.get_w("flamer")); await process_frame
-	await _shot("game_fp_flamer")
+	await _shot("game_fp_xbow")
+	pl._equip(1, true)
+	for i in 20: await process_frame
+	print("SECONDARY holding ", C.weapon_id)
+	for k in 6:
+		pl._shoot(Weapons.get_w("nailgun")); await process_frame
+	await _shot("game_fp_nailgun")
+	C.loadout[0] = "tesla"; pl._ammo["tesla"] = 20; pl._equip(0, true)
+	for i in 20: await process_frame
+	pl._shoot(Weapons.get_w("tesla")); await process_frame
+	await _shot("game_fp_tesla")
 	pl._equip(2, true)
 	for i in 20: await process_frame
 	print("MELEE holding ", C.weapon_id)

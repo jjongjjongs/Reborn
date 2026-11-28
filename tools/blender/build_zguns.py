@@ -213,6 +213,7 @@ elif NAME == "xbow":          # explosive crossbow: tan/black stock, recurve lim
     box((0.29, 0, 0.0), (0.03, 0.06, 0.044), GUN)                                     # riser
     box((0.31, 0, -0.04), (0.012, 0.012, 0.05), STEEL)                                # stirrup
     box((0.32, 0, -0.065), (0.06, 0.05, 0.008), STEEL, bev=0.003)
+    B0 = len(OBJS)                                                                    # the loaded bolt: its own mesh "Bolt" (hidden when fired)
     cyl((0.13, 0, 0.012), 0.004, 0.38, STEEL, verts=12)                               # bolt shaft
     cyl((0.33, 0, 0.012), 0.012, 0.04, RED, verts=24)                                 # explosive head
     for k in range(2): cyl((0.317 + k * 0.02, 0, 0.012), 0.0125, 0.004, YEL, verts=24)
@@ -220,6 +221,7 @@ elif NAME == "xbow":          # explosive crossbow: tan/black stock, recurve lim
     for a in range(3):                                                                # fletching
         th = a / 3 * math.tau
         box((-0.03, math.cos(th) * 0.008, 0.012 + math.sin(th) * 0.008), (0.04, 0.002, 0.012), mat("Z_Orange", (0.95, 0.52, 0.10), 0.45), bev=0.001, rot=(th, 0, 0))
+    BOLT = OBJS[B0:]; del OBJS[B0:]
     cyl((0.06, 0, 0.075), 0.017, 0.15, BLK, verts=40)                                 # scope
     cyl((0.14, 0, 0.075), 0.022, 0.03, BLK, verts=40); cyl((0.156, 0, 0.075), 0.019, 0.003, GLASS, verts=40)
     for x in (0.02, 0.10): box((x, 0, 0.045), (0.016, 0.024, 0.04), BLK)
@@ -259,7 +261,14 @@ for o in OBJS: o.select_set(True)
 bpy.context.view_layer.objects.active = OBJS[0]
 bpy.ops.object.join()
 gun = bpy.context.active_object; gun.name = NAME
-vs = [v.co for v in gun.data.vertices]
+vs = [v.co.copy() for v in gun.data.vertices]
+if "BOLT" in globals() and BOLT:
+    for x in bpy.context.selected_objects: x.select_set(False)
+    for o in BOLT: o.select_set(True)
+    bpy.context.view_layer.objects.active = BOLT[0]; bpy.ops.object.join()
+    bolt = bpy.context.active_object; bolt.name = "Bolt"; bolt.data.name = "Bolt"
+    vs += [v.co.copy() for v in bolt.data.vertices]
+    gun.select_set(True)
 x0 = min(v.x for v in vs); x1 = max(v.x for v in vs); L = x1 - x0
 zc = (min(v.z for v in vs) + max(v.z for v in vs)) / 2
 for k in ("butt", "grip", "fore"):

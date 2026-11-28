@@ -14,6 +14,9 @@ const ITEMS := [
 	{"id": "zw_axe", "cat": "zweapon", "wid": "axe", "name": "소방 도끼", "price": 500},
 	{"id": "zw_dbarrel", "cat": "zweapon", "wid": "dbarrel", "name": "더블 배럴", "price": 800},
 	{"id": "zw_flamer", "cat": "zweapon", "wid": "flamer", "name": "화염방사기", "price": 1500},
+	{"id": "zw_nailgun", "cat": "zweapon", "wid": "nailgun", "name": "네일건", "price": 600},
+	{"id": "zw_xbow", "cat": "zweapon", "wid": "xbow", "name": "폭발 석궁", "price": 1200},
+	{"id": "zw_tesla", "cat": "zweapon", "wid": "tesla", "name": "테슬라 건", "price": 2500},
 	# body: the soldier model (same skeleton / animations)
 	# the five concept-sheet characters, all built in Blender (tools/blender/build_mini_v3.py -- CLASS)
 	{"id": "body_rookie", "cat": "body", "name": "루키 어썰트", "price": 0},

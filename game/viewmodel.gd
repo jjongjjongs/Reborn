@@ -148,6 +148,9 @@ func _process(dt: float) -> void:
 	visible = Controls.view_fp and player != null and is_instance_valid(player) and player.alive and player.scope_k < 0.5
 	if not visible: return
 	if Controls.weapon_id != _wid: _set_weapon(Controls.weapon_id)
+	if _gun and _wid == "xbow":
+		var bn := _gun.find_child("Bolt", true, false) as Node3D
+		if bn: bn.visible = Controls.ammo > 0
 	_t += dt
 	var cam := get_parent() as Camera3D
 	# where the right hand holds the grip (camera space) per weapon kind
