@@ -559,10 +559,26 @@ func _pose_weapon() -> void:
 		_axe_pole = p[3]
 		var ua := sh_r.distance_to(_bone_s(_arm["LowerArm.R"])); var la := _bone_s(_arm["LowerArm.R"]).distance_to(_bone_s(_arm["Hand.R"]))
 		var want := (p[1] as Basis) * Vector3.FORWARD
-		var bas := straight_grip(sh_r, gp, ua, la, _axe_pole, want, AXE_F)
-		for it in 2:                                  # the wrist sits a palm behind the grip, along the forearm
-			bas = straight_grip(sh_r, gp - (bas * AXE_F).normalized() * hand_back, ua, la, _axe_pole, want, AXE_F)
+		var bas := Basis.IDENTITY
+		# the axe is not a solid: keep the whole haft and head out of the (big) head by moving the fist away
+		var hb: int = _tgt.find_bone("Head")
+		var hc: Vector3 = (_bone_s(hb) if hb >= 0 else sh_r + Vector3(-0.15, 0.1, 0)) + Vector3(0, AXE_HEAD_UP, 0)
+		for it in 5:
+			bas = straight_grip(sh_r, gp - (bas * AXE_F).normalized() * hand_back if it > 0 else gp, ua, la, _axe_pole, want, AXE_F)
+			var g := Transform3D(bas, gp - bas * _anchor("grip"))
+			var L := _len(); var worst := 0.0; var push := Vector3.ZERO
+			for j in 9:                                   # along the haft, grip -> head
+				var q: Vector3 = g * Vector3(0, -0.06 * L * float(j >= 6), lerpf(0.5 - 0.10, 0.5 - 0.80, j / 8.0) * L)
+				var dv := q - hc; var dd := dv.length()
+				if AXE_HEAD_R - dd > worst: worst = AXE_HEAD_R - dd; push = dv / maxf(dd, 0.001)
+			if worst <= 0.0: break
+			gp += push * (worst + 0.01)
 		_gun_s = Transform3D(bas, gp - bas * _anchor("grip"))
+		# no snapping: the grip angle eases toward the solved one (the solve can turn fast near the arm line)
+		if _axe_last != Basis():
+			_gun_s.basis = _axe_last.slerp(_gun_s.basis.orthonormalized(), clampf(get_process_delta_time() * 30.0, 0.0, 1.0))
+			_gun_s.origin = gp - _gun_s.basis * _anchor("grip")
+		_axe_last = _gun_s.basis.orthonormalized()
 		_trail_feed(1.0 - _kick if _kick > 0.0 else 0.0)
 	else:   # knife: hammer grip, blade forward, guard hand up
 		# forward (hammer) grip: fist in front of the right side of the chest, point aimed forward-up at the
@@ -577,13 +593,16 @@ func _pose_weapon() -> void:
 ## elbow pole (where the elbow points)
 const AXE_KEYS := [
 	[0.00, Vector3(0.02, -0.50, -0.55), 52.0, 8.0, -8.0, 0.0, Vector3(0.6, -1.0, 0.4)],       # ready: fist at the right hip, head up in front
-	[0.22, Vector3(0.36, 0.22, 0.02), 112.0, -64.0, 18.0, -24.0, Vector3(1.0, 0.3, 0.3)],     # wind-up: elbow up and out, fist by the right ear
+	[0.22, Vector3(0.42, 0.26, 0.16), 160.0, -25.0, 0.0, -24.0, Vector3(1.0, 0.6, 0.2)],      # wind-up: elbow up and out, fist up beside / behind the right ear, head back over the shoulder
 	[0.36, Vector3(-0.22, -0.40, -0.80), 4.0, 26.0, -38.0, 14.0, Vector3(0.6, -1.0, 0.2)],    # impact: arm extended, diagonal chop at chest height
-	[0.56, Vector3(-0.42, -0.62, -0.50), -58.0, 62.0, -48.0, 24.0, Vector3(0.3, -1.0, 0.5)],  # follow-through low left across the body
+	[0.56, Vector3(-0.40, -0.58, -0.55), -18.0, 70.0, -40.0, 24.0, Vector3(0.3, -1.0, 0.5)],  # follow-through low left across the body, head still forward
 	[1.00, Vector3(0.02, -0.50, -0.55), 52.0, 8.0, -8.0, 0.0, Vector3(0.6, -1.0, 0.4)],
 ]
 const AXE_F := Vector3(0.0, -0.9, -0.42)        # hammer grip, wrist straight: haft ~65 deg off the forearm, head tipped forward (natural ulnar set)
 var _axe_pole := Vector3(0.6, -1.0, 0.4)
+var _axe_last := Basis()
+const AXE_HEAD_UP := 0.30       # head sphere above the Head bone (chibi heads are ~1/3 of the height)
+const AXE_HEAD_R := 0.42        # its radius + a little clearance for the blade
 
 ## a held weapon's basis that keeps the wrist straight: the elbow comes from the two-bone solve (shoulder,
 ## wrist, upper / lower arm lengths, pole); the weapon's own wrist->knuckles direction f_g is laid along the
@@ -681,8 +700,10 @@ func _place_hands(kind: String, sh_l: Vector3) -> void:
 		_hand("R", _anchor("grip") + Vector3(0.0, -hw * 0.12, hw * 0.10), Vector3(-0.15, -0.55, -0.82), Vector3(-1, 0, 0.35), hw * 0.18, 70.0, Vector3(0.8, -1.0, 0.2))
 		_hand("L", _anchor("grip") + Vector3(-hw * 0.07, -hw * 0.19, -hw * 0.03), Vector3(0.35, -0.45, -0.82), Vector3(1, 0, 0), hw * 0.22, 72.0, Vector3(-0.8, -1.0, 0.2))
 	elif kind == "axe":   # one fist round the haft near the knob (the knife's hammer grip); free hand up as a guard
-		_fit_reach([["R", _anchor("grip"), AXE_F, Vector3(-1, 0, 0), 0.0]])
-		_hand("R", _anchor("grip"), AXE_F, Vector3(-1, 0, 0), 0.0, 80.0, _axe_pole)
+		# the haft lies in the curl of the fingers (a little off the palm), fingers closed round it
+		var pad := hand_back * 0.45
+		_fit_reach([["R", _anchor("grip"), AXE_F, Vector3(-1, 0, 0), pad]])
+		_hand("R", _anchor("grip"), AXE_F, Vector3(-1, 0, 0), pad, 68.0, _axe_pole)
 		var rl := _reach("L")
 		_hand("L", _gun_s.affine_inverse() * (sh_l + Vector3(rl * 0.18, -rl * 0.30, -rl * 0.55 + pocket_off.z)), Vector3(0.15, 1.0, -0.25), Vector3(0.35, 0.1, -1), 0.0, 30.0, Vector3(-0.6, -1.0, 0.0))
 	else:   # knife: hammer grip; guard hand open, palm toward the target, in front of the chest

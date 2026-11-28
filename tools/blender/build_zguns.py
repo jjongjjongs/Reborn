@@ -142,9 +142,10 @@ if NAME == "dbarrel":        # break-action double barrel: twin steel barrels, w
         cyl((-0.275 + k * 0.023, -0.031, -0.05), 0.01, 0.012, BRASS, axis="z", verts=20)
     A["butt"] = Vector((-0.362, 0, -0.038)); A["fore"] = Vector((0.17, 0, -0.036))
 elif NAME == "axe":           # fire axe: long wood haft with grip tape, red head, polished edge, back pick, steel collar
-    box((0.12, 0, 0.0), (0.66, 0.03, 0.04), WOOD)                                     # haft
-    for k in range(5): box((-0.15 + k * 0.022, 0, 0.0), (0.016, 0.03, 0.038), RUB, bev=0.006)   # grip tape wraps
-    box((-0.215, 0, -0.002), (0.02, 0.032, 0.044), RUB, bev=0.008)                    # knob
+    cyl((0.12, 0, 0.0), 0.021, 0.66, WOOD, verts=24)                                  # haft (round: it reads as held in a fist)
+    cyl((-0.13, 0, 0.0), 0.025, 0.15, RUB, verts=24)                                  # rubber grip sleeve
+    for k in range(5): ring((-0.195 + k * 0.032, 0, 0.0), 0.025, 0.0035, RUB, segs=24)   # grip ridges
+    cyl((-0.212, 0, 0.0), 0.03, 0.022, RUB, verts=24)                                 # knob
     box((0.40, 0, 0.0), (0.06, 0.032, 0.044), STEEL, bev=0.008)                       # collar
     head = [(0.38, 0.022), (0.43, 0.022), (0.44, 0.05), (0.49, 0.09), (0.525, 0.12), (0.53, 0.138)]
     edge = [(0.52, 0.15), (0.48, 0.158), (0.43, 0.16), (0.38, 0.156), (0.345, 0.146), (0.335, 0.132)]
@@ -154,7 +155,7 @@ elif NAME == "axe":           # fire axe: long wood haft with grip tape, red hea
     slab([(0.383, -0.022), (0.427, -0.022), (0.42, -0.07), (0.41, -0.125), (0.405, -0.135), (0.40, -0.125), (0.39, -0.07)], 0.024, RED, bev=0.006)   # back pick
     box((0.405, 0, 0.026), (0.05, 0.034, 0.012), STEEL, bev=0.004)
     for s in (1, -1): box((0.405, 0.0135 * s, 0.1), (0.07, 0.002, 0.014), WHITE, bev=0.001)   # white stencil band
-    A["grip"] = Vector((-0.12, 0, 0.0)); A["fore"] = Vector((0.08, 0, 0.0)); A["butt"] = Vector((-0.225, 0, 0.0))
+    A["grip"] = Vector((-0.15, 0, 0.0)); A["fore"] = Vector((0.08, 0, 0.0)); A["butt"] = Vector((-0.225, 0, 0.0))
 elif NAME == "flamer":        # flamethrower: steel wand + perforated heat shield, red fuel tank under it with gauge + valve, hose, pilot light
     box((0.0, 0, 0.0), (0.22, 0.05, 0.06), GUN)                                       # body
     box((0.0, 0, 0.034), (0.18, 0.04, 0.012), DGR)

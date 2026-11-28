@@ -34,7 +34,8 @@ func _run() -> void:
 		cam.global_position = pl.global_position + view[1] + Vector3(0, 1.0, 0)
 		cam.look_at(pl.global_position + fwd * 0.4 + Vector3(0, 0.9, 0), Vector3.UP); cam.current = true
 		var k := 0
-		for sv in [0.0, 0.2, 0.3, 0.36, 0.56, 0.8]:
+		for sv in [0.0, 0.12, 0.2, 0.26, 0.31, 0.36, 0.46, 0.56, 0.7, 0.85]:
+			s._axe_last = Basis()
 			Engine.time_scale = 1.0
 			s._kick = 1.0 - sv if sv > 0.0 else 0.0
 			Engine.time_scale = 0.0
