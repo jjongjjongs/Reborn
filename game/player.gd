@@ -408,6 +408,8 @@ func _shoot(w: Dictionary) -> void:
 
 # knife: short sweep in front; from behind = 'back' damage (one-shot)
 func _stab() -> void:
+	if Weapons.get_w(_wid()).has("hits"):
+		_swing(); return
 	if _soldier: _soldier.shoot()
 	Sfx.play("throw", -2.0)
 	var w := Weapons.get_w("knife")
@@ -434,6 +436,58 @@ func _stab() -> void:
 	best.hit(dmg, false, self)
 	Fx.hitmarker()
 	Sfx.play("hit")
+
+## heavy melee (axe): wind-up + swing; at `hit_at` the blade crosses the front: up to `hits` targets in
+## a wide cone are hit, shoved back and splashed; a whiff only whooshes
+func _swing() -> void:
+	var w := Weapons.get_w(_wid())
+	if _soldier: _soldier.shoot()
+	Sfx.play("throw", -6.0)
+	var wid := _wid()
+	get_tree().create_timer(float(w["hit_at"])).timeout.connect(func() -> void:
+		if not is_instance_valid(self) or not alive or _wid() != wid: return
+		_swing_hit(w))
+
+func _swing_hit(w: Dictionary) -> void:
+	var reach := float(w["range"]); var cone := cos(deg_to_rad(float(w["arc"])))
+	var fwd := -global_transform.basis.z; fwd.y = 0.0; fwd = fwd.normalized()
+	var cands := []
+	for c in get_tree().get_nodes_in_group("zombie") + get_tree().get_nodes_in_group("combatant"):
+		if c == self or not is_instance_valid(c): continue
+		if "alive" in c and not c.alive: continue
+		if c.get("_dead") == true: continue
+		var to: Vector3 = (c as Node3D).global_position - global_position
+		if absf(to.y) > 1.6: continue
+		to.y = 0.0
+		var d := to.length()
+		if d > reach + 0.4 or d < 0.01 or fwd.dot(to / d) < cone: continue
+		cands.append([d, c])
+	cands.sort_custom(func(a, b): return a[0] < b[0])
+	var n := 0
+	for e in cands:
+		if n >= int(w["hits"]): break
+		var t: Node3D = e[1]
+		if not t.has_method("hit"): continue
+		var dmg := int(float(w["dmg"][0]) * Controls.dmg_mult)
+		var at: Vector3 = t.global_position + Vector3(0, 1.1, 0)
+		t.hit(dmg, false, self)
+		var push: Vector3 = (t.global_position - global_position); push.y = 0.0
+		if t.has_method("knock"): t.knock(push.normalized() * float(w["knock"]))
+		_melee_fx(at, push.normalized())
+		n += 1
+	if n > 0:
+		Fx.hitmarker(); Sfx.play("hit", 2.0); Controls.add_shake(0.35); Controls.vibrate(40)
+
+## blood splash + a short white impact ring where a heavy blow lands
+func _melee_fx(at: Vector3, dir: Vector3) -> void:
+	var sc := get_tree().current_scene
+	var bm := FxCos.glow_mat("glow", false)          # soft round drops, not squares
+	FxCos.burst(sc, at, {"n": 34, "life": 0.55, "size": 0.12, "mat": bm, "dir": (dir + Vector3(0, 0.6, 0)).normalized(), "spread": 40.0,
+		"vel": Vector2(2.5, 5.5), "grav": Vector3(0, -12, 0), "scale": Vector2(0.6, 1.4), "color": Color(0.6, 0.04, 0.04)})
+	FxCos.burst(sc, at, {"n": 10, "life": 0.35, "size": 0.22, "mat": bm, "dir": Vector3.UP, "spread": 180.0,
+		"vel": Vector2(0.5, 1.5), "grav": Vector3(0, -4, 0), "color": Color(0.45, 0.02, 0.02)})
+	FxCos.shock(sc, at, Color(1, 0.95, 0.85, 0.8), 0.28, 0.16, true)
+	FxCos.pop(sc, at, Color(1.0, 0.85, 0.6), 0.9, 0.12)
 
 func _impact(pos: Vector3) -> void:
 	var m := MeshInstance3D.new()

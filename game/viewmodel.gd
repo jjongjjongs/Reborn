@@ -23,7 +23,16 @@ const POSE := {
 	"pistol": {"grip": Vector3(0.08, -0.17, -0.40), "rot": Vector3(3.0, 6.0, -4.0), "sr": Vector3(0.20, -0.32, 0.0), "sl": Vector3(-0.04, -0.32, -0.04)},
 	# knife: forward hammer grip low on the right, point toward the crosshair, edge down
 	"knife":  {"grip": Vector3(0.17, -0.19, -0.36), "rot": Vector3(10.0, 12.0, -8.0), "sr": Vector3(0.34, -0.46, 0.0), "sl": Vector3(-0.30, -0.8, 0.0)},
+	"axe":    {"grip": Vector3(0.20, -0.30, -0.42), "rot": Vector3.ZERO, "sr": Vector3(0.34, -0.46, 0.0), "sl": Vector3(-0.30, -0.8, 0.0)},
 }
+## axe swing on screen (camera space): s, grip, haft pitch / yaw / roll (deg) - like Soldier.AXE_KEYS
+const AXE_FP := [
+	[0.00, Vector3(0.24, -0.36, -0.58), 58.0, 10.0, -20.0],     # ready: shaft up the right side, head top right
+	[0.20, Vector3(0.34, -0.14, -0.50), 118.0, -10.0, -30.0],   # wind-up: head swung up and back, top right
+	[0.36, Vector3(0.06, -0.28, -0.66), 6.0, 28.0, -45.0],      # impact: head through the crosshair
+	[0.56, Vector3(-0.16, -0.48, -0.58), -48.0, 52.0, -45.0],   # follow-through low left
+	[1.00, Vector3(0.24, -0.36, -0.58), 58.0, 10.0, -20.0],
+]
 
 var player: PlayerBody
 var _wid := ""
@@ -47,6 +56,7 @@ var _flash: OmniLight3D
 var _flash_t := 0.0
 var _t := 0.0
 var _last_kick := 0.0
+var _trail: SwingTrail
 var _raise := 0.0          # 0 = up, 1 = fully lowered (swap / grenade)
 var _reload_k := 0.0
 var _push := 0.0           # 0..1: muzzle blocked by a wall -> weapon tucked down and in
@@ -118,9 +128,9 @@ func _set_weapon(id: String) -> void:
 		var bx: AABB = (m.global_transform.affine_inverse() * g.global_transform) * g.get_aabb()
 		ab = bx if first else ab.merge(bx); first = false
 	var sc := _len / maxf(ab.size.x, 0.001)
-	m.rotation.y = PI * 0.5              # model muzzle +X -> holder -Z
-	m.scale = Vector3.ONE * sc
-	m.position = -(Basis(Vector3.UP, PI * 0.5) * (ab.get_center() * sc))
+	var rb := Basis(Vector3.UP, PI * 0.5)              # model muzzle +X -> holder -Z
+	if _wdef.get("flip", false): rb = Basis(Vector3.BACK, PI) * rb
+	m.transform = Transform3D(rb * Basis.from_scale(Vector3.ONE * sc), -(rb * (ab.get_center() * sc)))
 	_gun = m
 	Profile.apply_finish(m, "", id)
 	if is_instance_valid(_wfx_node): _wfx_node.queue_free()
@@ -149,7 +159,7 @@ func _process(dt: float) -> void:
 	var bob := Vector3(sin(_t * 7.0) * 0.010, -absf(cos(_t * 7.0)) * 0.012, 0.0) * mv
 	# recoil / knife lunge (the 3rd-person soldier's kick goes 1 -> 0 after each shot)
 	var kick: float = player._soldier._kick if player._soldier else 0.0
-	if kick > _last_kick + 0.3 and _kind != "knife":
+	if kick > _last_kick + 0.3 and not _kind in ["knife", "axe"]:
 		_flash.visible = true; _flash_t = 0.04
 	_last_kick = kick
 	_flash_t -= dt
@@ -178,6 +188,16 @@ func _process(dt: float) -> void:
 	var rot: Vector3 = pose["rot"] + Vector3(rec_rot.x - 28.0 * _reload_k - 40.0 * _raise - 32.0 * _push, rec_rot.y + 28.0 * _push, rec_rot.z + 22.0 * _reload_k)
 	var bas := Basis.from_euler(Vector3(deg_to_rad(rot.x), deg_to_rad(rot.y), deg_to_rad(rot.z)))
 	var target: Vector3 = grip + bob + rec + Vector3(-0.02 * _push, -0.10 * _reload_k - 0.30 * _raise - 0.05 * _push, 0.08 * _push)
+	if _kind == "axe":                     # the swing owns the pose (lowering for swaps / grenades still applies)
+		var ap := _axe_fp(1.0 - kick if kick > 0.0 else 0.0)
+		bas = Basis(Vector3.RIGHT, deg_to_rad(-40.0 * _raise)) * (ap[1] as Basis)
+		target = (ap[0] as Vector3) + bob + Vector3(0, -0.30 * _raise, 0)
+		var sw := 1.0 - kick if kick > 0.0 else 0.0
+		if sw > 0.2 and sw < 0.5:
+			if _trail == null: _trail = SwingTrail.new(); add_child(_trail); _trail.life = 0.12
+			var hd: Array = _wdef["head"]
+			var ht := cam.global_transform * Transform3D(bas, target - bas * _anchor("grip"))
+			_trail.add(ht * Vector3(0, 0, (0.5 - float(hd[0])) * _len), ht * Vector3(0, -0.12 * _len, (0.5 - float(hd[1])) * _len))
 	_holder.transform = Transform3D(bas, target - bas * _anchor("grip"))
 	# hands + forearms
 	var hr: Vector3 = _holder.transform * _anchor("grip")
@@ -185,7 +205,7 @@ func _process(dt: float) -> void:
 	if _kind == "long": hl = _holder.transform * _anchor("fore") + bas * Vector3(0, -0.035, 0)   # under the handguard
 	elif _kind == "pistol": hl = hr + bas * Vector3(-0.03, -0.012, -0.012) * S                       # support hand wraps the strong hand
 	else: hl = pose["sl"]
-	if _kind == "long" and bool(_wdef.get("vfore", false)):
+	if (_kind == "long" and bool(_wdef.get("vfore", false))) or _kind == "axe":
 		hl = _holder.transform * _anchor("fore")
 	# the body's arms: put its shoulders below the frame (right one behind the grip, left one under the
 	# support hand, a little turned like a bladed stance) and let its own hand IK take the grips
@@ -206,6 +226,14 @@ func _process(dt: float) -> void:
 	var mz: Vector3 = _holder.transform * Vector3(0, _anchor("grip").y + 0.03, -_len * 0.5)
 	_flash.position = mz
 	muzzle = cam.global_transform * mz
+
+static func _axe_fp(s: float) -> Array:
+	var i := 0
+	while i < AXE_FP.size() - 2 and s > float(AXE_FP[i + 1][0]): i += 1
+	var a: Array = AXE_FP[i]; var b: Array = AXE_FP[i + 1]
+	var t := clampf((s - float(a[0])) / maxf(float(b[0]) - float(a[0]), 0.001), 0.0, 1.0)
+	t = t * t * (3.0 - 2.0 * t)
+	return [(a[1] as Vector3).lerp(b[1], t), Basis(Vector3.UP, deg_to_rad(lerpf(a[3], b[3], t))) * Basis(Vector3.RIGHT, deg_to_rad(lerpf(a[2], b[2], t))) * Basis(Vector3.BACK, deg_to_rad(lerpf(a[4], b[4], t)))]
 
 func _pose_body(rs: Vector3, ls: Vector3) -> void:
 	if _body == null or _body._tgt == null: return

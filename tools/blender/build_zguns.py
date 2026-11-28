@@ -266,6 +266,8 @@ for k in ("butt", "grip", "fore"):
     print("ANCHOR %s %s [%.2f, %.2f]" % (NAME, k, (p.x - x0) / L, (p.z - zc) / L))
 print("LEN %s %.3f tris %d" % (NAME, L, sum(len(p.vertices) - 2 for p in gun.data.polygons)))
 import os; os.makedirs("/tmp/zg", exist_ok=True)
+if "--export" in ARGV:        # into the game (glTF: Y up, the game turns +X to the muzzle / blade end)
+    bpy.ops.export_scene.gltf(filepath="/home/user/Reborn/game/assets/guns/%s.glb" % NAME, export_format="GLB", use_selection=True, export_materials="EXPORT")
 bpy.ops.wm.save_as_mainfile(filepath="/tmp/zg/%s.blend" % NAME)
 if RENDER:                    # 3/4 beauty shot for the concept sheet
     sc = bpy.context.scene

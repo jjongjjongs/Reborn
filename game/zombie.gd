@@ -22,6 +22,8 @@ var _repath_t := 0.0
 var _agent: NavigationAgent3D
 var _body: Soldier
 var _flash := 0.0
+var _knock := Vector3.ZERO           # heavy hits (axe): shoved back, no walking for a moment
+var _stagger := 0.0
 var player: Node3D
 var respawn_pts: Array = []      # where a hopelessly stuck zombie is put back (wave spawns)
 var _stuck_t := 0.0
@@ -60,6 +62,13 @@ func _physics_process(delta: float) -> void:
 		_body.rotation.x = -0.18 * _flash
 	if _climbing:
 		velocity = Vector3.ZERO
+		return
+	if _stagger > 0.0:
+		_stagger -= delta
+		velocity.x = _knock.x; velocity.z = _knock.z
+		_knock = _knock.move_toward(Vector3.ZERO, delta * 14.0)
+		if not is_on_floor(): velocity.y -= GRAVITY * delta
+		move_and_slide()
 		return
 	_atk_cd = maxf(0.0, _atk_cd - delta)
 	_warmup = maxf(0.0, _warmup - delta)
@@ -160,6 +169,10 @@ func hit(dmg: int, is_head: bool = false, _attacker = null) -> void:
 	_flash = 1.0
 	if hp <= 0.0:
 		_die()
+
+func knock(push: Vector3, t := 0.35) -> void:
+	if _dead or _climbing: return
+	_knock = Vector3(push.x, 0, push.z); _stagger = t; _flash = 1.0
 
 func _die() -> void:
 	_dead = true

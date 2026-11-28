@@ -42,6 +42,10 @@ const W := {
 	"knife": {"name": "대검", "cls": "근접", "slot": 2, "melee": true, "dmg": [50, 50], "back": 100,
 		"interval": 0.6, "range": 1.8, "speed": 1.10, "mag": 0,
 		"desc": "탄약 없음. 앞에서 찌르면 50, 뒤에서 찌르면 한 방.", "bars": [5, 6, 0, 0, 0, 0]},
+	# zombie-mode weapons (shop): a heavy two-handed swing, hits land at `hit_at` s into the swing
+	"axe": {"name": "소방 도끼", "cls": "근접", "slot": 2, "melee": true, "zombie": true, "dmg": [90, 90], "back": 90,
+		"interval": 0.9, "range": 2.6, "arc": 50.0, "hits": 2, "hit_at": 0.26, "knock": 4.5, "speed": 1.0, "mag": 0,
+		"desc": "넓게 휘둘러 앞의 2마리까지. 사거리 2.6m.", "bars": [9, 3, 0, 0, 0, 0]},
 }
 const BAR_KEYS := ["데미지", "연사", "정확도", "반동", "무게", "탄창"]
 const SWAP_TIME := 0.5

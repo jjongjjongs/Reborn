@@ -417,6 +417,8 @@ const WEAPONS := {
 	"pistol":   {"len": 0.20, "kind": "pistol", "grip": [0.17, -0.07], "fp": 1.3},
 	"revolver": {"len": 0.26, "kind": "pistol", "grip": [0.13, -0.09], "fp": 1.2},
 	"knife":    {"len": 0.30, "kind": "knife",  "grip": [0.17, 0.0]},
+	# zombie mode (shop) - axe: blade turned to lead the swing (model flipped about the haft)
+	"axe":      {"len": 0.95, "kind": "axe",    "grip": [0.14, 0.02], "fore": [0.40, 0.02], "flip": true, "swing": 0.75, "fp": 1.05, "head": [0.62, 0.80]},
 }
 const READY_PITCH := 35.0      # low ready: muzzle down (deg)
 # the SWAT mesh is stylised (shoulder->wrist 0.42 m vs ~0.58 m on a real adult), so
@@ -450,9 +452,9 @@ func set_weapon(id: String) -> void:
 	var a := _model_aabb(m)
 	var L: float = _len()
 	var sc: float = L / maxf(a.size.x, 0.001)
-	m.rotation.y = PI * 0.5            # model muzzle +X -> holder -Z (forward)
-	m.scale = Vector3.ONE * sc
-	m.position = -(Basis(Vector3.UP, PI * 0.5) * (a.get_center() * sc))
+	var rb := Basis(Vector3.UP, PI * 0.5)            # model muzzle +X -> holder -Z (forward)
+	if _wdef.get("flip", false): rb = Basis(Vector3.BACK, PI) * rb
+	m.transform = Transform3D(rb * Basis.from_scale(Vector3.ONE * sc), -(rb * (a.get_center() * sc)))
 	_gun.add_child(m)
 	_wmodel = m
 	if lod:                                             # bots: a lighter gun (~1/3 of up to 19k triangles), no shadow of its own
@@ -499,7 +501,7 @@ func _update_gun() -> void:
 	if _gun == null or _tgt == null or _wdef.is_empty(): return
 	var dt := get_process_delta_time()
 	_aim_b = move_toward(_aim_b, 1.0 if _aiming else 0.0, dt * 6.0)
-	_kick = move_toward(_kick, 0.0, dt * (4.0 if _wdef.get("kind", "") == "knife" else 9.0))
+	_kick = move_toward(_kick, 0.0, dt * (4.0 if _wdef.get("kind", "") == "knife" else (1.0 / float(_wdef["swing"]) if _wdef.has("swing") else 9.0)))
 	var throwing := _windup or _throw_t > 0.0
 	var show := not _dead and not throwing
 	_gun.visible = visible and show and not fp_gun
@@ -541,6 +543,13 @@ func _pose_weapon() -> void:
 		var gp := ready_p.lerp(aim_p, k)
 		var basis := Basis(Vector3.RIGHT, deg_to_rad(lerpf(-14.0, 0.0, k) + 9.0 * _kick))
 		_gun_s = Transform3D(basis, gp - basis * _anchor("grip") + Vector3(0, 0, 0.03 * _kick))
+	elif kind == "axe":
+		# two-handed swing, all in arm lengths from the right shoulder (any body): ready across the body,
+		# wind-up over the right shoulder, chop down through the front, follow-through low left, back to ready
+		var p := _axe_pose(1.0 - _kick if _kick > 0.0 else 0.0)
+		var gp: Vector3 = sh_r + (p[0] as Vector3) * reach + Vector3(0, 0, pocket_off.z)
+		_gun_s = Transform3D(p[1], gp - (p[1] as Basis) * _anchor("grip"))
+		_trail_feed(1.0 - _kick if _kick > 0.0 else 0.0)
 	else:   # knife: hammer grip, blade forward, guard hand up
 		# forward (hammer) grip: fist in front of the right side of the chest, point aimed forward-up at the
 		# target, edge down; the stab drives it straight out (arm length based, any body)
@@ -548,6 +557,35 @@ func _pose_weapon() -> void:
 		var basis := Basis(Vector3.RIGHT, deg_to_rad(12.0)) * Basis(Vector3.UP, deg_to_rad(8.0))
 		_gun_s = Transform3D(basis, gp - basis * _anchor("grip"))
 	_place_hands(kind, sh_l)
+
+## axe swing keys: s (0..1 of the swing), grip offset from the right shoulder in arm lengths, haft pitch
+## (0 = level forward, + = head up / back), yaw (+ = toward the left), roll
+const AXE_KEYS := [
+	[0.00, Vector3(-0.22, -0.55, -0.50), 38.0, 18.0, -10.0],    # ready: across the body, head up-forward
+	[0.20, Vector3(0.32, 0.32, -0.05), 108.0, -62.0, -5.0],    # wind-up: hands up by the right shoulder, head out to the right
+	[0.36, Vector3(-0.25, -0.40, -0.88), -10.0, 22.0, -25.0],   # impact: arms out, haft level, blade leading
+	[0.56, Vector3(-0.48, -0.72, -0.55), -55.0, 48.0, -35.0],   # follow-through low left
+	[1.00, Vector3(-0.22, -0.55, -0.50), 38.0, 18.0, -10.0],
+]
+## blade trail while the swing comes down (third person; first person feeds its own)
+var _trail: SwingTrail
+func _trail_feed(s: float) -> void:
+	if fp_gun or not visible: return
+	if _trail == null: _trail = SwingTrail.new(); add_child(_trail)
+	if s > 0.2 and s < 0.5:
+		var hd: Array = _wdef["head"]; var L := _len()
+		var g := global_transform * _gun_s
+		_trail.add(g * Vector3(0, 0, (0.5 - float(hd[0])) * L), g * Vector3(0, -0.12 * L, (0.5 - float(hd[1])) * L))
+
+static func _axe_pose(s: float) -> Array:
+	var i := 0
+	while i < AXE_KEYS.size() - 2 and s > float(AXE_KEYS[i + 1][0]): i += 1
+	var a: Array = AXE_KEYS[i]; var b: Array = AXE_KEYS[i + 1]
+	var t := clampf((s - float(a[0])) / maxf(float(b[0]) - float(a[0]), 0.001), 0.0, 1.0)
+	t = t * t * (3.0 - 2.0 * t)
+	var pos: Vector3 = (a[1] as Vector3).lerp(b[1], t)
+	var pitch := deg_to_rad(lerpf(a[2], b[2], t)); var yaw := deg_to_rad(lerpf(a[3], b[3], t)); var roll := deg_to_rad(lerpf(a[4], b[4], t))
+	return [pos, Basis(Vector3.UP, yaw) * Basis(Vector3.RIGHT, pitch) * Basis(Vector3.BACK, roll)]
 
 func _wrist_of(contact: Vector3, f_g: Vector3, n_g: Vector3, pad: float) -> Vector3:
 	var gb := _gun_s.basis
@@ -606,6 +644,11 @@ func _place_hands(kind: String, sh_l: Vector3) -> void:
 		var hw := hand_back * 2.0
 		_hand("R", _anchor("grip") + Vector3(0.0, -hw * 0.12, hw * 0.10), Vector3(-0.15, -0.55, -0.82), Vector3(-1, 0, 0.35), hw * 0.18, 70.0, Vector3(0.8, -1.0, 0.2))
 		_hand("L", _anchor("grip") + Vector3(-hw * 0.07, -hw * 0.19, -hw * 0.03), Vector3(0.35, -0.45, -0.82), Vector3(1, 0, 0), hw * 0.22, 72.0, Vector3(-0.8, -1.0, 0.2))
+	elif kind == "axe":   # both fists round the haft: strong hand at the knob end, lead hand up the shaft
+		_fit_reach([["R", _anchor("grip"), Vector3(0.0, -0.9, 0.35), Vector3(-1, 0, 0), hand_back * 0.35],
+			["L", _anchor("fore"), Vector3(0.0, -0.9, -0.35), Vector3(1, 0, 0), hand_back * 0.35]])
+		_hand("R", _anchor("grip"), Vector3(0.0, -0.9, 0.35), Vector3(-1, 0, 0), hand_back * 0.35, 80.0, Vector3(0.7, -1.0, 0.4))
+		_hand("L", _anchor("fore"), Vector3(0.0, -0.9, -0.35), Vector3(1, 0, 0), hand_back * 0.35, 80.0, Vector3(-0.7, -1.0, 0.4))
 	else:   # knife: hammer grip; guard hand open, palm toward the target, in front of the chest
 		_hand("R", _anchor("grip"), Vector3(0.0, -0.9, 0.35), Vector3(-1, 0, 0), hand_back * 0.35, 80.0, Vector3(0.7, -1.0, 0.4))
 		var rl := _reach("L")
