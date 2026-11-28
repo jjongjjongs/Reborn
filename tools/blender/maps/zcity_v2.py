@@ -386,8 +386,9 @@ views = {
     "aerial":   (P(760, 770, 60), P(380, 300, 0), 26),
     "crossing": (P(400, 330, 6.0), P(690, 530, 1.0), 20),
     "plaza":    (P(330, 590, 2.0), P(110, 440, 1.6), 22),
-    "mall":     (P(75, 95, 6.7), P(230, 200, 0.6), 15),
-    "checkpoint": (P(380, 260, 2.2), P(520, 70, 2.5), 20),
+    "mall":     (Vector((-31.0, 23.0, 6.4)), Vector((-17.0, 11.0, 1.2)), 16),          # inside: 2nd-floor balcony across the atrium
+    "checkpoint": (P(600, 280, 2.0), P(450, 80, 2.4), 20),                           # from the street over the sandbags to the tents
+    "plaza2":   (P(330, 560, 1.8), P(120, 470, 1.8), 20),                             # subway plaza: bus, metro entrance, pharmacy
 }
 for k, v in views.items():
     if not which or k in which: shot(k, *v)
