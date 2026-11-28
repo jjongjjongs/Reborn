@@ -35,6 +35,7 @@ func _ready() -> void:
 	_bank["break"] = _make_break()
 	_bank["flame"] = _make_flame()
 	_bank["nail"] = _make_nail()
+	_bank["twang"] = _make_twang()
 	for i in 8:
 		var p := AudioStreamPlayer.new()
 		p.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -156,6 +157,19 @@ func _make_nail() -> AudioStreamWAV:
 		var air := y * exp(-t * 35.0) * (1.0 if t > 0.01 else 0.3)
 		var thud := sin(t * TAU * 180.0) * exp(-t * 60.0)
 		s[i] = snap * 0.8 + air * 0.6 + thud * 0.5
+	return _wav(s)
+
+## crossbow: a string's twang - low plucked tone that drops a little, wood knock, quick air
+func _make_twang() -> AudioStreamWAV:
+	var n := _n(0.35); var s := PackedFloat32Array(); s.resize(n)
+	var y := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		var f := 140.0 * (1.0 + 0.6 * exp(-t * 30.0))
+		var string := (sin(t * TAU * f) + 0.4 * sin(t * TAU * f * 2.0) + 0.2 * sin(t * TAU * f * 3.0)) * exp(-t * 11.0)
+		y += (randf_range(-1.0, 1.0) - y) * 0.4
+		var knock := sin(t * TAU * 320.0) * exp(-t * 80.0)
+		s[i] = string * 0.6 + knock * 0.5 + y * exp(-t * 40.0) * 0.4
 	return _wav(s)
 
 func stream(name: String) -> AudioStream:

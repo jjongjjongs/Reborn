@@ -377,6 +377,8 @@ func _shoot(w: Dictionary) -> void:
 		_flame(w); return
 	if w.get("nail", false):
 		_nail(w); return
+	if w.get("bolt", false):
+		_bolt(w); return
 	Sfx.play("dbarrel" if w.get("big_flash", false) else "shot", -1.0 if w.get("big_flash", false) else -3.0)
 	Controls.shots += 1
 	BotPlayer.noise(global_position, self)
@@ -585,6 +587,23 @@ func _nail(w: Dictionary) -> void:
 	FxCos.pop(sc, mz, Color(1.0, 0.9, 0.6), 0.35, 0.05)
 	if any:
 		Fx.hitmarker(); Sfx.play("hit", -8.0)
+
+## explosive crossbow: the bolt leaves the bow toward what the crosshair is on (the camera ray), flies on its own
+func _bolt(w: Dictionary) -> void:
+	Sfx.play("twang", -1.0)
+	Controls.shots += 1
+	if _soldier: _soldier.shoot()
+	aim_pitch = clampf(aim_pitch + float(w["kick"]), -45.0, 45.0)
+	var cam := get_viewport().get_camera_3d()
+	if cam == null: return
+	var fwd := -cam.global_transform.basis.z
+	var q := PhysicsRayQueryParameters3D.create(cam.global_position, cam.global_position + fwd * 80.0); q.exclude = [get_rid()]
+	var h := get_world_3d().direct_space_state.intersect_ray(q)
+	var aim: Vector3 = h["position"] if h else cam.global_position + fwd * 80.0
+	var mz: Vector3 = ViewModel.muzzle if (Controls.view_fp and ViewModel.active and scope_k < 0.5) else _muzzle.global_position
+	var bd := (aim - mz + Vector3(0, mz.distance_to(aim) * 0.07, 0)).normalized()
+	var b := XbowBolt.fire(get_tree().current_scene, mz + bd * 0.5, bd, self)       # starts past the bow (no giant fletching on screen)
+	b.radius = float(w["radius"]); b.dmg_max = float(w["dmg"][0]); b.dmg_min = float(w["dmg"][1])
 
 static var _nail_mesh: CylinderMesh
 static func _nail_m() -> CylinderMesh:

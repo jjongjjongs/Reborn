@@ -11,7 +11,7 @@ class_name Weapons
 const ORDER_PRIMARY := ["ak", "m4", "mp5", "shotgun", "sniper", "rpk"]
 const ORDER_SECONDARY := ["pistol", "revolver"]
 const ORDER_MELEE := ["knife"]
-const ORDER_ZOMBIE := ["dbarrel", "flamer", "nailgun", "axe"]       # shop items "zw_<id>", wave survival only
+const ORDER_ZOMBIE := ["dbarrel", "flamer", "xbow", "nailgun", "axe"]       # shop items "zw_<id>", wave survival only
 const SLOT_NAMES := ["주무기", "보조", "근접"]
 
 const W := {
@@ -53,6 +53,9 @@ const W := {
 	"nailgun": {"name": "네일건", "cls": "특수", "slot": 1, "zombie": true, "nail": true, "pierce": 2, "dmg": [16, 20], "rpm": 540, "auto": true,
 		"mag": 40, "reload": 2.0, "spread": [1.2, 3.5], "bloom": 0.35, "kick": 0.5, "speed": 1.0,
 		"desc": "빠른 연사. 못이 좀비 2마리까지 관통하고 몸에 박힘.", "bars": [4, 9, 6, 2, 1, 7]},
+	"xbow": {"name": "폭발 석궁", "cls": "특수", "slot": 0, "zombie": true, "bolt": true, "dmg": [140, 35], "rpm": 60, "auto": false,
+		"mag": 1, "reload": 1.4, "spread": [0.4, 1.0], "bloom": 0.0, "kick": 1.5, "speed": 0.95, "radius": 3.0,
+		"desc": "박힌 뒤 0.5초 후 폭발. 반경 3m 범위 피해 + 날려버림.", "bars": [10, 1, 9, 3, 5, 0]},
 	# a heavy two-handed swing, hits land at `hit_at` s into the swing
 	"axe": {"name": "소방 도끼", "cls": "근접", "slot": 2, "melee": true, "zombie": true, "dmg": [90, 90], "back": 90,
 		"interval": 0.8, "range": 2.6, "arc": 50.0, "hits": 2, "hit_at": 0.25, "knock": 4.5, "speed": 1.0, "mag": 0,
