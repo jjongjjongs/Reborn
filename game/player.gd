@@ -107,6 +107,7 @@ func hit(dmg: int, _is_head: bool = false, attacker = null) -> void:
 	Controls.vibrate(120)
 	if Controls.hp <= 0:
 		alive = false
+		Controls.scoped = false; _auto_scope = false; _was_scoped = false; scope_k = 0.0      # dead: the scope comes off at once (spectating / respawn)
 		_cancel_nade()
 		if _soldier: _soldier.set_dead(true)
 		Sfx.play("die")
