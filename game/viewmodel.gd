@@ -27,11 +27,11 @@ const POSE := {
 }
 ## axe swing on screen (camera space): s, grip, haft pitch / yaw / roll (deg) - like Soldier.AXE_KEYS
 const AXE_FP := [
-	[0.00, Vector3(0.24, -0.36, -0.58), 58.0, 10.0, -20.0],     # ready: shaft up the right side, head top right
-	[0.20, Vector3(0.34, -0.14, -0.50), 118.0, -10.0, -30.0],   # wind-up: head swung up and back, top right
-	[0.36, Vector3(0.06, -0.28, -0.66), 6.0, 28.0, -45.0],      # impact: head through the crosshair
-	[0.56, Vector3(-0.16, -0.48, -0.58), -48.0, 52.0, -45.0],   # follow-through low left
-	[1.00, Vector3(0.24, -0.36, -0.58), 58.0, 10.0, -20.0],
+	[0.00, Vector3(0.17, -0.42, -0.60), 40.0, 14.0, -16.0],      # ready: fist low right, head up in the top-right corner
+	[0.22, Vector3(0.36, -0.06, -0.42), 128.0, -24.0, 10.0],    # wind-up: arm cocked up-right, head tipped back over the shoulder
+	[0.36, Vector3(0.04, -0.24, -0.66), 4.0, 30.0, -42.0],      # impact: diagonal slash, head through the crosshair
+	[0.56, Vector3(-0.22, -0.50, -0.55), -56.0, 60.0, -48.0],   # follow-through out the bottom-left
+	[1.00, Vector3(0.17, -0.42, -0.60), 40.0, 14.0, -16.0],
 ]
 
 var player: PlayerBody
@@ -205,7 +205,7 @@ func _process(dt: float) -> void:
 	if _kind == "long": hl = _holder.transform * _anchor("fore") + bas * Vector3(0, -0.035, 0)   # under the handguard
 	elif _kind == "pistol": hl = hr + bas * Vector3(-0.03, -0.012, -0.012) * S                       # support hand wraps the strong hand
 	else: hl = pose["sl"]
-	if (_kind == "long" and bool(_wdef.get("vfore", false))) or _kind == "axe":
+	if _kind == "long" and bool(_wdef.get("vfore", false)):
 		hl = _holder.transform * _anchor("fore")
 	# the body's arms: put its shoulders below the frame (right one behind the grip, left one under the
 	# support hand, a little turned like a bladed stance) and let its own hand IK take the grips
