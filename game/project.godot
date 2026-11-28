@@ -4,11 +4,12 @@ config_version=5
 [application]
 
 config/name="Mini Soldier"
-config/version="12.8"
-config/build_code=129
+config/version="12.9"
+config/build_code=130
 run/main_scene="res://Menu.tscn"
 config/icon="res://icons/icon_512.png"
 config/quit_on_go_back=false
+run/max_fps=60
 config/features=PackedStringArray("4.3", "GL Compatibility")
 
 [autoload]
@@ -37,3 +38,5 @@ pointing/emulate_touch_from_mouse=true
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 textures/vram_compression/import_etc2_astc=true
+lights_and_shadows/directional_shadow/size.mobile=2048
+mesh_lod/lod_change/threshold_pixels=3.0

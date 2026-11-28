@@ -134,7 +134,9 @@ func setup(team_color: Color, kit: Color = Color(0, 0, 0, 0)) -> void:
 		elif n is MeshInstance3D: _team_tint(n)
 	if lod:          # bots: the 21-part body casts no shadow; one capsule draws it instead (draw calls on phones)
 		for n in _all(swat):
-			if n is MeshInstance3D: (n as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			if n is MeshInstance3D:
+				_bake_one(n)
+				(n as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_shadow_proxy = MeshInstance3D.new(); var cm := CapsuleMesh.new(); cm.radius = 0.28; cm.height = 1.5; cm.radial_segments = 8; cm.rings = 2
 		_shadow_proxy.mesh = cm; _shadow_proxy.position = Vector3(0, 0.78, 0)
 		_shadow_proxy.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY; add_child(_shadow_proxy)
@@ -453,6 +455,11 @@ func set_weapon(id: String) -> void:
 	m.position = -(Basis(Vector3.UP, PI * 0.5) * (a.get_center() * sc))
 	_gun.add_child(m)
 	_wmodel = m
+	if lod:                                             # bots: a lighter gun (~1/3 of up to 19k triangles), no shadow of its own
+		for g in m.find_children("*", "MeshInstance3D", true, false):
+			var gm := g as MeshInstance3D
+			gm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			if gm.skin == null and gm.mesh: gm.mesh = _coarse(gm.mesh, 0.34)
 	if is_instance_valid(_wfx_node): _wfx_node.queue_free()
 	if wfx != "" and wfx != "wfx_none": _wfx_node = FxCos.weapon_fx(wfx, _gun, L, 1.8)
 	if cosmetic: Profile.apply_finish(m, "", id)
@@ -795,7 +802,8 @@ func set_outline(col: Color, width := 0.014, _through_walls := false) -> void:
 		var x := ShaderMaterial.new(); x.shader = _xray_sh; x.set_shader_parameter("col", Color(col.r, col.g, col.b, 0.45))
 		x.render_priority = 10
 		if _xray_on: m.next_pass = x
-		var merged := _hull_mesh(g.mesh) if g.skin != null and g.mesh.get_surface_count() > 1 else null
+		# baked bot body: already one surface -> the overlay is one extra draw of the very same mesh / LOD
+		var merged := _hull_mesh(g.mesh) if g.skin != null and g.mesh.get_surface_count() > 1 and not _hull_src.has(g.mesh) else null
 		if merged:
 			if hull == null:
 				hull = MeshInstance3D.new(); hull.name = "OutlineHull"; hull.mesh = merged; hull.skin = g.skin
@@ -806,6 +814,79 @@ func set_outline(col: Color, width := 0.014, _through_walls := false) -> void:
 			g.material_overlay = m
 		_xray_mats.append([m, x])
 
+## bots: the body's ~21 flat-colour parts baked into one vertex-coloured surface (1 draw call, not 21).
+## colour = the part's vertex colour (AO) x its final albedo (skin / team already applied); cached per look
+static var bake_bots := true
+static var BOT_TRI_RATIO := 0.5
+static var _bake_cache := {}
+static var _bake_mat: StandardMaterial3D
+func _bake_one(mi: MeshInstance3D) -> void:
+	var src := mi.mesh
+	if not bake_bots or src == null or src.get_surface_count() < 2 or mi.skin == null: return
+	var cols := []
+	for si in src.get_surface_count():
+		var m := mi.get_active_material(si) as StandardMaterial3D
+		if m == null or m.albedo_texture != null or m.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED: return
+		cols.append(m.albedo_color.srgb_to_linear())
+	var key := "%d|%s" % [src.get_rid().get_id(), str(cols)]
+	if not _bake_cache.has(key):
+		var V := PackedVector3Array(); var N := PackedVector3Array(); var Cc := PackedColorArray(); var Bn := PackedInt32Array(); var Wt := PackedFloat32Array(); var I := PackedInt32Array()
+		var fl := -1
+		for si in src.get_surface_count():
+			var a := src.surface_get_arrays(si)
+			var f := int(src.surface_get_format(si)) & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS
+			if fl == -1: fl = f
+			if f != fl or a[Mesh.ARRAY_BONES] == null or a[Mesh.ARRAY_INDEX] == null: return
+			var base := V.size(); var c: Color = cols[si]
+			var vv: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+			V.append_array(vv); N.append_array(a[Mesh.ARRAY_NORMAL]); Bn.append_array(a[Mesh.ARRAY_BONES]); Wt.append_array(a[Mesh.ARRAY_WEIGHTS])
+			var vc = a[Mesh.ARRAY_COLOR]
+			if vc == null:
+				var cs := c.linear_to_srgb()
+				for k in vv.size(): Cc.append(cs)
+			else:
+				for k in vv.size():                    # the renderer decodes vertex colours as sRGB: multiply in linear, store sRGB
+					var q: Color = (vc[k] as Color).srgb_to_linear(); Cc.append(Color(q.r * c.r, q.g * c.g, q.b * c.b).linear_to_srgb())
+			for k in (a[Mesh.ARRAY_INDEX] as PackedInt32Array): I.append(k + base)
+		var arr := []; arr.resize(Mesh.ARRAY_MAX)
+		arr[Mesh.ARRAY_VERTEX] = V; arr[Mesh.ARRAY_NORMAL] = N; arr[Mesh.ARRAY_COLOR] = Cc; arr[Mesh.ARRAY_BONES] = Bn; arr[Mesh.ARRAY_WEIGHTS] = Wt; arr[Mesh.ARRAY_INDEX] = I
+		var im := ImporterMesh.new(); im.add_surface(Mesh.PRIMITIVE_TRIANGLES, arr, [], {}, null, "", fl)
+		im.generate_lods(25.0, 60.0, [])
+		for li in im.get_surface_lod_count(0):           # bots start from about half the triangles (outline doubles them)
+			var idx := im.get_surface_lod_indices(0, li)
+			if idx.size() <= I.size() * BOT_TRI_RATIO: arr[Mesh.ARRAY_INDEX] = idx; break
+		im = ImporterMesh.new(); im.add_surface(Mesh.PRIMITIVE_TRIANGLES, arr, [], {}, null, "", fl)
+		im.generate_lods(25.0, 60.0, [])                 # far bots draw fewer still
+		_bake_cache[key] = im.get_mesh()
+	if _bake_mat == null:
+		_bake_mat = StandardMaterial3D.new(); _bake_mat.vertex_color_use_as_albedo = true; _bake_mat.roughness = 0.7
+	var am: ArrayMesh = _bake_cache[key]
+	if am.get_surface_count() == 0: return
+	_hull_src[am] = src                                   # the outline hull is still built from the original parts
+	for si in src.get_surface_count(): mi.set_surface_override_material(si, null)
+	mi.mesh = am
+	mi.material_override = _bake_mat
+
+static var _hull_src := {}
+static var _coarse_cache := {}
+## a static mesh with every surface cut to about `ratio` of its triangles (its own LODs below that)
+static func _coarse(src: Mesh, ratio: float) -> Mesh:
+	if _coarse_cache.has(src): return _coarse_cache[src]
+	var im := ImporterMesh.new()
+	for si in src.get_surface_count():
+		var arr := src.surface_get_arrays(si)
+		if arr[Mesh.ARRAY_INDEX] == null: _coarse_cache[src] = src; return src
+		var tmp := ImporterMesh.new(); tmp.add_surface(Mesh.PRIMITIVE_TRIANGLES, arr)
+		tmp.generate_lods(25.0, 60.0, [])
+		var n0 := (arr[Mesh.ARRAY_INDEX] as PackedInt32Array).size()
+		for li in tmp.get_surface_lod_count(0):
+			var idx := tmp.get_surface_lod_indices(0, li)
+			if idx.size() <= n0 * ratio: arr[Mesh.ARRAY_INDEX] = idx; break
+		im.add_surface(Mesh.PRIMITIVE_TRIANGLES, arr, [], {}, src.surface_get_material(si))
+	im.generate_lods(25.0, 60.0, [])
+	var out := im.get_mesh()
+	_coarse_cache[src] = out
+	return out
 ## every surface of a skinned body in one surface (positions, normals, bones, weights): the outline hull
 static func _hull_mesh(src: Mesh) -> ArrayMesh:
 	if _hull_cache.has(src): return _hull_cache[src]
@@ -822,7 +903,9 @@ static func _hull_mesh(src: Mesh) -> ArrayMesh:
 		for k in (a[Mesh.ARRAY_INDEX] as PackedInt32Array): I.append(k + base)
 	var arr := []; arr.resize(Mesh.ARRAY_MAX)
 	arr[Mesh.ARRAY_VERTEX] = V; arr[Mesh.ARRAY_NORMAL] = N; arr[Mesh.ARRAY_BONES] = Bn; arr[Mesh.ARRAY_WEIGHTS] = Wt; arr[Mesh.ARRAY_INDEX] = I
-	var am := ArrayMesh.new(); am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr, [], {}, fl)
+	var im := ImporterMesh.new(); im.add_surface(Mesh.PRIMITIVE_TRIANGLES, arr, [], {}, null, "", fl)
+	im.generate_lods(25.0, 60.0, [])          # full detail up close (a coarse hull pokes through as lines), lighter far away
+	var am := im.get_mesh()
 	_hull_cache[src] = am
 	return am
 

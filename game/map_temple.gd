@@ -9,6 +9,7 @@ func build_temple() -> Dictionary:
 	var d: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/maps/temple.json"))
 	_hw = 70.0; _hh = 60.0; _bx = _hw; _bz = _hh
 	_env(Color(0.62, 0.74, 0.88), Color(0.78, 0.80, 0.80), 1.0, Vector3(-50, -40, 0), Color(1.0, 0.95, 0.86), 1.25, Color(0.72, 0.80, 0.84), 0.004)
+	for l in root.find_children("*", "DirectionalLight3D", false, false): (l as DirectionalLight3D).directional_shadow_max_distance = 32.0   # big open valley: shadows near the player only
 	var model: Node3D = (load("res://assets/maps/temple.gltf") as PackedScene).instantiate()
 	nav.add_child(model)
 	_batch_trees(model)
@@ -19,7 +20,8 @@ func build_temple() -> Dictionary:
 			m.create_trimesh_collision()
 		else:
 			m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if nm.begins_with("Vis_Steps") or nm.begins_with("Vis_Water") else m.cast_shadow
-		if nm.begins_with("Col_Terrain") or nm.begins_with("Col_Walls"):      # baked colour lives in the vertex colours
+		if nm.begins_with("Col_Terrain"): m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF   # 16 chunks of ground: walls / buildings cast the shadows that matter
+		if nm.begins_with("Col_Terrain") or nm.begins_with("Col_Walls") or nm.begins_with("Col_Buildings"):      # baked colour lives in the vertex colours
 			for si in m.mesh.get_surface_count():
 				var sm := m.mesh.surface_get_material(si) as StandardMaterial3D
 				if sm: var dm := sm.duplicate() as StandardMaterial3D; dm.vertex_color_use_as_albedo = true; dm.albedo_color = Color.WHITE; m.set_surface_override_material(si, dm)

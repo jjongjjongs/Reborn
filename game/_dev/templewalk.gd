@@ -38,6 +38,7 @@ func _run() -> void:
 	sc.state = "live"; pl.frozen = false
 	for i in 10: await process_frame
 	for i in 420: await physics_frame        # prep ends and the round start moves everyone first
+	await _walk("ridge", [Vector2(22, 47), Vector2(50, 32), Vector2(57, 12), Vector2(55, -9)], 7.2)
 	await _walk("manseru", [Vector2(30, 3), Vector2(30, -14)], 7.2)
 	await _walk("main", [Vector2(2, 48), Vector2(-6, 42), Vector2(-6, 30), Vector2(12, 12), Vector2(14, 1.5), Vector2(30, 0), Vector2(30, -14), Vector2(29, -18)], 7.2)
 	_shot("a_yard")
@@ -60,5 +61,4 @@ func _run() -> void:
 	pl.aim_yaw += 160.0; pl.aim_pitch = -12.0
 	for i in 20: await process_frame
 	_shot("deck")
-	await _walk("ridge", [Vector2(22, 47), Vector2(50, 32), Vector2(57, 12), Vector2(55, -9)], 7.2)
 	quit()

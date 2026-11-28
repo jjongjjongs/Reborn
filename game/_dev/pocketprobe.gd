@@ -1,6 +1,6 @@
 extends SceneTree
 ## for each point: per direction, what blocks a capsule step and the floor height 1.5 m away
-const PTS := [Vector3(13.55, 3.33, 7.96), Vector3(-10.5, 2.4, -23.0)]
+const PTS := [Vector3(48.8, 1.15, 32.6)]
 func _initialize() -> void: _run()
 func _run() -> void:
 	await process_frame
